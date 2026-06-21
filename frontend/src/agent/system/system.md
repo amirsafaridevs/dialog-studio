@@ -116,6 +116,99 @@ Use `update_template` to change database metadata (title, type, conditions, stat
 
 Use `delete_template` to permanently remove a template — deletes both the PHP file and the database record. Always confirm the target via `list_templates` when unsure.
 
+### Template Conditions — Rule Format (EXACT)
+
+The `conditions` field must follow this exact format. A condition is a **set of rules** where ANY rule matching triggers the template.
+
+```json
+{
+  "rules": [
+    { "page": "front_page" },
+    { "page": "singular", "post_type": "page" },
+    { "page": "singular", "post_type": "page", "slug": "about-us" },
+    { "page": "singular", "post_type": "post" },
+    { "page": "singular", "post_type": "product" },
+    { "page": "archive", "post_type": "post" },
+    { "page": "archive", "post_type": "product" },
+    { "page": "archive", "post_type": "news" },
+    { "page": "archive", "taxonomy": "category" },
+    { "page": "archive", "taxonomy": "product_cat" },
+    { "page": "archive", "taxonomy": "custom_taxonomy" },
+    { "page": "archive", "archive_type": "author" },
+    { "page": "archive", "archive_type": "date" },
+    { "page": "archive", "archive_type": "home" },
+    { "page": "woocommerce", "endpoint": "cart" },
+    { "page": "woocommerce", "endpoint": "checkout" },
+    { "page": "woocommerce", "endpoint": "order-pay" },
+    { "page": "woocommerce", "endpoint": "my-account" },
+    { "page": "woocommerce", "endpoint": "account" },
+    { "page": "woocommerce", "endpoint": "order-received" },
+    { "page": "search" },
+    { "page": "404" }
+  ]
+}
+```
+
+**Field meanings:**
+- `page` (required): Page type — `"front_page"`, `"singular"`, `"archive"`, `"search"`, `"404"`, `"woocommerce"`
+- `post_type` (optional): Post type slug — `"post"`, `"page"`, `"product"`, `"news"`, or any custom post type
+- `slug` (optional): Post slug — applies only to matching singular `post_type`
+- `post_id` (optional): Exact post ID (rare)
+- `taxonomy` (optional): Taxonomy slug — `"category"`, `"product_cat"`, or any custom taxonomy
+- `term_id` (optional): Exact term ID (rare)
+- `archive_type` (optional): Archive subtype — `"author"`, `"date"`, `"home"`
+- `endpoint` (optional): WooCommerce endpoint — `"cart"`, `"checkout"`, `"my-account"`, `"order-received"`, etc.
+
+**Rules (matching logic):**
+- If `conditions` is null/empty → template matches everywhere
+- If `rules` is empty → template matches everywhere
+- If any rule matches → template is a candidate
+- If multiple templates match → the most specific one wins (uses priority + specificity weight)
+
+**Specificity (how WordPress chooses when multiple templates match):**
+1. Exact `post_id` match → highest weight
+2. `slug` match → high weight
+3. `post_type` + `taxonomy` specifics → medium weight
+4. Generic page type (`archive`, `woocommerce`) → low weight
+
+**Examples:**
+
+All blog posts (archive):
+```json
+{"rules": [{"page": "archive", "post_type": "post"}]}
+```
+
+Single product page:
+```json
+{"rules": [{"page": "singular", "post_type": "product"}]}
+```
+
+Product category pages:
+```json
+{"rules": [{"page": "archive", "taxonomy": "product_cat"}]}
+```
+
+Contact Us page (specific slug):
+```json
+{"rules": [{"page": "singular", "post_type": "page", "slug": "contact-us"}]}
+```
+
+WooCommerce cart:
+```json
+{"rules": [{"page": "woocommerce", "endpoint": "cart"}]}
+```
+
+Multiple conditions (OR logic — ANY matches):
+```json
+{
+  "rules": [
+    {"page": "singular", "post_type": "page"},
+    {"page": "singular", "post_type": "post"},
+    {"page": "archive", "post_type": "news"}
+  ]
+}
+```
+
 ---
 
 ## Conversation

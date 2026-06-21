@@ -252,7 +252,7 @@ const TEMPLATE_WRITE_TOOLS = [
           conditions: {
             type: 'object',
             description:
-              'Display rules, e.g. { "rules": [{ "type": "singular", "post_type": "page", "post_id": 42 }, { "type": "url", "pattern": "/shop/*" }, { "type": "woocommerce", "endpoint": "orders" }] }',
+              'Display rules (must use "rules" wrapper): { "rules": [{"page":"front_page"}, {"page":"singular","post_type":"page"}, {"page":"singular","post_type":"product"}, {"page":"archive","post_type":"post"}, {"page":"archive","taxonomy":"category"}, {"page":"woocommerce","endpoint":"cart"}, {"page":"search"}, {"page":"404"}] }. See system prompt for full examples.',
           },
           status: { type: 'string', enum: ['active', 'draft', 'inactive'], default: 'active' },
           meta: { type: 'object', description: 'Optional extra metadata' },
@@ -281,7 +281,7 @@ const TEMPLATE_WRITE_TOOLS = [
           includes_header: { type: 'boolean' },
           includes_footer: { type: 'boolean' },
           priority: { type: 'integer' },
-          conditions: { type: 'object' },
+          conditions: { type: 'object', description: 'Display rules with "rules" wrapper: {"rules": [...]}. See create_template description for examples.' },
           status: { type: 'string', enum: ['active', 'draft', 'inactive'] },
           meta: { type: 'object' },
         },

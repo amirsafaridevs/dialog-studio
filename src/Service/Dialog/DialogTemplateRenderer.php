@@ -20,6 +20,8 @@ class DialogTemplateRenderer
 
     private bool $footerRendered = false;
 
+    private bool $templatesResolved = false;
+
     private static ?string $activeContentTemplate = null;
 
     public function __construct( ?DialogTemplateService $templates = null )
@@ -198,18 +200,20 @@ class DialogTemplateRenderer
 
     private function resolveActiveTemplates(): void
     {
-        if ( $this->activePageTemplate !== null || $this->activeHeaderTemplate !== null || $this->activeFooterTemplate !== null ) {
+        if ( $this->templatesResolved ) {
             return;
         }
 
+        $this->templatesResolved = true;
+
         $pageTypes = [
             Template::TYPE_CANVAS,
-            Template::TYPE_SINGULAR,
-            Template::TYPE_ARCHIVE,
             Template::TYPE_FRONT_PAGE,
+            Template::TYPE_SINGULAR,
+            Template::TYPE_WOOCOMMERCE,
+            Template::TYPE_ARCHIVE,
             Template::TYPE_SEARCH,
             Template::TYPE_404,
-            Template::TYPE_WOOCOMMERCE,
         ];
 
         foreach ( $pageTypes as $type ) {

@@ -201,13 +201,19 @@ class DialogTemplateService
 
     public function findMatchingTemplate( string $type ): ?Template
     {
+        $best_match = null;
+        $best_specificity = -1;
+
         foreach ( $this->repository->findByType( $type ) as $template ) {
-            if ( $this->matcher->matches( $template->conditions ) ) {
-                return $template;
+            $result = $this->matcher->findBestMatch( $template->conditions );
+
+            if ( $result['matched'] && $result['specificity'] > $best_specificity ) {
+                $best_match = $template;
+                $best_specificity = $result['specificity'];
             }
         }
 
-        return null;
+        return $best_match;
     }
 
     public function getTemplateAbsolutePath( Template $template ): string
