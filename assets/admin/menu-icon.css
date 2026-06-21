@@ -1,0 +1,14 @@
+#adminmenu #toplevel_page_dtm-chat .wp-menu-image img {
+	width: 20px;
+	height: 20px;
+	padding: 7px 0;
+	opacity: 1 !important;
+	filter: none !important;
+}
+
+#adminmenu #toplevel_page_dtm-chat:hover .wp-menu-image img,
+#adminmenu #toplevel_page_dtm-chat.wp-has-current-submenu .wp-menu-image img,
+#adminmenu #toplevel_page_dtm-chat.current .wp-menu-image img {
+	opacity: 1 !important;
+	filter: none !important;
+}

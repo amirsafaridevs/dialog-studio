@@ -1,0 +1,25 @@
+{
+    "name": "dialog/theme-maker",
+    "description": "wordpress theme builder.",
+    "autoload": {
+        "psr-4": {
+            "DialogStudio\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Amir safari",
+            "email": "amir.safari.dev@gmail.com"
+        }
+    ],
+    "type": "wordpress-plugin",
+    "license": "MIT",
+    "require": {
+        "nikic/php-parser": "5.0",
+        "sabberworm/php-css-parser": "^9.3",
+        "mck89/peast": "^1.17"
+    },
+    "config": {
+        "autoloader-suffix": "DialogStudio"
+    }
+}
