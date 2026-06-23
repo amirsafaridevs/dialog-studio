@@ -5,31 +5,23 @@ declare(strict_types=1);
 namespace DialogStudio\Service\Dialog;
 
 /**
- * Paths for the Dialog workspace under wp-content/dialog.
+ * Paths for the Dialog workspace — resolves to the active (managed) child theme directory.
  */
 final class DialogPath
 {
-    public const WORKSPACE_DIR = 'dialog';
-
-    public const ASSETS_DIR = 'assets';
-
-    public const MODULES_DIR = 'modules';
-
-    public const TEMPLATES_DIR = 'templates';
-
     public static function root(): string
     {
-        return wp_normalize_path( WP_CONTENT_DIR . '/' . self::WORKSPACE_DIR );
+        return wp_normalize_path( get_stylesheet_directory() );
     }
 
     public static function url(): string
     {
-        return content_url( self::WORKSPACE_DIR );
+        return get_stylesheet_directory_uri();
     }
 
     public static function assets( string $scope = '' ): string
     {
-        $path = self::root() . '/' . self::ASSETS_DIR;
+        $path = self::root() . '/assets';
 
         if ( $scope !== '' ) {
             $path .= '/' . ltrim( $scope, '/' );
@@ -40,29 +32,22 @@ final class DialogPath
 
     public static function modules(): string
     {
-        return wp_normalize_path( self::root() . '/' . self::MODULES_DIR );
-    }
-
-    public static function templates(): string
-    {
-        return wp_normalize_path( self::root() . '/' . self::TEMPLATES_DIR );
+        return wp_normalize_path( self::root() . '/inc' );
     }
 
     public static function relativeRoot(): string
     {
-        return 'wp-content/' . self::WORKSPACE_DIR;
+        $stylesheet = get_option( 'stylesheet', '' );
+        return 'wp-content/themes/' . (string) $stylesheet;
     }
 
     public static function resolve( string $relative ): string
     {
         $relative = ltrim( str_replace( '\\', '/', $relative ), '/' );
+        $rel_root = self::relativeRoot() . '/';
 
-        if ( str_starts_with( $relative, self::relativeRoot() . '/' ) ) {
-            $relative = substr( $relative, strlen( self::relativeRoot() ) + 1 );
-        }
-
-        if ( str_starts_with( $relative, self::WORKSPACE_DIR . '/' ) ) {
-            $relative = substr( $relative, strlen( self::WORKSPACE_DIR ) + 1 );
+        if ( str_starts_with( $relative, $rel_root ) ) {
+            $relative = substr( $relative, strlen( $rel_root ) );
         }
 
         return wp_normalize_path( self::root() . '/' . $relative );
@@ -86,12 +71,10 @@ final class DialogPath
     public static function assetSubdirectories(): array
     {
         return [
-            'admin/css',
-            'admin/js',
-            'admin/img',
             'front/css',
             'front/js',
-            'front/img',
+            'admin/css',
+            'admin/js',
         ];
     }
 }

@@ -7,11 +7,11 @@ import { isAbortError } from '../../utils/abortSignal.js';
 export const fileSystemTools = [
   {
     name: 'read_file',
-    description: 'Read files in wp-content/dialog, plugins, or core. Never read wp-content/themes/',
+    description: 'Read workspace (child theme) files, plugins, or core. Use workspace-relative paths for child theme files.',
     schema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: 'WordPress-relative or wp-content/dialog-relative file path' },
+        path: { type: 'string', description: 'Workspace-relative or WordPress-relative file path' },
         start_line: { type: 'integer', description: 'Optional first line (1-indexed)' },
         end_line: { type: 'integer', description: 'Optional last line (1-indexed, inclusive)' },
       },
@@ -20,11 +20,11 @@ export const fileSystemTools = [
   },
   {
     name: 'edit_file',
-    description: 'Replace a line range in an existing wp-content/dialog file (not templates/ — use update_template)',
+    description: 'Replace a line range in an existing workspace (child theme) file.',
     schema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: 'File path relative to wp-content/dialog' },
+        path: { type: 'string', description: 'File path relative to workspace root' },
         start_line: { type: 'integer', description: 'First line to replace (1-indexed)' },
         end_line: { type: 'integer', description: 'Last line to replace (1-indexed)' },
         content: { type: 'string', description: 'Replacement text (empty to delete range)' },
@@ -34,11 +34,11 @@ export const fileSystemTools = [
   },
   {
     name: 'write_file', 
-    description: 'Write content to wp-content/dialog (assets/ or modules/ only)',
+    description: 'Create or overwrite a file in the workspace (child theme).',
     schema: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: 'File path relative to wp-content/dialog' },
+        path: { type: 'string', description: 'File path relative to workspace root' },
         content: { type: 'string', description: 'File content' },
         mode: { type: 'string', enum: ['create', 'overwrite'], default: 'create' }
       },
@@ -47,12 +47,12 @@ export const fileSystemTools = [
   },
   {
     name: 'search_files',
-    description: 'Search files by name (default: wp-content/dialog)',
+    description: 'Search files by name. Omit directory to search workspace (child theme).',
     schema: {
-      type: 'object', 
+      type: 'object',
       properties: {
         keywords: { type: 'array', items: { type: 'string' } },
-        directory: { type: 'string', description: 'Directory to search (default wp-content/dialog)' },
+        directory: { type: 'string', description: 'Directory to search. Omit for workspace.' },
         operator: { type: 'string', enum: ['AND', 'OR'], default: 'AND' }
       },
       required: ['keywords']
@@ -60,7 +60,7 @@ export const fileSystemTools = [
   },
   {
     name: 'search_content',
-    description: 'Search text content in files (default: wp-content/dialog)',
+    description: 'Search text content in files. Omit path to search workspace (child theme).',
     schema: {
       type: 'object',
       properties: {

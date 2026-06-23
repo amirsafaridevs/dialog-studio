@@ -544,7 +544,9 @@ function normalizeIndexedPath(path = '') {
   }
 
   let normalized = path.replace(/\\/g, '/').trim().replace(/^\/+/, '');
+  // Strip both old wp-content/dialog/ prefix and new wp-content/themes/{slug}/ prefix
   normalized = normalized.replace(/^wp-content\/dialog\/?/i, '');
+  normalized = normalized.replace(/^wp-content\/themes\/[^/]+\/?/i, '');
   normalized = normalized.replace(/^dialog\/?/i, '');
   return normalized || null;
 }
@@ -611,10 +613,15 @@ function isDialogThemeScope(path) {
   }
 
   return (
-    normalized.includes('wp-content/dialog') ||
-    normalized.includes('dialog/assets')
-    || normalized.startsWith('assets/')
-    || !normalized.includes('wp-content/')
+    normalized.startsWith('assets/')
+    || normalized.startsWith('inc/')
+    || normalized.startsWith('template-parts/')
+    || normalized === 'style.css'
+    || normalized === 'functions.php'
+    || normalized === 'index.php'
+    || normalized === 'header.php'
+    || normalized === 'footer.php'
+    || (!normalized.includes('wp-content/') && !normalized.includes('wp-includes') && !normalized.includes('wp-admin'))
   );
 }
 
@@ -685,8 +692,8 @@ export function buildCodeIndexBlock(codeIndex) {
   }
 
   const lines = [
-    'Dialog code index (preloaded every message — paths under wp-content/dialog are authoritative; read_file directly, do not search wp-content/themes):',
-    'Layout: templates/ (via create_template), assets/front|admin/{css,js,img}, modules/*.php',
+    'Dialog code index (preloaded every message — paths are workspace-relative; read_file directly using these paths):',
+    'Layout: style.css, functions.php, assets/front|admin/{css,js,img}, inc/*.php, template-parts/',
   ];
 
   const templates = [];
@@ -798,27 +805,33 @@ export function buildThemeContextBlock(themeContext) {
     return '';
   }
 
-  const active = themeContext.active_theme || {};
-  const workspace = themeContext.dialog_workspace || themeContext.dialog_theme || {};
+  const activeSlug = themeContext.active_slug || themeContext.active_theme?.slug || '';
+  const activeName = themeContext.active_name || themeContext.active_theme?.name || activeSlug || 'unknown';
+  const workspaceRelative = activeSlug ? `wp-content/themes/${activeSlug}` : '';
   const codeIndexBlock = buildCodeIndexBlock(themeContext.code_index);
 
   return [
     'Session workspace context (already loaded — do not call check_theme unless the user explicitly asks):',
-    `- Dialog workspace: wp-content/dialog`,
+    workspaceRelative
+      ? `- Workspace (child theme): ${workspaceRelative}`
+      : '- Workspace: child theme (call check_theme to find path)',
     `- Workspace ready: ${themeContext.ready ? 'yes' : 'no'}`,
-    `- Active WordPress theme: ${active.name || 'unknown'} (${active.slug || 'n/a'}) — Dialog does not modify theme files`,
-    workspace.path ? `- Workspace path: ${workspace.path}` : '',
+    `- Active WordPress theme: ${activeName} (${activeSlug || 'n/a'})`,
     '',
     'Path rules (critical):',
     '- NEVER use absolute filesystem paths (no C:/ or /var/...).',
     '- read_file and search_* can access any file under the WordPress install.',
     '- search_content is for unknown locations only. If the index or user selection already names the file, read_file it directly (use start_line/end_line for large CSS). One search batch per topic — never repeat with similar keywords.',
-    '- Examples: plugins/my-plugin/main.php, wp-content/dialog/assets/front/css/main.css, wp-includes/formatting.php, wp-config.php',
-    '- write_file/edit_file paths are relative to wp-content/dialog (e.g. assets/front/css/main.css, modules/shop.php).',
-    '- Templates live in wp-content/dialog/templates/ but MUST be created/updated only via create_template / update_template — never write_file directly into templates/.',
-    '- Modules: PHP files in modules/ (auto-loaded like mini-plugins).',
+    workspaceRelative
+      ? `- Examples: plugins/my-plugin/main.php, ${workspaceRelative}/assets/front/css/main.css, wp-includes/formatting.php`
+      : '- Examples: plugins/my-plugin/main.php, wp-content/themes/{slug}/style.css, wp-includes/formatting.php',
+    workspaceRelative
+      ? `- write_file/edit_file paths are relative to the workspace root (e.g. assets/front/css/main.css, inc/my-module.php).`
+      : '- write_file/edit_file paths are relative to the workspace root.',
     '- Assets: assets/admin/{css,js,img} and assets/front/{css,js,img} (auto-enqueued on site).',
+    '- PHP extensions: inc/*.php files (auto-loaded like mini-plugins).',
     '- read_file returns line_count (editor-style; trailing newline is not an extra line). Use it for edit_file ranges.',
+    '- search_files with no directory defaults to the workspace root. For plugins use directory: wp-content/plugins.',
     codeIndexBlock ? `\n${codeIndexBlock}` : '',
   ]
     .filter(Boolean)

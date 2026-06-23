@@ -8,13 +8,13 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'read_file',
       description:
-        'Read files in wp-content/dialog/, plugins, or WordPress core. Never read wp-content/themes/. Use wp-content/dialog/assets/front/css/main.css or workspace-relative paths like assets/front/css/main.css.',
+        'Read any file in the WordPress install. For workspace (child theme) files use relative paths like assets/front/css/main.css. For plugins use wp-content/plugins/my-plugin/main.php. For WordPress core use wp-includes/formatting.php.',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Path to the file (WordPress-relative or wp-content/dialog-relative)',
+            description: 'WordPress-relative path or workspace-relative path (e.g. assets/front/css/main.css, wp-content/plugins/woocommerce/woocommerce.php)',
           },
           start_line: {
             type: 'integer',
@@ -34,12 +34,12 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'search_files',
       description:
-        'Search files by name. Default directory: wp-content/dialog. Never use wp-content/themes/. For plugins use wp-content/plugins.',
+        'Search files by name inside a directory. Omit directory to search the workspace (child theme). For plugins use wp-content/plugins. For WordPress root use wp-content.',
       parameters: {
         type: 'object',
         properties: {
           keywords: { type: 'array', items: { type: 'string' } },
-          directory: { type: 'string', description: 'Directory to search (default: wp-content/dialog). Examples: wp-content/dialog, wp-content/plugins' },
+          directory: { type: 'string', description: 'Directory to search. Omit to search workspace. Examples: wp-content/plugins, wp-content/plugins/woocommerce' },
           operator: { type: 'string', enum: ['AND', 'OR'], default: 'AND' },
         },
         required: ['keywords'],
@@ -51,7 +51,7 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'search_content',
       description:
-        'LAST RESORT ONLY — blocked when the Dialog Code Index already maps the keyword or file. Never search wp-content/themes/. Omit path to search wp-content/dialog.',
+        'LAST RESORT ONLY — blocked when the Dialog Code Index already maps the keyword or file. Omit path to search the workspace (child theme).',
       parameters: {
         type: 'object',
         properties: {
@@ -64,7 +64,7 @@ const FILE_READ_TOOLS = [
           path: {
             type: 'string',
             description:
-              'Directory or file scope (WordPress-relative). Defaults to wp-content/dialog. Set only when searching outside the workspace.',
+              'Directory or file scope (WordPress-relative). Omit to search workspace. Set only when searching outside the workspace (e.g. wp-content/plugins/woocommerce).',
           },
           operator: {
             type: 'string',
@@ -85,14 +85,14 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'validate_code',
       description:
-        'Validate PHP/CSS/JS syntax. Defaults to wp-content/dialog. Never validate wp-content/themes/.',
+        'Validate PHP/CSS/JS syntax. Omit directory to validate the workspace (child theme).',
       parameters: {
         type: 'object',
         properties: {
           directory: {
             type: 'string',
             description:
-              'Directory to validate (WordPress-relative). Examples: wp-content/dialog, wp-content/plugins/my-plugin',
+              'Directory to validate (WordPress-relative). Omit for workspace. Examples: wp-content/plugins/my-plugin',
           },
         },
       },
@@ -103,14 +103,14 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'code_graph',
       description:
-        'Build a PHP code graph for a directory. Defaults to wp-content/dialog. Never analyze wp-content/themes/.',
+        'Build a PHP code graph for a directory. Omit directory to analyze the workspace (child theme).',
       parameters: {
         type: 'object',
         properties: {
           directory: {
             type: 'string',
             description:
-              'Directory to analyze (WordPress-relative). Examples: wp-content/dialog, wp-content/plugins/my-plugin',
+              'Directory to analyze (WordPress-relative). Omit for workspace. Examples: wp-content/plugins/my-plugin',
           },
         },
       },
@@ -124,13 +124,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'edit_file',
       description:
-        'Edit a specific line range in an existing wp-content/dialog file. Replaces lines start_line through end_line (1-indexed, inclusive) with new content. Path is relative to wp-content/dialog (e.g. assets/front/css/main.css, modules/shop.php). Do not use for templates/ — use update_template.',
+        'Edit a specific line range in an existing workspace (child theme) file. Replaces lines start_line through end_line (1-indexed, inclusive) with new content. Path is relative to workspace root (e.g. assets/front/css/main.css, inc/shop.php).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside wp-content/dialog (e.g. assets/front/css/main.css, modules/helpers.php)',
+            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
           },
           start_line: {
             type: 'integer',
@@ -154,13 +154,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'write_file',
       description:
-        'Create or overwrite a file inside wp-content/dialog (assets/ or modules/). Never write directly to templates/ — use create_template.',
+        'Create or overwrite a file inside the workspace (child theme). Path is relative to workspace root (e.g. assets/front/css/main.css, inc/helpers.php, style.css).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside wp-content/dialog (e.g. assets/front/css/main.css, modules/helpers.php)',
+            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
           },
           content: { type: 'string' },
           mode: { type: 'string', enum: ['create', 'overwrite'], default: 'create' },
@@ -212,7 +212,7 @@ const THEME_TOOLS = [
     function: {
       name: 'check_theme',
       description:
-        'Check whether the wp-content/dialog workspace is ready. Only use when the user explicitly asks about workspace status.',
+        'Check whether the workspace (child theme) is ready. Only use when the user explicitly asks about workspace status.',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -478,11 +478,9 @@ export function buildToolDefinitions(permissions = {}) {
 
   if (readFiles) {
     tools.push(...FILE_READ_TOOLS);
-    tools.push(TEMPLATE_LIST_TOOL);
   }
   if (writeFiles) {
     tools.push(...FILE_WRITE_TOOLS);
-    tools.push(...TEMPLATE_WRITE_TOOLS);
   }
   if (permissions.debugger) {
     tools.push(...DEBUG_TOOLS);

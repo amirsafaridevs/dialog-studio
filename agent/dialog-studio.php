@@ -26,8 +26,8 @@ final class DialogStudio_Agent {
 
 	private const API_PREFIX = '/DialogStudio/v1';
 
-	/** Relative path to the Dialog workspace inside wp-content. */
-	private const DIALOG_WORKSPACE_REL = 'dialog';
+	/** Marker in child theme style.css that identifies a Dialog-managed theme. */
+	private const DIALOG_CHILD_MARKER = 'Dialog Studio: managed';
 
 	// --- Token options (dtm_ prefix) ---
 	private const STATIC_TOKENS_OPTION = 'dtm_tokens';
@@ -107,7 +107,7 @@ final class DialogStudio_Agent {
 		$this->add_route( 'POST', self::API_PREFIX . '/settings/openrouter-models', 'handle_get_openrouter_models', [ 'public' => true ] );
 		$this->add_route( 'POST', self::API_PREFIX . '/settings', 'handle_save_settings', [ 'public' => true ] );
 
-		// File Operations (restricted to wp-content/dialog workspace)
+		// File Operations (write restricted to Dialog-managed child theme)
 		$this->add_route( 'POST', self::API_PREFIX . '/file/read', 'handle_file_read' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/write', 'handle_file_write' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/edit', 'handle_file_edit' );
@@ -115,11 +115,9 @@ final class DialogStudio_Agent {
 		$this->add_route( 'POST', self::API_PREFIX . '/file/delete', 'handle_file_delete' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/list', 'handle_file_list' );
 
-		// Template registry (templates/ cannot be written directly via file tools)
-		$this->add_route( 'GET', self::API_PREFIX . '/templates/list', 'handle_templates_list' );
-		$this->add_route( 'POST', self::API_PREFIX . '/templates/create', 'handle_templates_create' );
-		$this->add_route( 'POST', self::API_PREFIX . '/templates/update', 'handle_templates_update' );
-		$this->add_route( 'POST', self::API_PREFIX . '/templates/delete', 'handle_templates_delete' );
+		// Child theme management
+		$this->add_route( 'GET', self::API_PREFIX . '/theme/child-status', 'handle_theme_child_status' );
+		$this->add_route( 'POST', self::API_PREFIX . '/theme/child-setup', 'handle_theme_child_setup' );
 
 		// Directory Operations
 		$this->add_route( 'POST', self::API_PREFIX . '/directory/create', 'handle_directory_create' );
@@ -140,7 +138,6 @@ final class DialogStudio_Agent {
 		$this->add_route( 'GET', self::API_PREFIX . '/theme/index', 'handle_theme_index' );
 		$this->add_route( 'POST', self::API_PREFIX . '/code/graph', 'handle_code_graph' );
 		$this->add_route( 'POST', self::API_PREFIX . '/code/validate', 'handle_code_validate' );
-		$this->add_route( 'POST', self::API_PREFIX . '/theme/create', 'handle_theme_create' );
 
 		// WordPress Plugins (pages/create + pages/update run after full WP bootstrap)
 		$this->add_route( 'GET', self::API_PREFIX . '/plugins/list', 'handle_plugins_list' );
@@ -540,7 +537,7 @@ final class DialogStudio_Agent {
 		$version        = $assets['version'];
 		$api_base       = rtrim( $this->get_home_url( self::API_PREFIX ), '/' );
 		$settings_nonce = $this->create_early_nonce( 'dtm_settings' );
-		$theme_status   = $this->get_dialog_workspace_status();
+		$theme_status   = $this->get_child_theme_status_for_view();
 
 		ob_start();
 		include $assets['view_path'];
@@ -1189,86 +1186,129 @@ final class DialogStudio_Agent {
 	// File System Security & Validation
 	// =============================================
 
+	// =============================================
+	// Child Theme Path Helpers
+	// =============================================
+
+	private function get_themes_root(): string {
+		if ( function_exists( 'get_theme_root' ) ) {
+			return wp_normalize_path( (string) get_theme_root() );
+		}
+		return wp_normalize_path( WP_CONTENT_DIR . '/themes' );
+	}
+
+	private function get_active_theme_slug(): string {
+		$slug = get_option( 'stylesheet', '' );
+		return is_string( $slug ) ? $slug : '';
+	}
+
+	private function get_active_parent_theme_slug(): string {
+		$slug = get_option( 'template', '' );
+		return is_string( $slug ) ? $slug : '';
+	}
+
+	private function get_child_theme_root(): string {
+		$slug = $this->get_active_theme_slug();
+		if ( $slug === '' ) {
+			return '';
+		}
+		return wp_normalize_path( $this->get_themes_root() . '/' . $slug );
+	}
+
+	private function is_dialog_managed_theme(): bool {
+		$root = $this->get_child_theme_root();
+		if ( $root === '' ) {
+			return false;
+		}
+		$style = $root . '/style.css';
+		if ( ! is_readable( $style ) ) {
+			return false;
+		}
+		$header = @file_get_contents( $style, false, null, 0, 512 );
+		return is_string( $header ) && strpos( $header, self::DIALOG_CHILD_MARKER ) !== false;
+	}
+
+	private function get_theme_name_from_slug( string $slug ): string {
+		if ( $slug === '' ) {
+			return '';
+		}
+		$style = wp_normalize_path( $this->get_themes_root() . '/' . $slug . '/style.css' );
+		if ( ! is_readable( $style ) ) {
+			return $slug;
+		}
+		$header = @file_get_contents( $style, false, null, 0, 512 );
+		if ( is_string( $header ) && preg_match( '/^Theme Name:\s*(.+)$/mi', $header, $m ) ) {
+			return trim( $m[1] );
+		}
+		return $slug;
+	}
+
 	/**
-	 * Dialog workspace readiness for the chat UI and write operations.
+	 * Child theme status passed to the chat view on page load.
 	 *
-	 * @return array{
-	 *   ready: bool,
-	 *   installed: bool,
-	 *   workspace_path: string,
-	 *   active_theme: array{name: string, slug: string}
-	 * }
+	 * @return array<string, mixed>
 	 */
-	private function get_dialog_workspace_status(): array {
-		$this->ensure_dialog_workspace();
-		$workspace_path = $this->get_dialog_workspace_root();
-		$active_theme   = wp_get_theme();
+	private function get_child_theme_status_for_view(): array {
+		$active_slug = $this->get_active_theme_slug();
+		$parent_slug = $this->get_active_parent_theme_slug();
+		$is_child    = $parent_slug !== '' && $parent_slug !== $active_slug;
+		$is_managed  = $this->is_dialog_managed_theme();
+		$theme_path  = $this->get_child_theme_root();
 
 		return [
-			'ready'          => is_dir( $workspace_path ) && is_writable( $workspace_path ),
-			'installed'      => is_dir( $workspace_path ),
-			'workspace_path' => $workspace_path,
-			'active_theme'   => [
-				'name' => (string) $active_theme->get( 'Name' ),
-				'slug' => (string) $active_theme->get_stylesheet(),
-			],
+			'is_managed'        => $is_managed,
+			'setup_required'    => ! $is_managed,
+			'is_child_theme'    => $is_child,
+			'active_slug'       => $active_slug,
+			'active_name'       => $this->get_theme_name_from_slug( $active_slug ),
+			'parent_slug'       => $is_child ? $parent_slug : $active_slug,
+			'parent_name'       => $this->get_theme_name_from_slug( $is_child ? $parent_slug : $active_slug ),
+			'child_preview_slug' => ( $is_child ? $parent_slug : $active_slug ) . '-child',
+			'workspace_path'    => $theme_path,
+			'ready'             => $is_managed && is_dir( $theme_path ) && is_writable( $theme_path ),
 		];
 	}
 
 	/**
-	 * Absolute path to wp-content/dialog.
+	 * Absolute path to the active Dialog-managed child theme (write root).
 	 */
 	private function get_dialog_workspace_root(): string {
-		return wp_normalize_path( WP_CONTENT_DIR . '/' . self::DIALOG_WORKSPACE_REL );
+		return $this->get_child_theme_root();
 	}
 
 	/**
-	 * Error message when the Dialog workspace is not ready for write operations.
+	 * Error message when the child theme is not ready for write operations.
 	 */
 	private function get_dialog_workspace_write_error(): ?string {
-		$status = $this->get_dialog_workspace_status();
-
-		if ( $status['ready'] ) {
-			return null;
+		if ( ! $this->is_dialog_managed_theme() ) {
+			return 'قالب فعلی توسط Dialog Studio مدیریت نمی‌شود. ابتدا child theme را از صفحه چت راه‌اندازی کنید.';
 		}
 
-		if ( ! $status['installed'] ) {
-			return 'پوشه wp-content/dialog ایجاد نشده است. پلاگین Dialog Maker را غیرفعال و دوباره فعال کنید.';
+		$root = $this->get_child_theme_root();
+
+		if ( ! is_dir( $root ) ) {
+			return 'پوشه child theme وجود ندارد.';
 		}
 
-		return 'پوشه wp-content/dialog قابل نوشتن نیست. دسترسی فایل را بررسی کنید.';
+		if ( ! is_writable( $root ) ) {
+			return 'پوشه child theme قابل نوشتن نیست. دسترسی فایل را بررسی کنید.';
+		}
+
+		return null;
 	}
 
 	/**
-	 * Ensure the Dialog workspace directory structure exists.
+	 * Ensure the child theme subdirectory structure exists.
 	 */
 	private function ensure_dialog_workspace(): void {
-		$service = $this->resolve_dialog_workspace_service();
+		$root = $this->get_child_theme_root();
 
-		if ( null !== $service ) {
-			$service->ensureStructure();
+		if ( ! is_dir( $root ) ) {
 			return;
 		}
 
-		$root = $this->get_dialog_workspace_root();
-
-		if ( ! is_dir( $root ) ) {
-			wp_mkdir_p( $root );
-		}
-
-		$subdirs = [
-			'assets/admin/css',
-			'assets/admin/js',
-			'assets/admin/img',
-			'assets/front/css',
-			'assets/front/js',
-			'assets/front/img',
-			'modules',
-			'templates',
-		];
-
-		foreach ( $subdirs as $subdir ) {
-			$path = $root . '/' . $subdir;
+		foreach ( [ 'assets/front/css', 'assets/front/js', 'assets/admin/css', 'assets/admin/js', 'inc' ] as $sub ) {
+			$path = $root . '/' . $sub;
 			if ( ! is_dir( $path ) ) {
 				wp_mkdir_p( $path );
 			}
@@ -1327,81 +1367,6 @@ final class DialogStudio_Agent {
 		return new \DialogStudio\Service\Dialog\DialogWorkspaceService();
 	}
 
-	private function resolve_dialog_template_service(): ?\DialogStudio\Service\Dialog\DialogTemplateService {
-		if ( ! $this->ensure_plugin_application() ) {
-			return null;
-		}
-
-		if ( ! class_exists( \DialogStudio\Service\Dialog\DialogTemplateService::class ) ) {
-			return null;
-		}
-
-		return new \DialogStudio\Service\Dialog\DialogTemplateService();
-	}
-
-	/**
-	 * Whether a read/search path targets the active WordPress theme directory.
-	 * Dialog never reads or edits theme files — only wp-content/dialog.
-	 */
-	private function is_wordpress_theme_path( string $path ): bool {
-		$relative = ltrim( wp_normalize_path( str_replace( '\\', '/', trim( $path ) ) ), '/' );
-
-		if (
-			str_starts_with( $relative, 'wp-content/themes/' )
-			|| str_starts_with( $relative, 'themes/' )
-		) {
-			return true;
-		}
-
-		if ( function_exists( 'get_theme_root' ) ) {
-			$theme_root = wp_normalize_path( (string) get_theme_root() );
-
-			if ( $theme_root !== '' ) {
-				$resolved = $this->resolve_requested_path( $path, 'read' );
-
-				if ( $resolved !== '' && $this->is_path_under( $resolved, $theme_root ) ) {
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
-	 * @return array{success: false, data: null, error: string}|null
-	 */
-	private function get_theme_path_blocked_response( string $path ): ?array {
-		if ( ! $this->is_wordpress_theme_path( $path ) ) {
-			return null;
-		}
-
-		return [
-			'success' => false,
-			'data'    => null,
-			'error'   => sprintf(
-				'خواندن/جستجو در قالب WordPress (%s) مجاز نیست. Dialog فقط با wp-content/dialog/ کار می‌کند — از assets/، modules/، templates/ (via create_template) استفاده کنید.',
-				$path
-			),
-		];
-	}
-
-	/**
-	 * Whether a workspace-relative path targets templates/ (blocked for direct file writes).
-	 */
-	private function is_protected_template_path( string $relative_path ): bool {
-		$relative = ltrim( wp_normalize_path( str_replace( '\\', '/', $relative_path ) ), '/' );
-
-		if ( str_starts_with( $relative, 'wp-content/dialog/templates/' ) ) {
-			return true;
-		}
-
-		if ( str_starts_with( $relative, 'dialog/templates/' ) ) {
-			return true;
-		}
-
-		return str_starts_with( $relative, 'templates/' );
-	}
 
 	/**
 	 * WordPress installation root (ABSPATH).
@@ -1460,10 +1425,10 @@ final class DialogStudio_Agent {
 	}
 
 	private function is_wordpress_root_relative( string $relative ): bool {
-		$root_prefixes = [ 'wp-content/', 'wp-includes/', 'wp-admin/' ];
+		$root_dirs = [ 'wp-content', 'wp-includes', 'wp-admin' ];
 
-		foreach ( $root_prefixes as $prefix ) {
-			if ( strpos( $relative, $prefix ) === 0 ) {
+		foreach ( $root_dirs as $dir ) {
+			if ( $relative === $dir || strpos( $relative, $dir . '/' ) === 0 ) {
 				return true;
 			}
 		}
@@ -1628,24 +1593,18 @@ final class DialogStudio_Agent {
 	 * @return array<string>
 	 */
 	private function get_allowed_paths( string $operation ): array {
-		$dialog_theme_path = $this->get_dialog_workspace_root();
-		$wordpress_root    = $this->get_wordpress_root();
+		$wordpress_root = $this->get_wordpress_root();
 
 		switch ( $operation ) {
 			case 'read':
-				// Read: entire WordPress installation
-				return [
-					$wordpress_root,
-				];
+				return [ $wordpress_root ];
 
 			case 'write':
 			case 'create':
 			case 'append':
 			case 'delete':
-				// Write/modify: anywhere inside the dialog theme
-				return [
-					$dialog_theme_path,
-				];
+				$child_theme = $this->get_child_theme_root();
+				return $child_theme !== '' ? [ $child_theme ] : [];
 
 			default:
 				return [];
@@ -1661,38 +1620,6 @@ final class DialogStudio_Agent {
 		return $this->get_wordpress_root();
 	}
 
-	/**
-	 * Verify the Dialog workspace directory exists on disk.
-	 *
-	 * @return array{exists: bool, path: string, error: string|null}
-	 */
-	private function get_dialog_workspace_info(): array {
-		$dialog_path = $this->get_dialog_workspace_root();
-		$status      = $this->get_dialog_workspace_status();
-
-		if ( ! $status['installed'] ) {
-			return [
-				'exists' => false,
-				'path'   => $dialog_path,
-				'error'  => 'پوشه wp-content/dialog ایجاد نشده است.',
-			];
-		}
-
-		if ( ! is_dir( $dialog_path ) ) {
-			return [
-				'exists' => false,
-				'path'   => $dialog_path,
-				'error'  => 'پوشه wp-content/dialog یافت نشد.',
-			];
-		}
-
-		return [
-			'exists' => true,
-			'path'   => $dialog_path,
-			'error'  => null,
-		];
-	}
-
 	// =============================================
 	// File System Handlers
 	// =============================================
@@ -1705,11 +1632,6 @@ final class DialogStudio_Agent {
 
 		$body = $this->get_json_body();
 		$path = sanitize_text_field( (string) ( $body['path'] ?? '' ) );
-
-		$blocked = $this->get_theme_path_blocked_response( $path );
-		if ( $blocked !== null ) {
-			return $blocked;
-		}
 
 		$validation = $this->validate_file_path( $path, 'read' );
 		if ( ! $validation['valid'] ) {
@@ -1826,14 +1748,6 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		if ( $this->is_protected_template_path( $path ) ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'فایل‌های templates/ فقط با ابزار create_template/update_template ساخته می‌شوند.',
-			];
-		}
-
 		$validation = $this->validate_file_path( $path, 'write' );
 		if ( ! $validation['valid'] ) {
 			return [
@@ -1941,13 +1855,6 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		if ( $this->is_protected_template_path( $path ) ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'فایل‌های templates/ فقط با ابزار update_template قابل ویرایش هستند.',
-			];
-		}
 
 		$validation = $this->validate_file_path( $path, 'write' );
 		if ( ! $validation['valid'] ) {
@@ -2195,14 +2102,14 @@ final class DialogStudio_Agent {
 		$recursive = ! empty( $body['recursive'] );
 		$include_hidden = ! empty( $body['include_hidden'] );
 
-		// Default to dialog theme root if no path provided
+		// Default to child theme root if no path provided
 		if ( empty( $path ) ) {
-			$path = $this->get_dialog_workspace_root();
-			if ( ! is_dir( $path ) ) {
+			$path = $this->get_child_theme_root();
+			if ( $path === '' || ! is_dir( $path ) ) {
 				return [
 					'success' => false,
-					'data' => null,
-					'error' => 'پوشه wp-content/dialog یافت نشد.',
+					'data'    => null,
+					'error'   => 'پوشه child theme یافت نشد. ابتدا child theme را راه‌اندازی کنید.',
 				];
 			}
 		}
@@ -2523,14 +2430,9 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		// Default to Dialog workspace if no directory provided
+		// Default to child theme workspace if no directory provided
 		if ( empty( $directory ) ) {
 			$directory = $this->get_dialog_workspace_relative_scope();
-		}
-
-		$blocked = $this->get_theme_path_blocked_response( $directory );
-		if ( $blocked !== null ) {
-			return $blocked;
 		}
 
 		$validation = $this->validate_file_path( $directory, 'read' );
@@ -2552,9 +2454,9 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		$results = $this->search_files_by_keywords( 
-			$search_path, 
-			$keywords, 
+		$results = $this->search_files_by_keywords(
+			$search_path,
+			$keywords,
 			$operator, 
 			$case_sensitive, 
 			$extensions, 
@@ -2611,14 +2513,9 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		// Default to the active dialog theme if no path provided
+		// Default to child theme workspace if no path provided
 		if ( empty( $path ) ) {
 			$path = $this->get_dialog_workspace_relative_scope();
-		}
-
-		$blocked = $this->get_theme_path_blocked_response( $path );
-		if ( $blocked !== null ) {
-			return $blocked;
 		}
 
 		$validation = $this->validate_file_path( $path, 'read' );
@@ -2640,8 +2537,8 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		$results = $this->search_content_by_keywords( 
-			$search_path, 
+		$results = $this->search_content_by_keywords(
+			$search_path,
 			$keywords, 
 			$operator, 
 			$case_sensitive, 
@@ -3333,232 +3230,157 @@ final class DialogStudio_Agent {
 	private function handle_theme_check(): array {
 		$this->require_chat_user();
 
-		$status       = $this->get_dialog_workspace_status();
-		$workspace    = $this->get_dialog_workspace_info();
-		$active_theme = wp_get_theme();
-
-		$message = null;
-		if ( ! $status['ready'] ) {
-			$message = $workspace['error'] ?? 'پوشه wp-content/dialog آماده نیست.';
-		}
+		$status = $this->get_child_theme_status_for_view();
 
 		return [
 			'success' => true,
-			'data'    => [
-				'workspace_path' => $workspace['path'],
-				'ready'          => $status['ready'],
-				'installed'      => $status['installed'],
-				'message'        => $message,
-				'active_theme'   => [
-					'name'    => $active_theme->get( 'Name' ),
-					'slug'    => $active_theme->get_stylesheet(),
-					'version' => $active_theme->get( 'Version' ),
-					'path'    => $active_theme->get_stylesheet_directory(),
-				],
-				'dialog_workspace' => [
-					'path'   => $workspace['path'],
-					'exists' => $workspace['exists'],
-				],
-				// Backward compatibility for older UI payloads.
-				'dialog_theme' => [
-					'path'   => $workspace['path'],
-					'exists' => $workspace['exists'],
-				],
-			],
-			'error' => $message,
-		];
-	}
-
-	/**
-	 * POST /DialogStudio/v1/theme/create
-	 */
-	private function handle_theme_create(): array {
-		$this->require_chat_user();
-		$this->ensure_dialog_workspace();
-
-		return [
-			'success' => true,
-			'data'    => $this->get_dialog_workspace_info(),
+			'data'    => $status,
 			'error'   => null,
 		];
 	}
 
 	private function get_dialog_workspace_relative_scope(): string {
-		return 'wp-content/' . self::DIALOG_WORKSPACE_REL;
+		$slug = $this->get_active_theme_slug();
+		return 'wp-content/themes/' . $slug;
+	}
+
+	// =============================================
+	// Child Theme Handlers
+	// =============================================
+
+	/**
+	 * GET /DialogStudio/v1/theme/child-status
+	 */
+	private function handle_theme_child_status(): array {
+		$this->require_chat_user();
+
+		return [
+			'success' => true,
+			'data'    => $this->get_child_theme_status_for_view(),
+			'error'   => null,
+		];
 	}
 
 	/**
-	 * GET /DialogStudio/v1/templates/list
+	 * POST /DialogStudio/v1/theme/child-setup
+	 *
+	 * Creates + activates a Dialog-managed child theme from the current active theme.
+	 * Requires { "confirm": true } in the request body.
 	 */
-	private function handle_templates_list(): array {
+	private function handle_theme_child_setup(): array {
 		$this->require_chat_user();
-
-		$service = $this->resolve_dialog_template_service();
-
-		if ( null === $service ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'Template service unavailable.',
-			];
-		}
-
-		return $service->listAll();
-	}
-
-	/**
-	 * POST /DialogStudio/v1/templates/create
-	 */
-	private function handle_templates_create(): array {
-		$this->require_chat_user();
-
-		$settings = $this->get_settings();
-		if ( empty( $settings['permissions']['write_files'] ) ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'File write permission denied',
-			];
-		}
-
-		$theme_error = $this->get_dialog_workspace_write_error();
-		if ( $theme_error !== null ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => $theme_error,
-			];
-		}
-
-		$service = $this->resolve_dialog_template_service();
-
-		if ( null === $service ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'Template service unavailable.',
-			];
-		}
-
-		$body   = $this->get_json_body();
-		$result = $service->create( is_array( $body ) ? $body : [] );
-
-		if ( $result['success'] && isset( $result['data']['file_path'] ) ) {
-			$result['data']['code_validation'] = $this->validate_saved_file(
-				$this->get_dialog_workspace_root() . '/' . ltrim( (string) $result['data']['file_path'], '/' ),
-				(string) $result['data']['file_path']
-			);
-		}
-
-		return $result;
-	}
-
-	/**
-	 * POST /DialogStudio/v1/templates/update
-	 */
-	private function handle_templates_update(): array {
-		$this->require_chat_user();
-
-		$settings = $this->get_settings();
-		if ( empty( $settings['permissions']['write_files'] ) ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'File write permission denied',
-			];
-		}
-
-		$theme_error = $this->get_dialog_workspace_write_error();
-		if ( $theme_error !== null ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => $theme_error,
-			];
-		}
-
-		$service = $this->resolve_dialog_template_service();
-
-		if ( null === $service ) {
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => 'Template service unavailable.',
-			];
-		}
 
 		$body    = $this->get_json_body();
-		$payload = is_array( $body ) ? $body : [];
-		$id      = (int) ( $payload['id'] ?? 0 );
-		$slug    = sanitize_title( (string) ( $payload['slug'] ?? '' ) );
+		$confirm = ! empty( $body['confirm'] );
 
-		if ( $id <= 0 && $slug === '' ) {
+		if ( ! $confirm ) {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => 'Template id or slug is required.',
+				'error'   => 'تایید لازم است. مقدار confirm: true را ارسال کنید.',
 			];
 		}
 
-		$result = $service->update( $payload );
+		$current_slug = $this->get_active_theme_slug();
+		$parent_slug  = $this->get_active_parent_theme_slug();
 
-		if ( $result['success'] && isset( $result['data']['file_path'] ) && isset( $payload['content'] ) ) {
-			$result['data']['code_validation'] = $this->validate_saved_file(
-				$this->get_dialog_workspace_root() . '/' . ltrim( (string) $result['data']['file_path'], '/' ),
-				(string) $result['data']['file_path']
-			);
-		}
-
-		return $result;
-	}
-
-	/**
-	 * POST /DialogStudio/v1/templates/delete
-	 */
-	private function handle_templates_delete(): array {
-		$this->require_chat_user();
-
-		$settings = $this->get_settings();
-		if ( empty( $settings['permissions']['write_files'] ) ) {
+		if ( $current_slug === '' ) {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => 'File write permission denied',
+				'error'   => 'قالب فعال یافت نشد.',
 			];
 		}
 
-		$body = $this->get_json_body();
-		$id   = (int) ( $body['id'] ?? 0 );
-		$slug = sanitize_title( (string) ( $body['slug'] ?? '' ) );
+		// Already managed — just ensure structure.
+		if ( $this->is_dialog_managed_theme() ) {
+			$this->ensure_dialog_workspace();
+			return [
+				'success' => true,
+				'data'    => array_merge( $this->get_child_theme_status_for_view(), [ 'already_managed' => true ] ),
+				'error'   => null,
+			];
+		}
 
-		if ( $id <= 0 && $slug === '' ) {
+		$actual_parent = ( $parent_slug !== '' && $parent_slug !== $current_slug )
+			? $parent_slug
+			: $current_slug;
+
+		$child_slug = $actual_parent . '-child';
+		$child_path = wp_normalize_path( $this->get_themes_root() . '/' . $child_slug );
+
+		// Avoid overwriting an unrelated child theme.
+		if ( is_dir( $child_path ) ) {
+			$existing_style = $child_path . '/style.css';
+			if ( is_readable( $existing_style ) ) {
+				$header = @file_get_contents( $existing_style, false, null, 0, 512 );
+				if ( is_string( $header ) && strpos( $header, self::DIALOG_CHILD_MARKER ) === false ) {
+					$child_slug = $actual_parent . '-dialog-child';
+					$child_path = wp_normalize_path( $this->get_themes_root() . '/' . $child_slug );
+				}
+			}
+		}
+
+		if ( ! is_dir( $child_path ) && ! wp_mkdir_p( $child_path ) ) {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => 'Template id or slug is required.',
+				'error'   => 'ساخت پوشه child theme ناموفق بود: ' . $child_path,
 			];
 		}
 
-		$theme_error = $this->get_dialog_workspace_write_error();
-		if ( $theme_error !== null ) {
+		$parent_name = $this->get_theme_name_from_slug( $actual_parent );
+		$child_name  = $parent_name . ' Child';
+
+		$style_css = "/*\n" .
+			"Theme Name: {$child_name}\n" .
+			"Template: {$actual_parent}\n" .
+			"Description: Dialog Studio child theme based on {$parent_name}.\n" .
+			self::DIALOG_CHILD_MARKER . "\n" .
+			"Version: 1.0.0\n" .
+			"*/\n";
+
+		if ( file_put_contents( $child_path . '/style.css', $style_css ) === false ) {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => $theme_error,
+				'error'   => 'نوشتن style.css ناموفق بود.',
 			];
 		}
 
-		$service = $this->resolve_dialog_template_service();
+		$functions_php = "<?php\n/**\n * Dialog Studio managed child theme.\n * This file is auto-generated — do not remove.\n */\n\nif ( ! defined( 'ABSPATH' ) ) {\n\texit;\n}\n\nadd_action( 'wp_enqueue_scripts', function() {\n\twp_enqueue_style( 'parent-style', get_template_directory_uri() . '/style.css' );\n} );\n";
 
-		if ( null === $service ) {
+		if ( file_put_contents( $child_path . '/functions.php', $functions_php ) === false ) {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => 'Template service unavailable.',
+				'error'   => 'نوشتن functions.php ناموفق بود.',
 			];
 		}
 
-		return $service->delete( $id, $slug );
+		foreach ( [ 'assets/front/css', 'assets/front/js', 'assets/admin/css', 'assets/admin/js', 'inc' ] as $sub ) {
+			$dir = $child_path . '/' . $sub;
+			if ( ! is_dir( $dir ) ) {
+				wp_mkdir_p( $dir );
+			}
+		}
+
+		update_option( 'stylesheet', $child_slug );
+		update_option( 'template', $actual_parent );
+		wp_cache_delete( 'alloptions', 'options' );
+
+		return [
+			'success' => true,
+			'data'    => [
+				'created'     => true,
+				'activated'   => true,
+				'child_slug'  => $child_slug,
+				'child_name'  => $child_name,
+				'parent_slug' => $actual_parent,
+				'child_path'  => $child_path,
+			],
+			'error'   => null,
+		];
 	}
 
 	/**
@@ -3746,7 +3568,7 @@ final class DialogStudio_Agent {
 	/**
 	 * GET /DialogStudio/v1/theme/index
 	 *
-	 * Builds a compact code index (PHP, CSS, JS) for wp-content/dialog.
+	 * Builds a compact code index (PHP, CSS, JS) for the active child theme.
 	 * Failures never block chat — always returns success with an empty index on error.
 	 */
 	private function handle_theme_index(): array {
