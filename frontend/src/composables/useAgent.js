@@ -542,7 +542,9 @@ export function useAgent() {
     prepareMessagesForResume();
 
     isInterrupted.value = false;
-    messages.value.push(new HumanMessage('ادامه بده'));
+    const resumeMsg = new HumanMessage({ content: 'ادامه بده' });
+    resumeMsg.additional_kwargs = { ...resumeMsg.additional_kwargs, _system_resume: true };
+    messages.value.push(resumeMsg);
     persistSession();
 
     await executeAgentLoop();

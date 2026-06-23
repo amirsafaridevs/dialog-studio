@@ -86,6 +86,7 @@ export function deserializeAgentMessages(data = []) {
       case 'user':
         return new HumanMessage({
           content: item.content || '',
+          additional_kwargs: item.additional_kwargs,
           id: item.id,
         });
 

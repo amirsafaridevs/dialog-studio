@@ -767,6 +767,8 @@ final class DialogStudio_Agent {
 					CURLOPT_RETURNTRANSFER => true,
 					CURLOPT_TIMEOUT        => 30,
 					CURLOPT_HTTPHEADER     => $headers,
+					CURLOPT_SSL_VERIFYPEER => false,
+					CURLOPT_SSL_VERIFYHOST => 0,
 				]
 			);
 
@@ -806,8 +808,9 @@ final class DialogStudio_Agent {
 		$response = wp_remote_get(
 			$url,
 			[
-				'timeout' => 30,
-				'headers' => [
+				'timeout'   => 30,
+				'sslverify' => false,
+				'headers'   => [
 					'Authorization'      => 'Bearer ' . $api_key,
 					'HTTP-Referer'       => home_url( '/' ),
 					'X-OpenRouter-Title' => 'Dialog Theme Maker',

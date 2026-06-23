@@ -1,7 +1,0 @@
-lcd C:\wamp64\www\wpagentify\wordpress\wp-content\plugins\dialog-studio\remote_files\templates
-cd /dmfit.de/wp-content/plugins/artacode/include/email/email-template
-get additional_information.php
-get perfroma.php
-get supplier_email.php
-get supplier_response_email.php
-quit

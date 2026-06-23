@@ -443,7 +443,7 @@ export const UPDATE_TODOS_TOOL = {
   function: {
     name: 'update_todos',
     description:
-      'Your planning tool (shown to the user as "برنامه اجرا"). REQUIRED workflow: (1) on every new user request, call this FIRST — before read_file, preview_get_html, edit_file, or any other tool; (2) list concrete ordered steps with one in_progress and the rest pending; (3) after each step, call again to mark completed and advance in_progress to the next step.',
+      'Your planning tool (shown to the user as "برنامه اجرا"). Plan in proportion to the work: skip it for a single obvious change, but for multi-step / multi-file / ambiguous / visual tasks call it FIRST. Each step should name a user-visible OUTCOME and how you will verify it — not mechanical steps like "read the file". Keep exactly one step in_progress; after finishing a step call this again to mark it completed and advance.',
     parameters: {
       type: 'object',
       properties: {

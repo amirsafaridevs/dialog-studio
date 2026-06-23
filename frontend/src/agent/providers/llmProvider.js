@@ -5,7 +5,6 @@
  */
 
 import { ChatOpenAI } from '@langchain/openai';
-import { ChatAnthropic } from '@langchain/anthropic';
 
 const LLM_TIMEOUT_MS = 600_000;
 const LLM_MAX_RETRIES = 2;
@@ -94,12 +93,17 @@ export class LLMProvider {
 
       case 'claude':
       case 'anthropic':
-        this.provider = new ChatAnthropic({
-          model: model || 'claude-3-sonnet-20240229',
-          anthropicApiKey: apiKey,
+        // Claude via OpenAI-compatible endpoint (no @langchain/anthropic needed)
+        this.provider = new ChatOpenAI({
+          modelName: model || 'claude-sonnet-4-5',
+          openAIApiKey: apiKey,
+          configuration: { apiKey: apiKey, baseURL: 'https://api.anthropic.com/v1' },
           temperature: 0.1,
           streaming: true,
+          timeout: LLM_TIMEOUT_MS,
+          maxRetries: LLM_MAX_RETRIES,
         });
+        this._useApproximateTokenCount();
         break;
 
       case 'deepseek':
@@ -108,7 +112,8 @@ export class LLMProvider {
           modelName: model || 'deepseek-coder',
           openAIApiKey: apiKey,
           configuration: {
-            baseURL: 'https://api.deepseek.com/v1'
+            apiKey: apiKey,
+            baseURL: 'https://api.deepseek.com/v1',
           },
           temperature: 0.1,
           streaming: true,
@@ -149,7 +154,8 @@ export class LLMProvider {
             modelName: customModel,
             openAIApiKey: apiKey,
             configuration: {
-              baseURL: customEndpoint
+              apiKey: apiKey,
+              baseURL: customEndpoint,
             },
             temperature: 0.1,
             streaming: true,

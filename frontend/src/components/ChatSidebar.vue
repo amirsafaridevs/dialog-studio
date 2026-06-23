@@ -691,6 +691,8 @@ function mapAgentMessages() {
 
     if (type === 'human' || type === 'user') {
 
+      if (message?.additional_kwargs?._system_resume) return;
+
       display.push({
 
         id: message?.id || `user-${index}`,
