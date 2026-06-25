@@ -1,15 +1,7 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue';
-import { Check, Loader2, RefreshCw } from 'lucide-vue-next';
-import {
-  LLM_PROVIDERS,
-  PROVIDER_IDS,
-  getDefaultModelForProvider,
-  getProviderModels,
-  isDynamicModelProvider,
-  normalizeModelForProvider,
-} from '../utils/llmProviders.js';
-import { fetchOpenRouterModels, fetchSettings, saveSettings } from '../utils/settingsApi.js';
+import { onMounted, reactive, ref } from 'vue';
+import { AlertCircle, Check, ExternalLink, Loader2, RefreshCw } from 'lucide-vue-next';
+import { activateApiKey, fetchSettings, saveSettings } from '../utils/settingsApi.js';
 
 const emit = defineEmits(['saved']);
 
@@ -19,99 +11,24 @@ const saveMessage = ref('');
 const saveError = ref('');
 const hasStoredApiKey = ref(false);
 const apiKeyMasked = ref('');
-const openRouterModels = ref([]);
-const isLoadingModels = ref(false);
-const modelsError = ref('');
-const modelSearch = ref('');
+
+// API key activation state
+const apiKeyInput = ref('');
+const isActivating = ref(false);
+const activationError = ref('');
+const activationSuccess = ref('');
 
 const form = reactive({
-  provider: 'deepseek',
-  model: 'deepseek-chat',
-  apiKey: '',
-  useCustomEndpoint: false,
-  customEndpoint: '',
-  customModel: '',
   readFiles: true,
   writeFiles: true,
   debugger: false,
   managePages: false,
 });
 
-const providerOptions = computed(() =>
-  PROVIDER_IDS.map((id) => ({
-    id,
-    label: LLM_PROVIDERS[id].label,
-  })),
-);
-
-const isOpenRouter = computed(() => form.provider === 'openrouter');
-
-const modelOptions = computed(() => {
-  const models = getProviderModels(form.provider, openRouterModels.value);
-  const query = modelSearch.value.trim().toLowerCase();
-
-  if (!query) {
-    return models;
-  }
-
-  return models.filter((item) => {
-    const haystack = `${item.label} ${item.id}`.toLowerCase();
-    return haystack.includes(query);
-  });
-});
-
-const canLoadOpenRouterModels = computed(
-  () => isOpenRouter.value && (Boolean(form.apiKey) || hasStoredApiKey.value),
-);
-
-const apiKeyPlaceholder = computed(() =>
-  hasStoredApiKey.value ? apiKeyMasked.value || '••••••••••••' : 'sk-...',
-);
-
-function ensureSelectedModelVisible(models) {
-  if (!form.model || models.some((item) => item.id === form.model)) {
-    return models;
-  }
-
-  return [{ id: form.model, label: form.model }, ...models];
-}
-
-async function loadOpenRouterModels() {
-  if (!canLoadOpenRouterModels.value) {
-    modelsError.value = 'برای بارگذاری مدل‌ها ابتدا API Key مربوط به OpenRouter را وارد کنید.';
-    return;
-  }
-
-  isLoadingModels.value = true;
-  modelsError.value = '';
-
-  try {
-    const data = await fetchOpenRouterModels(form.apiKey);
-    const models = Array.isArray(data?.models) ? data.models : [];
-    openRouterModels.value = ensureSelectedModelVisible(models);
-
-    if (models.length === 0) {
-      modelsError.value = 'مدلی از OpenRouter دریافت نشد.';
-      return;
-    }
-
-    form.model = normalizeModelForProvider(form.provider, form.model, openRouterModels.value);
-  } catch (error) {
-    modelsError.value = error.message || 'بارگذاری مدل‌های OpenRouter ناموفق بود.';
-  } finally {
-    isLoadingModels.value = false;
-  }
-}
-
 function applyServerSettings(data) {
   const llm = data?.llm ?? {};
   const permissions = data?.permissions ?? {};
 
-  form.provider = llm.provider ?? 'deepseek';
-  form.model = normalizeModelForProvider(form.provider, llm.model ?? '', openRouterModels.value);
-  form.useCustomEndpoint = Boolean(llm.use_custom_endpoint);
-  form.customEndpoint = llm.custom_endpoint ?? '';
-  form.customModel = llm.custom_model ?? '';
   form.readFiles = permissions.read_files !== false;
   form.writeFiles = permissions.write_files !== false;
   form.debugger = Boolean(permissions.debugger);
@@ -119,32 +36,8 @@ function applyServerSettings(data) {
 
   hasStoredApiKey.value = Boolean(llm.has_api_key);
   apiKeyMasked.value = llm.api_key_masked ?? '';
-  form.apiKey = '';
+  apiKeyInput.value = '';
 }
-
-watch(
-  () => form.provider,
-  async (provider, previous) => {
-    if (provider === previous) {
-      return;
-    }
-
-    modelSearch.value = '';
-
-    if (isDynamicModelProvider(provider)) {
-      if (provider === 'openrouter') {
-        await loadOpenRouterModels();
-      }
-      return;
-    }
-
-    const models = getProviderModels(provider);
-    const stillValid = models.some((item) => item.id === form.model);
-    if (!stillValid) {
-      form.model = getDefaultModelForProvider(provider);
-    }
-  },
-);
 
 onMounted(async () => {
   isLoading.value = true;
@@ -153,10 +46,6 @@ onMounted(async () => {
   try {
     const data = await fetchSettings();
     applyServerSettings(data);
-
-    if (isOpenRouter.value) {
-      await loadOpenRouterModels();
-    }
   } catch (error) {
     saveError.value = error.message || 'بارگذاری تنظیمات ناموفق بود.';
   } finally {
@@ -164,20 +53,42 @@ onMounted(async () => {
   }
 });
 
+async function handleActivate() {
+  const key = apiKeyInput.value.trim();
+  if (!key) {
+    activationError.value = 'لطفاً کلید API را وارد کنید.';
+    return;
+  }
+
+  isActivating.value = true;
+  activationError.value = '';
+  activationSuccess.value = '';
+
+  try {
+    const data = await activateApiKey(key);
+    activationSuccess.value = data?.message || 'کلید API با موفقیت فعال و ذخیره شد.';
+    hasStoredApiKey.value = true;
+    apiKeyMasked.value = key.slice(0, 4) + '••••••••' + key.slice(-4);
+    apiKeyInput.value = '';
+    emit('saved', { server: data, client: { api_key: key } });
+  } catch (error) {
+    activationError.value = error.message || 'فعال‌سازی کلید API ناموفق بود.';
+  } finally {
+    isActivating.value = false;
+  }
+}
+
+function handleRetryActivation() {
+  activationError.value = '';
+  activationSuccess.value = '';
+}
+
 async function handleSave() {
   isSaving.value = true;
   saveMessage.value = '';
   saveError.value = '';
 
   const payload = {
-    llm: {
-      provider: form.provider,
-      model: form.model,
-      api_key: form.apiKey,
-      use_custom_endpoint: form.useCustomEndpoint,
-      custom_endpoint: form.customEndpoint,
-      custom_model: form.customModel,
-    },
     permissions: {
       read_files: form.readFiles,
       write_files: form.writeFiles,
@@ -190,10 +101,7 @@ async function handleSave() {
     const data = await saveSettings(payload);
     applyServerSettings(data);
     saveMessage.value = 'تنظیمات ذخیره شد.';
-    emit('saved', {
-      server: data,
-      client: payload,
-    });
+    emit('saved', { server: data, client: payload });
   } catch (error) {
     saveError.value = error.message || 'ذخیره تنظیمات ناموفق بود.';
   } finally {
@@ -212,125 +120,78 @@ async function handleSave() {
     <template v-else>
       <div class="chat-settings__scroll">
         <section class="chat-settings__section">
-          <h2 class="chat-settings__section-title">مدل زبانی (LLM)</h2>
-          <p class="chat-settings__section-desc">ارائه‌دهنده، مدل و کلید API را انتخاب کنید.</p>
+          <h2 class="chat-settings__section-title">کلید API</h2>
+          <p class="chat-settings__section-desc">
+            برای استفاده از افزونه Dialog Studio نیاز به کلید API دارید. کلید API خود را از سایت wpagentify.ir تهیه کنید.
+          </p>
 
-          <div class="chat-settings__toggle-row chat-settings__toggle-row--first">
-            <div class="chat-settings__toggle-copy">
-              <span class="chat-settings__label">Custom Endpoint</span>
-              <span class="chat-settings__hint">آدرس و مدل سفارشی برای API</span>
-            </div>
-            <button
-              type="button"
-              class="chat-settings__switch"
-              :class="{ 'chat-settings__switch--on': form.useCustomEndpoint }"
-              role="switch"
-              :aria-checked="form.useCustomEndpoint"
-              @click="form.useCustomEndpoint = !form.useCustomEndpoint"
-            >
-              <span class="chat-settings__switch-thumb" />
-            </button>
+          <!-- Activation success -->
+          <div v-if="activationSuccess" class="chat-settings__activation-result chat-settings__activation-result--success">
+            <Check :size="15" :stroke-width="2.5" />
+            <span>{{ activationSuccess }}</span>
           </div>
 
-          <template v-if="form.useCustomEndpoint">
-            <label class="chat-settings__field">
-              <span class="chat-settings__label">آدرس Endpoint</span>
-              <input
-                v-model="form.customEndpoint"
-                type="url"
-                class="chat-settings__input"
-                placeholder="https://api.example.com/v1"
-                dir="ltr"
-              />
-            </label>
-
-            <label class="chat-settings__field">
-              <span class="chat-settings__label">نام مدل سفارشی</span>
-              <input
-                v-model="form.customModel"
-                type="text"
-                class="chat-settings__input"
-                placeholder="my-custom-model"
-                dir="ltr"
-              />
-            </label>
-          </template>
-
-          <template v-else>
-            <label class="chat-settings__field">
-              <span class="chat-settings__label">ارائه‌دهنده</span>
-              <select v-model="form.provider" class="chat-settings__select">
-                <option v-for="item in providerOptions" :key="item.id" :value="item.id">
-                  {{ item.label }}
-                </option>
-              </select>
-            </label>
-
-            <label class="chat-settings__field">
-              <span class="chat-settings__label">مدل</span>
-
-              <div v-if="isOpenRouter" class="chat-settings__model-tools">
-                <input
-                  v-model="modelSearch"
-                  type="search"
-                  class="chat-settings__input"
-                  placeholder="جستجوی مدل…"
-                  dir="ltr"
-                  :disabled="isLoadingModels"
-                />
-                <button
-                  type="button"
-                  class="chat-settings__refresh-models"
-                  :disabled="isLoadingModels || !canLoadOpenRouterModels"
-                  @click="loadOpenRouterModels"
-                >
-                  <Loader2
-                    v-if="isLoadingModels"
-                    class="chat-settings__spinner"
-                    :size="14"
-                    :stroke-width="2"
-                  />
-                  <RefreshCw v-else :size="14" :stroke-width="2" />
-                  <span>{{ isLoadingModels ? 'در حال بارگذاری…' : 'بارگذاری مدل‌ها' }}</span>
-                </button>
-              </div>
-
-              <select
-                v-model="form.model"
-                class="chat-settings__select"
-                :disabled="isOpenRouter && (isLoadingModels || modelOptions.length === 0)"
+          <!-- Activation error -->
+          <div v-if="activationError" class="chat-settings__activation-result chat-settings__activation-result--error">
+            <AlertCircle :size="15" :stroke-width="2" />
+            <div class="chat-settings__activation-result-body">
+              <span>{{ activationError }}</span>
+              <button
+                type="button"
+                class="chat-settings__retry-btn"
+                @click="handleRetryActivation"
               >
-                <option v-for="item in modelOptions" :key="item.id" :value="item.id">
-                  {{ item.label }}
-                </option>
-              </select>
+                <RefreshCw :size="12" :stroke-width="2" />
+                تلاش مجدد
+              </button>
+            </div>
+          </div>
 
-              <span v-if="isOpenRouter && modelsError" class="chat-settings__hint chat-settings__hint--error">
-                {{ modelsError }}
-              </span>
-              <span v-else-if="isOpenRouter && !canLoadOpenRouterModels" class="chat-settings__hint">
-                برای مشاهده لیست مدل‌ها، API Key مربوط به OpenRouter را وارد کنید.
-              </span>
-              <span v-else-if="isOpenRouter && isLoadingModels" class="chat-settings__hint">
-                در حال دریافت مدل‌ها از OpenRouter…
-              </span>
-            </label>
-          </template>
-
-          <label class="chat-settings__field">
-            <span class="chat-settings__label">API Key</span>
-            <input
-              v-model="form.apiKey"
-              type="password"
-              class="chat-settings__input"
-              :placeholder="apiKeyPlaceholder"
-              autocomplete="off"
-              spellcheck="false"
-            />
-            <span v-if="hasStoredApiKey && !form.apiKey" class="chat-settings__hint">
-              کلید ذخیره‌شده بدون تغییر باقی می‌ماند مگر مقدار جدید وارد کنید.
+          <!-- Key input -->
+          <label v-if="!activationError" class="chat-settings__field">
+            <span class="chat-settings__label">{{ hasStoredApiKey ? 'جایگزینی کلید API' : 'کلید API' }}</span>
+            <div class="chat-settings__key-row">
+              <input
+                v-model="apiKeyInput"
+                type="password"
+                class="chat-settings__input"
+                placeholder="sk-..."
+                autocomplete="off"
+                spellcheck="false"
+                dir="ltr"
+                :disabled="isActivating"
+                @keyup.enter="handleActivate"
+              />
+              <button
+                type="button"
+                class="chat-settings__activate-btn"
+                :disabled="isActivating || !apiKeyInput.trim()"
+                @click="handleActivate"
+              >
+                <Loader2
+                  v-if="isActivating"
+                  class="chat-settings__spinner"
+                  :size="14"
+                  :stroke-width="2"
+                />
+                <span>{{ isActivating ? 'در حال تأیید…' : 'فعال‌سازی' }}</span>
+              </button>
+            </div>
+            <span v-if="hasStoredApiKey" class="chat-settings__hint">
+              کلید ذخیره‌شده فعال است. برای جایگزینی، کلید جدید وارد کنید.
             </span>
           </label>
+
+          <!-- Purchase link -->
+          <a
+            href="https://www.wpagentify.ir/panel/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="chat-settings__purchase-link"
+          >
+            <ExternalLink :size="13" :stroke-width="2" />
+            <span>برای خرید کلید API کلیک کنید</span>
+          </a>
         </section>
 
         <section class="chat-settings__section">
@@ -667,5 +528,131 @@ async function handleSave() {
 
 .chat-settings__save:hover:not(:disabled) {
   opacity: 0.92;
+}
+
+.chat-settings__key-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: var(--dtm-space-4);
+  padding: 9px 12px;
+  border-radius: var(--dtm-radius-sm);
+  background: rgba(80, 200, 121, 0.08);
+  border: 1px solid rgba(80, 200, 121, 0.2);
+  font-size: 12px;
+  color: var(--dtm-accent);
+}
+
+.chat-settings__key-status-icon {
+  flex-shrink: 0;
+  color: var(--dtm-accent);
+}
+
+.chat-settings__key-masked {
+  font-family: monospace;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.chat-settings__key-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chat-settings__key-row .chat-settings__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-settings__activate-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--dtm-radius-sm);
+  background: var(--dtm-accent);
+  color: #04140a;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: opacity var(--dtm-transition);
+}
+
+.chat-settings__activate-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.chat-settings__activate-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chat-settings__activation-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: var(--dtm-space-4);
+  padding: 10px 12px;
+  border-radius: var(--dtm-radius-sm);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.chat-settings__activation-result--success {
+  background: rgba(80, 200, 121, 0.08);
+  border: 1px solid rgba(80, 200, 121, 0.2);
+  color: var(--dtm-accent);
+}
+
+.chat-settings__activation-result--error {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.chat-settings__activation-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.chat-settings__retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: var(--dtm-radius-sm);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.1);
+  color: #f87171;
+  font-size: 11px;
+  font-weight: 500;
+  transition: opacity var(--dtm-transition);
+}
+
+.chat-settings__retry-btn:hover {
+  opacity: 0.8;
+}
+
+.chat-settings__purchase-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: var(--dtm-space-2);
+  font-size: 12px;
+  color: var(--dtm-accent);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity var(--dtm-transition);
+}
+
+.chat-settings__purchase-link:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 </style>

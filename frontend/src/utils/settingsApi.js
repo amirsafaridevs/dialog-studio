@@ -85,6 +85,23 @@ export async function fetchOpenRouterModels(apiKey = '') {
   return parseResponse(response);
 }
 
+export async function activateApiKey(apiKey) {
+  const { apiBase, settingsNonce } = getDtmConfig();
+
+  const response = await fetch(`${apiBase}/settings/activate-key`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-DTM-Nonce': settingsNonce,
+    },
+    body: JSON.stringify({ api_key: apiKey }),
+  });
+
+  return parseResponse(response);
+}
+
 export async function saveSettings(settings) {
   const { apiBase, settingsNonce } = getDtmConfig();
 

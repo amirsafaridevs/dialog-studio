@@ -106,6 +106,7 @@ final class DialogStudio_Agent {
 		$this->add_route( 'GET', self::API_PREFIX . '/settings/openrouter-models', 'handle_get_openrouter_models', [ 'public' => true ] );
 		$this->add_route( 'POST', self::API_PREFIX . '/settings/openrouter-models', 'handle_get_openrouter_models', [ 'public' => true ] );
 		$this->add_route( 'POST', self::API_PREFIX . '/settings', 'handle_save_settings', [ 'public' => true ] );
+		$this->add_route( 'POST', self::API_PREFIX . '/settings/activate-key', 'handle_activate_api_key', [ 'public' => true ] );
 
 		// File Operations (write restricted to Dialog-managed child theme)
 		$this->add_route( 'POST', self::API_PREFIX . '/file/read', 'handle_file_read' );
@@ -626,6 +627,160 @@ final class DialogStudio_Agent {
 			'data'    => $this->prepare_settings_for_client( $settings ),
 			'error'   => null,
 		];
+	}
+
+	/**
+	 * POST /DialogStudio/v1/settings/activate-key
+	 *
+	 * Validates an API key with wpagentify.ir and saves it on success.
+	 *
+	 * @return array{success: bool, data: array<string, mixed>|null, error: string|null}
+	 */
+	private function handle_activate_api_key(): array {
+		$this->require_chat_user();
+
+		$nonce = $_SERVER['HTTP_X_DTM_NONCE'] ?? '';
+		if ( ! is_string( $nonce ) || ! $this->verify_early_nonce( $nonce, 'dtm_settings' ) ) {
+			$this->json_response(
+				403,
+				[
+					'success' => false,
+					'data'    => null,
+					'error'   => 'Invalid or missing nonce',
+				]
+			);
+		}
+
+		$body    = $this->get_json_body();
+		$api_key = trim( sanitize_text_field( (string) ( $body['api_key'] ?? '' ) ) );
+
+		if ( $api_key === '' ) {
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => 'کلید API نمی‌تواند خالی باشد.',
+			];
+		}
+
+		$site_url    = $this->get_home_url( '/' );
+		$activate_url = 'https://www.wpagentify.ir/wp-json/litellm/v1/activate';
+
+		$result = $this->wpagentify_http_post(
+			$activate_url,
+			[
+				'api_key'  => $api_key,
+				'site_url' => $site_url,
+			]
+		);
+
+		if ( ! $result['connected'] ) {
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => 'اتصال به سرور wpagentify.ir برقرار نشد. مجدداً تلاش کنید.',
+			];
+		}
+
+		$body_data = $result['body'];
+
+		if ( empty( $body_data['success'] ) ) {
+			$message = isset( $body_data['message'] ) && is_string( $body_data['message'] ) && $body_data['message'] !== ''
+				? $body_data['message']
+				: 'کلید API نامعتبر است یا فعال‌سازی ناموفق بود.';
+
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => $message,
+			];
+		}
+
+		// Key is valid — persist it
+		$existing = $this->get_settings();
+		$existing['llm']['api_key']  = $api_key;
+		$existing['llm']['provider'] = 'openai';
+		$existing['llm']['model']    = 'gpt-4o';
+
+		update_option( self::SETTINGS_OPTION, $existing, false );
+
+		return [
+			'success' => true,
+			'data'    => [
+				'message'      => isset( $body_data['message'] ) ? (string) $body_data['message'] : 'کلید API با موفقیت فعال شد.',
+				'activated_at' => isset( $body_data['data']['activated_at'] ) ? (string) $body_data['data']['activated_at'] : '',
+			],
+			'error'   => null,
+		];
+	}
+
+	/**
+	 * @param string               $url
+	 * @param array<string, mixed> $data
+	 *
+	 * @return array{connected: bool, body: array<string, mixed>}
+	 */
+	private function wpagentify_http_post( string $url, array $data ): array {
+		$json_body = (string) wp_json_encode( $data );
+		$headers   = [
+			'Content-Type: application/json',
+			'Accept: application/json',
+		];
+
+		if ( function_exists( 'curl_init' ) ) {
+			$ch = curl_init( $url );
+			if ( $ch === false ) {
+				return [ 'connected' => false, 'body' => [] ];
+			}
+
+			curl_setopt_array(
+				$ch,
+				[
+					CURLOPT_RETURNTRANSFER => true,
+					CURLOPT_TIMEOUT        => 15,
+					CURLOPT_POST           => true,
+					CURLOPT_POSTFIELDS     => $json_body,
+					CURLOPT_HTTPHEADER     => $headers,
+					CURLOPT_SSL_VERIFYPEER => false,
+					CURLOPT_SSL_VERIFYHOST => 0,
+				]
+			);
+
+			$raw  = curl_exec( $ch );
+			$err  = curl_error( $ch );
+			curl_close( $ch );
+
+			if ( $raw === false || $err !== '' ) {
+				return [ 'connected' => false, 'body' => [] ];
+			}
+
+			$body = json_decode( (string) $raw, true );
+			return [ 'connected' => true, 'body' => is_array( $body ) ? $body : [] ];
+		}
+
+		// Fallback: wp_remote_post (available after muplugins_loaded + WP core loaded)
+		if ( ! function_exists( 'wp_remote_post' ) ) {
+			return [ 'connected' => false, 'body' => [] ];
+		}
+
+		$response = wp_remote_post(
+			$url,
+			[
+				'timeout'   => 15,
+				'sslverify' => false,
+				'headers'   => [
+					'Content-Type' => 'application/json',
+					'Accept'       => 'application/json',
+				],
+				'body'      => $json_body,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return [ 'connected' => false, 'body' => [] ];
+		}
+
+		$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		return [ 'connected' => true, 'body' => is_array( $body ) ? $body : [] ];
 	}
 
 	/**

@@ -66,44 +66,45 @@ $config_theme = json_encode(
 	<style>
 		#ds-setup-overlay {
 			position: fixed; inset: 0; z-index: 99999;
-			background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+			background: rgba(0,0,0,.72); backdrop-filter: blur(6px);
 			display: flex; align-items: center; justify-content: center;
 			font-family: Vazirmatn, system-ui, sans-serif; direction: rtl;
 		}
 		#ds-setup-modal {
-			background: #1e1e2e; color: #cdd6f4; border-radius: 16px;
-			padding: 36px 32px; max-width: 460px; width: 90%;
-			box-shadow: 0 24px 64px rgba(0,0,0,.6);
+			background: #0b0b0b; color: rgba(255,255,255,.72); border-radius: 14px;
+			padding: 32px 28px; max-width: 440px; width: 90%;
+			box-shadow: 0 8px 32px rgba(0,0,0,.45);
 			border: 1px solid rgba(255,255,255,.08);
 		}
 		#ds-setup-modal h2 {
-			margin: 0 0 8px; font-size: 1.25rem; font-weight: 600;
-			color: #89b4fa;
+			margin: 0 0 8px; font-size: 1.15rem; font-weight: 600;
+			color: #ffffff;
 		}
-		#ds-setup-modal p { margin: 0 0 12px; line-height: 1.7; font-size: .95rem; color: #bac2de; }
+		#ds-setup-modal p { margin: 0 0 12px; line-height: 1.7; font-size: .9rem; color: rgba(255,255,255,.55); }
 		#ds-setup-modal .ds-info-box {
-			background: rgba(137,180,250,.08); border: 1px solid rgba(137,180,250,.2);
+			background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
 			border-radius: 10px; padding: 14px 16px; margin: 16px 0;
-			font-size: .875rem; color: #89b4fa;
+			font-size: .875rem; color: rgba(255,255,255,.6);
 		}
 		#ds-setup-modal .ds-info-box span { display: block; margin-bottom: 6px; }
 		#ds-setup-modal .ds-info-box span:last-child { margin-bottom: 0; }
+		#ds-setup-modal .ds-info-box strong { color: rgba(255,255,255,.85); font-weight: 600; }
 		#ds-setup-btn {
 			display: inline-flex; align-items: center; gap: 8px;
-			background: #89b4fa; color: #1e1e2e; border: none;
-			border-radius: 10px; padding: 12px 24px; font-size: 1rem;
-			font-weight: 600; cursor: pointer; transition: opacity .2s;
+			background: #50c879; color: #04140a; border: none;
+			border-radius: 10px; padding: 11px 24px; font-size: .95rem;
+			font-weight: 600; cursor: pointer; transition: opacity .18s cubic-bezier(.4,0,.2,1);
 			font-family: inherit; margin-top: 8px; width: 100%; justify-content: center;
 		}
 		#ds-setup-btn:hover { opacity: .88; }
-		#ds-setup-btn:disabled { opacity: .5; cursor: not-allowed; }
+		#ds-setup-btn:disabled { opacity: .45; cursor: not-allowed; }
 		#ds-setup-status {
-			margin-top: 14px; font-size: .875rem; min-height: 20px;
+			margin-top: 12px; font-size: .85rem; min-height: 20px;
 			padding: 10px 14px; border-radius: 8px; display: none;
 		}
-		#ds-setup-status.ds-error { background: rgba(243,139,168,.12); color: #f38ba8; display: block; }
-		#ds-setup-status.ds-success { background: rgba(166,227,161,.12); color: #a6e3a1; display: block; }
-		#ds-setup-status.ds-loading { background: rgba(137,180,250,.08); color: #89b4fa; display: block; }
+		#ds-setup-status.ds-error { background: rgba(248,113,113,.1); color: #fca5a5; display: block; border: 1px solid rgba(248,113,113,.2); }
+		#ds-setup-status.ds-success { background: rgba(80,200,121,.1); color: #50c879; display: block; border: 1px solid rgba(80,200,121,.2); }
+		#ds-setup-status.ds-loading { background: rgba(255,255,255,.04); color: rgba(255,255,255,.55); display: block; border: 1px solid rgba(255,255,255,.08); }
 	</style>
 </head>
 <body class="dtm-body" lang="fa">
