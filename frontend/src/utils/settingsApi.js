@@ -97,16 +97,15 @@ export async function fetchWpagentifyKeyInfo(apiKey = '') {
     },
   });
 
-  if (response.status === 401) {
-    throw new Error('auth_error');
-  }
-
-  if (response.status === 429) {
-    throw new Error('budget_exceeded');
-  }
-
   if (!response.ok) {
-    throw new Error(`request_failed_${response.status}`);
+    let apiMessage = null;
+    try {
+      const body = await response.clone().json();
+      apiMessage = body?.error?.message || body?.message || null;
+    } catch {}
+    if (response.status === 401) throw new Error(apiMessage || 'کلید API نامعتبر است. لطفاً کلید صحیح وارد کنید.');
+    if (response.status === 429) throw new Error(apiMessage || 'اعتبار کلید API به پایان رسیده است.');
+    throw new Error(apiMessage || `خطای سرور (${response.status})`);
   }
 
   const payload = await response.json();

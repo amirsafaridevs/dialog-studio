@@ -44,35 +44,16 @@ function translateBudgetMessage(apiMessage) {
   if (msg.includes('30d')) return 'به محدودیت حجم مصرف ماهانه رسیده‌اید.';
   if (msg.includes('7d')) return 'به محدودیت حجم مصرف هفتگی رسیده‌اید.';
   if (msg.includes('24h')) return 'به محدودیت حجم مصرف روزانه رسیده‌اید.';
-  return null;
+  return apiMessage;
 }
 
 export function translateErrorMessage(error) {
   if (!error) return '';
-  const msg = String(error).toLowerCase();
-  if (msg.includes('429') || msg.includes('budget') || msg.includes('rate limit')) {
-    return translateBudgetMessage(error) || 'درخواست بیش از حد مجاز';
-  }
-  return null;
+  // agentError is always a string — return it as-is; budget messages are already translated by fetch override
+  return String(error?.message || error);
 }
 
-async function wpagentifyFetch(...args) {
-  const response = await fetch(...args);
-  console.log('[wpagentifyFetch] Response status:', response);
-  if (response.status === 429) {
-    let apiMessage = null;
-    try {
-      const cloned = response.clone();
-      const body = await cloned.json();
-      apiMessage = body?.error?.message || null;
-    } catch {
-      // ignore parse errors
-    }
-    const userMessage = translateBudgetMessage(apiMessage) || apiMessage || 'درخواست بیش از حد مجاز';
-    throw new WpagentifyApiError(userMessage, 429);
-  }
-  return response;
-}
+
 
 export function extractReasoningFromRawResponse(raw) {
   const choice = raw?.choices?.[0];
@@ -114,13 +95,27 @@ export class LLMProvider {
       throw new Error('کلید API وارد نشده است. لطفاً از تنظیمات کلید API خود را وارد کنید.');
     }
 
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (!response.ok) {
+        const cloned = response.clone();
+        let body = null;
+        try { body = await cloned.json(); } catch {}
+        const apiMessage = body?.error?.message || body?.message || null;
+        const userMessage = translateBudgetMessage(apiMessage) || apiMessage || `خطای سرور (${response.status})`;
+        console.error('[originalFetch] API error :', { status: response.status, body });
+        throw new WpagentifyApiError(userMessage, response.status);
+      }
+      return response;
+    };
     this.provider = new ChatOpenAI({
       modelName: model || DEFAULT_MODEL,
       openAIApiKey: apiKey,
       configuration: {
         apiKey,
         baseURL: WPAGENTIFY_BASE_URL,
-        fetchOptions: { fetch: wpagentifyFetch },
       },
       temperature: 0.1,
       streaming: true,
@@ -153,14 +148,18 @@ export class LLMProvider {
       } catch (error) {
         lastError = error;
 
-        if (error instanceof WpagentifyApiError) {
-          console.error('[LLMProvider] Invoke error:', error);
+       
+
+        if (error instanceof WpagentifyApiError || error.name === 'WpagentifyApiError') {
           throw error;
+        }
+        if (error.cause instanceof WpagentifyApiError || error.cause?.name === 'WpagentifyApiError') {
+          throw error.cause;
         }
 
         if (isRetryableNetworkError(error) && attempt <= LLM_MAX_RETRIES) {
           console.warn(`[LLMProvider] Invoke retry ${attempt}/${LLM_MAX_RETRIES}:`, error.message);
-          await sleep(1000 * attempt);
+          await sleep(5000 * attempt);
           continue;
         }
 

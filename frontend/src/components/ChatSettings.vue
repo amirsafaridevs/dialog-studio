@@ -48,13 +48,7 @@ async function loadKeyInfo(apiKey) {
   try {
     keyInfo.value = await fetchWpagentifyKeyInfo(apiKey);
   } catch (err) {
-    if (err.message === 'auth_error') {
-      keyInfoError.value = 'کلید API نامعتبر است. لطفاً کلید صحیح وارد کنید.';
-    } else if (err.message === 'budget_exceeded') {
-      keyInfoError.value = 'اعتبار روزانه کلید API به پایان رسیده است. ';
-    } else {
-      keyInfoError.value = 'دریافت اطلاعات اکانت ناموفق بود.';
-    }
+    keyInfoError.value = err.message || 'دریافت اطلاعات اکانت ناموفق بود.';
   } finally {
     isFetchingKeyInfo.value = false;
   }

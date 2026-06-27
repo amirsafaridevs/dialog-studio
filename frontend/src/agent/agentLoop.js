@@ -519,7 +519,7 @@ export async function runAgentLoop({
 
   const stream = await graph.stream(
     { messages },
-    { streamMode: 'updates' },
+    { streamMode: 'updates', recursionLimit: 200 },
   );
 
   for await (const update of stream) {

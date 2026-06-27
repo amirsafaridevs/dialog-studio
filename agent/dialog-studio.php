@@ -684,38 +684,38 @@ final class DialogStudio_Agent {
 		}
 
 		$body_data = $result['body'];
+		$key_data  = is_array( $body_data['data'] ?? null ) ? $body_data['data'] : [];
 
+		// If the API returned success:false, check whether it's because the key was already activated
+		// for this same domain — in that case we allow it through.
 		if ( empty( $body_data['success'] ) ) {
-			$message = isset( $body_data['message'] ) && is_string( $body_data['message'] ) && $body_data['message'] !== ''
-				? $body_data['message']
-				: 'کلید API نامعتبر است یا فعال‌سازی ناموفق بود.';
+			$already_activated = isset( $body_data['data']['site_url'] );
 
-			return [
-				'success' => false,
-				'data'    => null,
-				'error'   => $message,
-			];
-		}
+			if ( $already_activated ) {
+				$registered_domain = $this->extract_domain_from_url( (string) ( $body_data['data']['site_url'] ?? '' ) );
+				$current_domain    = $this->extract_domain_from_url( $site_url );
 
-		// Check if key was previously used and validate domain match
-		$key_data = is_array( $body_data['data'] ?? null ) ? $body_data['data'] : [];
-		$is_key_reused = ! empty( $key_data['is_reused'] );
+				if ( ! $registered_domain || ! $current_domain || ! $this->domains_match( $registered_domain, $current_domain ) ) {
+					return [
+						'success' => false,
+						'data'    => null,
+						'error'   => sprintf(
+							'کلید API قبلاً برای دامنه‌ی %s ثبت شده است. برای استفاده از این دامنه، کلید API جدیدی درخواست کنید.',
+							htmlspecialchars( $registered_domain ?: (string) ( $body_data['data']['site_url'] ?? '' ), ENT_QUOTES, 'UTF-8' )
+						),
+					];
+				}
 
-		if ( $is_key_reused ) {
-			$registered_domain = ! empty( $key_data['registered_domain'] )
-				? (string) $key_data['registered_domain']
-				: '';
-			$current_domain = $this->extract_domain_from_url( $site_url );
+				// Same domain — fall through to save the key below.
+			} else {
+				$message = isset( $body_data['message'] ) && is_string( $body_data['message'] ) && $body_data['message'] !== ''
+					? $body_data['message']
+					: 'کلید API نامعتبر است یا فعال‌سازی ناموفق بود.';
 
-			// Only block if we have both domains and they don't match
-			if ( $registered_domain && $current_domain && ! $this->domains_match( $registered_domain, $current_domain ) ) {
 				return [
 					'success' => false,
 					'data'    => null,
-					'error'   => sprintf(
-						'کلید API قبلاً برای دامنه‌ی %s ثبت شده است. برای استفاده از این دامنه، کلید API جدیدی درخواست کنید.',
-						htmlspecialchars( $registered_domain, ENT_QUOTES, 'UTF-8' )
-					),
+					'error'   => $message,
 				];
 			}
 		}
@@ -730,7 +730,7 @@ final class DialogStudio_Agent {
 			'success' => true,
 			'data'    => [
 				'message'      => isset( $body_data['message'] ) ? (string) $body_data['message'] : 'کلید API با موفقیت فعال شد.',
-				'activated_at' => isset( $body_data['data']['activated_at'] ) ? (string) $body_data['data']['activated_at'] : '',
+				'activated_at' => isset( $key_data['activated_at'] ) ? (string) $key_data['activated_at'] : '',
 			],
 			'error'   => null,
 		];
