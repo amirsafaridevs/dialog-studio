@@ -342,11 +342,7 @@ export function useAgent() {
       throw new Error('LLM settings not provided');
     }
 
-    const currentApiKey =
-      nextSettings.llm.api_key ||
-      previousSettings?.llm?.api_key ||
-      llmProvider?.config?.apiKey ||
-      '';
+    const currentApiKey = nextSettings.llm.api_key || '';
 
     return {
       ...nextSettings,
@@ -486,11 +482,11 @@ export function useAgent() {
           capturePartialTurnWithoutInterrupt();
           prepareMessagesForResume();
           persistImmediately();
-
           if (!isRetryableAgentError(err) || autoResumeAttempt >= MAX_AUTO_RESUME_ATTEMPTS) {
             isInterrupted.value = true;
-            const errorMsg = err.name === 'WpagentifyApiError'
-              ? err.message
+            const wpErr = err.name === 'WpagentifyApiError' ? err : (err.cause?.name === 'WpagentifyApiError' ? err.cause : null);
+            const errorMsg = wpErr
+              ? wpErr.message
               : `Message execution failed: ${err.message}`;
             setError(errorMsg);
             persistSession();

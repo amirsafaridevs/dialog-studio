@@ -634,6 +634,7 @@ final class DialogStudio_Agent {
 	 * POST /DialogStudio/v1/settings/activate-key
 	 *
 	 * Validates an API key with wpagentify.ir and saves it on success.
+	 * If the key was previously used, it only accepts it if the registered domain matches the current site.
 	 *
 	 * @return array{success: bool, data: array<string, mixed>|null, error: string|null}
 	 */
@@ -694,6 +695,29 @@ final class DialogStudio_Agent {
 				'data'    => null,
 				'error'   => $message,
 			];
+		}
+
+		// Check if key was previously used and validate domain match
+		$key_data = is_array( $body_data['data'] ?? null ) ? $body_data['data'] : [];
+		$is_key_reused = ! empty( $key_data['is_reused'] );
+
+		if ( $is_key_reused ) {
+			$registered_domain = ! empty( $key_data['registered_domain'] )
+				? (string) $key_data['registered_domain']
+				: '';
+			$current_domain = $this->extract_domain_from_url( $site_url );
+
+			// Only block if we have both domains and they don't match
+			if ( $registered_domain && $current_domain && ! $this->domains_match( $registered_domain, $current_domain ) ) {
+				return [
+					'success' => false,
+					'data'    => null,
+					'error'   => sprintf(
+						'کلید API قبلاً برای دامنه‌ی %s ثبت شده است. برای استفاده از این دامنه، کلید API جدیدی درخواست کنید.',
+						htmlspecialchars( $registered_domain, ENT_QUOTES, 'UTF-8' )
+					),
+				];
+			}
 		}
 
 		// Key is valid — persist it (keep existing model choice; just update the key)
@@ -1124,6 +1148,29 @@ final class DialogStudio_Agent {
 
 	private function is_masked_api_key( string $value ): bool {
 		return (bool) preg_match( '/^[^*]*\*+[^*]*$/', $value ) && strpos( $value, '*' ) !== false;
+	}
+
+	/**
+	 * Extract domain from URL (e.g., "https://example.com/path" -> "example.com")
+	 */
+	private function extract_domain_from_url( string $url ): string {
+		$parsed = wp_parse_url( $url );
+		$host = isset( $parsed['host'] ) ? (string) $parsed['host'] : '';
+		return strtolower( trim( $host ) );
+	}
+
+	/**
+	 * Compare two domains, ignoring www prefix and case sensitivity.
+	 */
+	private function domains_match( string $domain1, string $domain2 ): bool {
+		$domain1 = strtolower( trim( $domain1 ) );
+		$domain2 = strtolower( trim( $domain2 ) );
+
+		// Remove www prefix if present
+		$domain1 = preg_replace( '/^www\./', '', $domain1 );
+		$domain2 = preg_replace( '/^www\./', '', $domain2 );
+
+		return $domain1 === $domain2;
 	}
 
 	private function require_chat_user(): void {

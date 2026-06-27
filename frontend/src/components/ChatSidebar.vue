@@ -29,6 +29,7 @@ import { getToolTitle, extractToolArgsFromResult } from '../utils/toolDisplay.js
 import { listHistoryItems } from '../utils/chatStorage.js';
 import { exportChatSession } from '../utils/chatExport.js';
 import { getDtmConfig } from '../utils/dtmConfig.js';
+import { translateErrorMessage } from '../agent/providers/llmProvider.js';
 
 
 
@@ -49,10 +50,6 @@ const chatInputRef = ref(null);
 
 const agentInitError = ref('');
 const pageThemeMessage = ref(getDtmConfig().theme?.message || '');
-
-
-
-const AGENT_SETTINGS_CACHE_KEY = 'dtm-agent-settings';
 
 
 
@@ -121,6 +118,11 @@ const canExportChat = computed(() => (
   || Boolean(streamingContent.value)
   || Boolean(toolStreamState.value)
 ));
+
+const translatedAgentError = computed(() => {
+  if (!agentError.value) return '';
+  return translateErrorMessage(agentError.value) || agentError.value;
+});
 
 function getActiveSessionTitle() {
   const active = chatHistory.value.find((item) => item.id === currentSessionId.value);
@@ -903,52 +905,8 @@ function scheduleMapAgentMessages() {
 
 
 
-function loadCachedAgentSettings() {
-
-  if (typeof window === 'undefined') {
-
-    return null;
-
-  }
-
-
-
-  try {
-
-    const raw = window.sessionStorage.getItem(AGENT_SETTINGS_CACHE_KEY);
-
-    return raw ? JSON.parse(raw) : null;
-
-  } catch {
-
-    return null;
-
-  }
-
-}
-
-
-
-function cacheAgentSettings(settings) {
-
-  if (typeof window === 'undefined' || !settings) {
-
-    return;
-
-  }
-
-
-
-  try {
-
-    window.sessionStorage.setItem(AGENT_SETTINGS_CACHE_KEY, JSON.stringify(settings));
-
-  } catch {
-
-    // Ignore storage failures.
-
-  }
-
+function cacheAgentSettings(_settings) {
+  // Settings are always fetched fresh from the server — no client-side caching.
 }
 
 
@@ -1003,19 +961,11 @@ function buildAgentSettings(source, apiKey = '') {
 
 async function resolveAgentSettings(preferred = null) {
 
-  const cachedSettings = loadCachedAgentSettings();
-
-  let apiKey =
-
-    preferred?.llm?.api_key ||
-
-    cachedSettings?.llm?.api_key ||
-
-    '';
-
-
+  const preferredKey = preferred?.llm?.api_key || '';
 
   let serverSettings = null;
+
+  let serverKey = '';
 
 
 
@@ -1023,21 +973,15 @@ async function resolveAgentSettings(preferred = null) {
 
     serverSettings = await fetchAgentSettings();
 
-    if (!apiKey) {
-
-      apiKey = serverSettings?.llm?.api_key || '';
-
-    }
+    serverKey = serverSettings?.llm?.api_key || '';
 
   } catch {
 
-    if (!apiKey && cachedSettings) {
-
-      return cachedSettings;
-
-    }
+    return null;
 
   }
+
+  const apiKey = preferredKey || serverKey;
 
 
 
@@ -1383,9 +1327,22 @@ function handleSelectPrompt(text) {
 
 async function handleSettingsSaved(payload) {
 
-  const clientSettings = payload?.client;
+  let clientSettings = payload?.client;
 
-  if (!clientSettings?.llm) {
+  if (!clientSettings) {
+
+    return;
+
+  }
+
+  // Normalize: if api_key was passed at the top level (legacy), wrap it
+  if (!clientSettings.llm && clientSettings.api_key) {
+
+    clientSettings = { llm: { api_key: clientSettings.api_key } };
+
+  }
+
+  if (!clientSettings.llm) {
 
     return;
 
@@ -1589,7 +1546,7 @@ async function handleCustomPromptSaved(payload) {
 
       :visible="isInterrupted && !isRunning && messages.length > 0"
 
-      :error-message="agentError"
+      :error-message="translatedAgentError"
 
       @continue="handleContinue"
 

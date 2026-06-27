@@ -51,7 +51,7 @@ async function loadKeyInfo(apiKey) {
     if (err.message === 'auth_error') {
       keyInfoError.value = 'کلید API نامعتبر است. لطفاً کلید صحیح وارد کنید.';
     } else if (err.message === 'budget_exceeded') {
-      keyInfoError.value = 'اعتبار روزانه کلید API به پایان رسیده است. فردا تمدید می‌شود.';
+      keyInfoError.value = 'اعتبار روزانه کلید API به پایان رسیده است. ';
     } else {
       keyInfoError.value = 'دریافت اطلاعات اکانت ناموفق بود.';
     }
@@ -142,7 +142,7 @@ async function handleActivate() {
     apiKeyMasked.value = key.slice(0, 4) + '••••••••' + key.slice(-4);
     apiKeyInput.value = '';
     await Promise.all([loadModels(key), loadKeyInfo(key)]);
-    emit('saved', { server: data, client: { api_key: key } });
+    emit('saved', { server: data, client: { llm: { api_key: key } } });
   } catch (error) {
     activationError.value = error.message || 'فعال‌سازی کلید API ناموفق بود.';
   } finally {

@@ -47,8 +47,18 @@ function translateBudgetMessage(apiMessage) {
   return null;
 }
 
+export function translateErrorMessage(error) {
+  if (!error) return '';
+  const msg = String(error).toLowerCase();
+  if (msg.includes('429') || msg.includes('budget') || msg.includes('rate limit')) {
+    return translateBudgetMessage(error) || 'درخواست بیش از حد مجاز';
+  }
+  return null;
+}
+
 async function wpagentifyFetch(...args) {
   const response = await fetch(...args);
+  console.log('[wpagentifyFetch] Response status:', response);
   if (response.status === 429) {
     let apiMessage = null;
     try {
@@ -176,9 +186,14 @@ export class LLMProvider {
         yield normalizeReasoningChunk(chunk);
       }
     } catch (error) {
-      if (error instanceof WpagentifyApiError) {
+      if (error instanceof WpagentifyApiError || error.name === 'WpagentifyApiError') {
         console.error('[LLMProvider] Stream error:', error);
         throw error;
+      }
+      // LangChain may wrap our WpagentifyApiError — unwrap it before re-throwing
+      if (error.cause instanceof WpagentifyApiError || error.cause?.name === 'WpagentifyApiError') {
+        console.error('[LLMProvider] Stream error (unwrapped):', error.cause);
+        throw error.cause;
       }
       console.error('[LLMProvider] Stream error:', error);
       throw new Error(`LLM stream failed: ${error.message}`);
