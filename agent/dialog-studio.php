@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Dialog Theme Maker - Agent
- * Description: Agent runtime for Dialog Theme Maker — intercepts /DialogStudio/v1/* requests directly.
+ * Plugin Name: Dialog Studio - Agent
+ * Description: Agent runtime for Dialog Studio — intercepts /DialogStudio/v1/* requests directly.
  * Version: 1.0.0
  *
  * This file is auto-loaded as a must-use plugin.
@@ -137,6 +137,7 @@ final class DialogStudio_Agent {
 		// Dialog Theme Management
 		$this->add_route( 'POST', self::API_PREFIX . '/theme/check', 'handle_theme_check' );
 		$this->add_route( 'GET', self::API_PREFIX . '/theme/index', 'handle_theme_index' );
+		$this->add_route( 'POST', self::API_PREFIX . '/theme/graph-query', 'handle_theme_graph_query' );
 		$this->add_route( 'POST', self::API_PREFIX . '/code/graph', 'handle_code_graph' );
 		$this->add_route( 'POST', self::API_PREFIX . '/code/validate', 'handle_code_validate' );
 
@@ -695,11 +696,9 @@ final class DialogStudio_Agent {
 			];
 		}
 
-		// Key is valid — persist it
+		// Key is valid — persist it (keep existing model choice; just update the key)
 		$existing = $this->get_settings();
-		$existing['llm']['api_key']  = $api_key;
-		$existing['llm']['provider'] = 'openai';
-		$existing['llm']['model']    = 'gpt-4o';
+		$existing['llm']['api_key'] = $api_key;
 
 		update_option( self::SETTINGS_OPTION, $existing, false );
 
@@ -902,7 +901,7 @@ final class DialogStudio_Agent {
 		$headers = [
 			'Authorization: Bearer ' . $api_key,
 			'HTTP-Referer: ' . home_url( '/' ),
-			'X-OpenRouter-Title: Dialog Theme Maker',
+			'X-OpenRouter-Title: Dialog Studio',
 			'Accept: application/json',
 		];
 
@@ -968,7 +967,7 @@ final class DialogStudio_Agent {
 				'headers'   => [
 					'Authorization'      => 'Bearer ' . $api_key,
 					'HTTP-Referer'       => home_url( '/' ),
-					'X-OpenRouter-Title' => 'Dialog Theme Maker',
+					'X-OpenRouter-Title' => 'Dialog Studio',
 					'Accept'             => 'application/json',
 				],
 			]
@@ -1010,12 +1009,8 @@ final class DialogStudio_Agent {
 	private function get_default_settings(): array {
 		return [
 			'llm'           => [
-				'provider'            => 'deepseek',
-				'model'               => 'deepseek-v4-flash',
-				'api_key'             => '',
-				'use_custom_endpoint' => false,
-				'custom_endpoint'     => '',
-				'custom_model'        => '',
+				'model'   => 'deepseek-v4-flash',
+				'api_key' => '',
 			],
 			'permissions'   => [
 				'read_files'   => true,
@@ -1058,26 +1053,20 @@ final class DialogStudio_Agent {
 	 */
 	private function sanitize_settings_payload( array $payload, array $existing ): array {
 		$defaults  = $this->get_default_settings();
-		$providers = [ 'deepseek', 'openai', 'claude', 'gemini', 'qwen', 'openrouter' ];
-
 		$llm_input = is_array( $payload['llm'] ?? null ) ? $payload['llm'] : [];
-		$provider  = sanitize_key( (string) ( $llm_input['provider'] ?? $existing['llm']['provider'] ) );
-		if ( ! in_array( $provider, $providers, true ) ) {
-			$provider = $defaults['llm']['provider'];
-		}
 
-		$model = sanitize_text_field( (string) ( $llm_input['model'] ?? $existing['llm']['model'] ) );
+		// Model — accept any non-empty string (proxy decides validity)
+		$model = sanitize_text_field( (string) ( $llm_input['model'] ?? $existing['llm']['model'] ?? '' ) );
 		if ( $model === '' ) {
 			$model = (string) $defaults['llm']['model'];
 		}
 
+		// API key — keep existing when input is empty or masked
 		$api_key_input = (string) ( $llm_input['api_key'] ?? '' );
-		$api_key       = $existing['llm']['api_key'];
+		$api_key       = (string) ( $existing['llm']['api_key'] ?? '' );
 		if ( $api_key_input !== '' && ! $this->is_masked_api_key( $api_key_input ) ) {
 			$api_key = sanitize_text_field( $api_key_input );
 		}
-
-		$use_custom = ! empty( $llm_input['use_custom_endpoint'] );
 
 		$perm_input = is_array( $payload['permissions'] ?? null ) ? $payload['permissions'] : [];
 
@@ -1088,12 +1077,8 @@ final class DialogStudio_Agent {
 
 		return [
 			'llm'           => [
-				'provider'            => $provider,
-				'model'               => $model,
-				'api_key'             => $api_key,
-				'use_custom_endpoint' => $use_custom,
-				'custom_endpoint'     => esc_url_raw( (string) ( $llm_input['custom_endpoint'] ?? '' ) ),
-				'custom_model'        => sanitize_text_field( (string) ( $llm_input['custom_model'] ?? '' ) ),
+				'model'   => $model,
+				'api_key' => $api_key,
 			],
 			'permissions'   => [
 				'read_files'  => array_key_exists( 'read_files', $perm_input )
@@ -1337,7 +1322,7 @@ final class DialogStudio_Agent {
 
 		$plugins_url = defined( 'WP_PLUGIN_URL' ) ? WP_PLUGIN_URL : $this->get_home_url( 'wp-content/plugins' );
 
-		return rtrim( (string) $plugins_url, '/' ) . '/dialog-theme-maker/' . $relative_path;
+		return rtrim( (string) $plugins_url, '/' ) . '/dialog-studio/' . $relative_path;
 	}
 
 	// =============================================
@@ -3761,11 +3746,25 @@ final class DialogStudio_Agent {
 				'dialog'
 			);
 
+			// Knowledge graph (parent + child). Best-effort — never blocks chat.
+			$knowledge_graph = null;
+			try {
+				$knowledge_graph = $indexer->buildKnowledgeGraph();
+			} catch ( \Throwable $kg_error ) {
+				error_log(
+					sprintf(
+						'DialogStudio: knowledge graph build failed: %s',
+						$kg_error->getMessage()
+					)
+				);
+			}
+
 			return [
 				'success' => true,
 				'data'    => [
-					'available' => ! empty( $index['files'] ),
-					'index'     => $index,
+					'available'       => ! empty( $index['files'] ),
+					'index'           => $index,
+					'knowledge_graph' => $knowledge_graph,
 				],
 				'error'   => null,
 			];
@@ -3784,6 +3783,74 @@ final class DialogStudio_Agent {
 					'index'     => $empty_index,
 				],
 				'error'   => null,
+			];
+		} finally {
+			if ( false !== $previous_time_limit && '' !== $previous_time_limit ) {
+				@set_time_limit( (int) $previous_time_limit );
+			}
+		}
+	}
+
+	/**
+	 * POST /DialogStudio/v1/theme/graph-query
+	 *
+	 * Answer a focused question against the project knowledge graph (parent + child).
+	 * mode: "explain" (default) | "path".
+	 */
+	private function handle_theme_graph_query(): array {
+		$this->require_chat_user();
+
+		$body = $this->get_json_body();
+		$mode = sanitize_text_field( (string) ( $body['mode'] ?? 'explain' ) );
+
+		$args = [
+			'mode'     => $mode,
+			'target'   => sanitize_text_field( (string) ( $body['target'] ?? '' ) ),
+			'from'     => sanitize_text_field( (string) ( $body['from'] ?? '' ) ),
+			'to'       => sanitize_text_field( (string) ( $body['to'] ?? '' ) ),
+			'max_hops' => isset( $body['max_hops'] ) ? absint( $body['max_hops'] ) : 6,
+		];
+
+		$previous_time_limit = ini_get( 'max_execution_time' );
+
+		try {
+			if ( false !== $previous_time_limit ) {
+				@set_time_limit( self::THEME_INDEX_TIME_LIMIT );
+			}
+
+			$indexer = $this->resolve_theme_code_indexer();
+
+			if ( null === $indexer ) {
+				return [
+					'success' => true,
+					'data'    => [ 'available' => false, 'mode' => $mode, 'result' => null ],
+					'error'   => null,
+				];
+			}
+
+			$query = $indexer->queryKnowledgeGraph( $args );
+
+			return [
+				'success' => true,
+				'data'    => [
+					'available' => true,
+					'mode'      => $query['mode'],
+					'result'    => $query['result'],
+				],
+				'error'   => null,
+			];
+		} catch ( \Throwable $exception ) {
+			error_log(
+				sprintf(
+					'DialogStudio: graph query failed: %s',
+					$exception->getMessage()
+				)
+			);
+
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => 'Graph query failed: ' . $exception->getMessage(),
 			];
 		} finally {
 			if ( false !== $previous_time_limit && '' !== $previous_time_limit ) {

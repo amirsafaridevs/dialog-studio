@@ -59,6 +59,56 @@ class ThemeFileScanner
     }
 
     /**
+     * Resolve the active theme together with its parent (template) theme, if any.
+     *
+     * The child theme is the writable workspace; the parent is read-only context
+     * the agent needs to understand what it can override and where behaviour lives.
+     *
+     * @return array{
+     *     child: array{slug: string, directory: string},
+     *     parent: array{slug: string, directory: string}|null
+     * }
+     *
+     * @throws ThemeIndexingException
+     */
+    public function getActiveThemeWithParent(): array
+    {
+        $child = $this->getActiveTheme();
+
+        $theme = wp_get_theme();
+
+        if ( ! $theme instanceof WP_Theme || ! $theme->parent() instanceof WP_Theme ) {
+            return [
+                'child'  => $child,
+                'parent' => null,
+            ];
+        }
+
+        $parentDirectory = $this->normalizePath( (string) $theme->get_template_directory() );
+
+        // A standalone theme reports stylesheet === template; treat that as no parent.
+        if (
+            '' === $parentDirectory
+            || $parentDirectory === $child['directory']
+            || ! is_dir( $parentDirectory )
+            || ! is_readable( $parentDirectory )
+        ) {
+            return [
+                'child'  => $child,
+                'parent' => null,
+            ];
+        }
+
+        return [
+            'child'  => $child,
+            'parent' => [
+                'slug'      => (string) $theme->get_template(),
+                'directory' => $parentDirectory,
+            ],
+        ];
+    }
+
+    /**
      * Recursively collect PHP file paths relative to the theme root.
      *
      * @return list<string>

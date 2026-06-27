@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
 import { AlertCircle, Check, ExternalLink, Loader2, RefreshCw } from 'lucide-vue-next';
-import { activateApiKey, fetchSettings, saveSettings } from '../utils/settingsApi.js';
+import { ALL_MODELS } from '../utils/llmProviders.js';
+import { activateApiKey, fetchAgentSettings, fetchSettings, fetchWpagentifyKeyInfo, fetchWpagentifyModels, saveSettings } from '../utils/settingsApi.js';
 
 const emit = defineEmits(['saved']);
 
@@ -12,13 +13,74 @@ const saveError = ref('');
 const hasStoredApiKey = ref(false);
 const apiKeyMasked = ref('');
 
-// API key activation state
 const apiKeyInput = ref('');
 const isActivating = ref(false);
 const activationError = ref('');
 const activationSuccess = ref('');
 
+const availableModels = ref(ALL_MODELS);
+const isFetchingModels = ref(false);
+
+const keyInfo = ref(null);
+const keyInfoError = ref('');
+const isFetchingKeyInfo = ref(false);
+
+async function loadModels(apiKey) {
+  isFetchingModels.value = true;
+  try {
+    const models = await fetchWpagentifyModels(apiKey);
+    if (models && models.length > 0) {
+      availableModels.value = models;
+    } else {
+      availableModels.value = ALL_MODELS;
+    }
+  } catch {
+    availableModels.value = ALL_MODELS;
+  } finally {
+    isFetchingModels.value = false;
+  }
+}
+
+async function loadKeyInfo(apiKey) {
+  isFetchingKeyInfo.value = true;
+  keyInfoError.value = '';
+  keyInfo.value = null;
+  try {
+    keyInfo.value = await fetchWpagentifyKeyInfo(apiKey);
+  } catch (err) {
+    if (err.message === 'auth_error') {
+      keyInfoError.value = 'کلید API نامعتبر است. لطفاً کلید صحیح وارد کنید.';
+    } else if (err.message === 'budget_exceeded') {
+      keyInfoError.value = 'اعتبار روزانه کلید API به پایان رسیده است. فردا تمدید می‌شود.';
+    } else {
+      keyInfoError.value = 'دریافت اطلاعات اکانت ناموفق بود.';
+    }
+  } finally {
+    isFetchingKeyInfo.value = false;
+  }
+}
+
+function budgetPercent(info) {
+  const spend = Number(info?.spend ?? 0);
+  const max = Number(info?.max_budget ?? 0);
+  if (!max) return null;
+  return Math.min(100, Math.round((spend / max) * 100));
+}
+
+function remainingPercent(info) {
+  const pct = budgetPercent(info);
+  return pct === null ? null : 100 - pct;
+}
+
+function formatLimit(val) {
+  if (val === null || val === undefined || val === '') return '∞';
+  const n = Number(val);
+  if (Number.isNaN(n)) return String(val);
+  return n % 1 === 0 ? n.toLocaleString() : n.toFixed(4);
+}
+
 const form = reactive({
+  model: 'deepseek-v4-flash',
   readFiles: true,
   writeFiles: true,
   debugger: false,
@@ -29,6 +91,7 @@ function applyServerSettings(data) {
   const llm = data?.llm ?? {};
   const permissions = data?.permissions ?? {};
 
+  if (llm.model) form.model = llm.model;
   form.readFiles = permissions.read_files !== false;
   form.writeFiles = permissions.write_files !== false;
   form.debugger = Boolean(permissions.debugger);
@@ -46,6 +109,14 @@ onMounted(async () => {
   try {
     const data = await fetchSettings();
     applyServerSettings(data);
+
+    if (data?.llm?.has_api_key) {
+      const agentData = await fetchAgentSettings().catch(() => null);
+      const key = agentData?.llm?.api_key;
+      if (key) {
+        await Promise.all([loadModels(key), loadKeyInfo(key)]);
+      }
+    }
   } catch (error) {
     saveError.value = error.message || 'بارگذاری تنظیمات ناموفق بود.';
   } finally {
@@ -70,12 +141,24 @@ async function handleActivate() {
     hasStoredApiKey.value = true;
     apiKeyMasked.value = key.slice(0, 4) + '••••••••' + key.slice(-4);
     apiKeyInput.value = '';
+    await Promise.all([loadModels(key), loadKeyInfo(key)]);
     emit('saved', { server: data, client: { api_key: key } });
   } catch (error) {
     activationError.value = error.message || 'فعال‌سازی کلید API ناموفق بود.';
   } finally {
     isActivating.value = false;
   }
+}
+
+async function handleRefreshModels() {
+  const plainKey = apiKeyInput.value.trim();
+  if (plainKey) {
+    await Promise.all([loadModels(plainKey), loadKeyInfo(plainKey)]);
+    return;
+  }
+  const agentData = await fetchAgentSettings().catch(() => null);
+  const key = agentData?.llm?.api_key;
+  if (key) await Promise.all([loadModels(key), loadKeyInfo(key)]);
 }
 
 function handleRetryActivation() {
@@ -89,6 +172,7 @@ async function handleSave() {
   saveError.value = '';
 
   const payload = {
+    llm: { model: form.model },
     permissions: {
       read_files: form.readFiles,
       write_files: form.writeFiles,
@@ -124,6 +208,36 @@ async function handleSave() {
           <p class="chat-settings__section-desc">
             برای استفاده از افزونه Dialog Studio نیاز به کلید API دارید. کلید API خود را از سایت wpagentify.ir تهیه کنید.
           </p>
+
+          <!-- Current key status -->
+          <div v-if="hasStoredApiKey && !activationSuccess" class="chat-settings__key-status">
+            <Check :size="14" :stroke-width="2.5" class="chat-settings__key-status-icon" />
+            <span>کلید فعال: <span class="chat-settings__key-masked" dir="ltr">{{ apiKeyMasked }}</span></span>
+          </div>
+
+          <!-- Model selector -->
+          <div class="chat-settings__field">
+            <div class="chat-settings__model-header">
+              <span class="chat-settings__label">مدل زبانی</span>
+              <button
+                v-if="hasStoredApiKey || apiKeyInput.trim()"
+                type="button"
+                class="chat-settings__refresh-models"
+                :disabled="isFetchingModels"
+                @click="handleRefreshModels"
+              >
+                <Loader2 v-if="isFetchingModels" :size="12" :stroke-width="2" class="chat-settings__spinner" />
+                <RefreshCw v-else :size="12" :stroke-width="2" />
+                <span>{{ isFetchingModels ? 'در حال دریافت…' : 'بروزرسانی مدل‌ها' }}</span>
+              </button>
+            </div>
+            <select v-model="form.model" class="chat-settings__select" :disabled="isFetchingModels">
+              <option v-for="m in availableModels" :key="m.id" :value="m.id">
+                {{ m.group }} — {{ m.label }}
+              </option>
+            </select>
+            <span class="chat-settings__hint">مدل انتخابی از طریق سرویس wpagentify.ir اجرا می‌شود.</span>
+          </div>
 
           <!-- Activation success -->
           <div v-if="activationSuccess" class="chat-settings__activation-result chat-settings__activation-result--success">
@@ -192,6 +306,74 @@ async function handleSave() {
             <ExternalLink :size="13" :stroke-width="2" />
             <span>برای خرید کلید API کلیک کنید</span>
           </a>
+        </section>
+
+        <!-- Account usage section -->
+        <section class="chat-settings__section">
+          <h2 class="chat-settings__section-title">وضعیت اکانت</h2>
+
+          <!-- Loading -->
+          <div v-if="isFetchingKeyInfo" class="chat-settings__usage-loading">
+            <Loader2 :size="14" :stroke-width="2" class="chat-settings__spinner" />
+            <span>در حال دریافت اطلاعات…</span>
+          </div>
+
+          <!-- No key yet -->
+          <div v-else-if="!hasStoredApiKey && !activationSuccess" class="chat-settings__usage-empty">
+            <AlertCircle :size="14" :stroke-width="2" />
+            <span>برای مشاهده وضعیت اکانت، ابتدا کلید API را وارد و فعال کنید.</span>
+          </div>
+
+          <!-- Auth error -->
+          <div v-else-if="keyInfoError" class="chat-settings__usage-empty chat-settings__usage-empty--error">
+            <AlertCircle :size="14" :stroke-width="2" />
+            <span>{{ keyInfoError }}</span>
+          </div>
+
+          <!-- Budget info -->
+          <template v-else-if="keyInfo">
+            <!-- Main budget progress -->
+            <div v-if="remainingPercent(keyInfo) !== null" class="chat-settings__budget-block">
+              <div class="chat-settings__budget-header">
+                <span class="chat-settings__label">موجودی باقی‌مانده</span>
+                <span class="chat-settings__budget-pct" :class="remainingPercent(keyInfo) < 20 ? 'chat-settings__budget-pct--warn' : ''">
+                  {{ remainingPercent(keyInfo) }}٪
+                </span>
+              </div>
+              <div class="chat-settings__progress-track">
+                <div
+                  class="chat-settings__progress-fill"
+                  :class="remainingPercent(keyInfo) < 20 ? 'chat-settings__progress-fill--warn' : ''"
+                  :style="{ width: remainingPercent(keyInfo) + '%' }"
+                />
+              </div>
+            </div>
+
+            <!-- Limits -->
+            <div class="chat-settings__limits">
+              <div v-if="keyInfo.tpm_limit" class="chat-settings__limit-row">
+                <span class="chat-settings__limit-label">TPM (توکن/دقیقه)</span>
+                <span class="chat-settings__limit-val" dir="ltr">{{ formatLimit(keyInfo.tpm_limit) }}</span>
+              </div>
+              <div v-if="keyInfo.rpm_limit" class="chat-settings__limit-row">
+                <span class="chat-settings__limit-label">RPM (درخواست/دقیقه)</span>
+                <span class="chat-settings__limit-val" dir="ltr">{{ formatLimit(keyInfo.rpm_limit) }}</span>
+              </div>
+              <div v-if="keyInfo.budget_duration" class="chat-settings__limit-row">
+                <span class="chat-settings__limit-label">دوره بودجه</span>
+                <span class="chat-settings__limit-val" dir="ltr">{{ keyInfo.budget_duration }}</span>
+              </div>
+              <div v-if="keyInfo.expires" class="chat-settings__limit-row">
+                <span class="chat-settings__limit-label">انقضا</span>
+                <span class="chat-settings__limit-val" dir="ltr">{{ new Date(keyInfo.expires).toLocaleDateString('fa-IR') }}</span>
+              </div>
+            </div>
+          </template>
+
+          <!-- No budget data returned -->
+          <div v-else class="chat-settings__usage-empty">
+            <span>اطلاعات موجودی در دسترس نیست.</span>
+          </div>
         </section>
 
         <section class="chat-settings__section">
@@ -374,6 +556,13 @@ async function handleSave() {
 
 .chat-settings__hint--error {
   color: #f87171;
+}
+
+.chat-settings__model-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .chat-settings__model-tools {
@@ -637,6 +826,107 @@ async function handleSave() {
 
 .chat-settings__retry-btn:hover {
   opacity: 0.8;
+}
+
+/* ── Account usage ── */
+.chat-settings__usage-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--dtm-text-muted);
+  padding: 4px 0;
+}
+
+.chat-settings__usage-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: var(--dtm-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--dtm-border-subtle);
+  font-size: 12px;
+  color: var(--dtm-text-muted);
+  line-height: 1.5;
+}
+
+.chat-settings__usage-empty--error {
+  background: rgba(248, 113, 113, 0.06);
+  border-color: rgba(248, 113, 113, 0.2);
+  color: #f87171;
+}
+
+.chat-settings__budget-block {
+  margin-bottom: var(--dtm-space-4);
+}
+
+.chat-settings__budget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.chat-settings__budget-pct {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dtm-accent);
+}
+
+.chat-settings__budget-pct--warn {
+  color: #f59e0b;
+}
+
+.chat-settings__progress-track {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.chat-settings__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dtm-accent);
+  transition: width 0.4s ease;
+}
+
+.chat-settings__progress-fill--warn {
+  background: #f59e0b;
+}
+
+.chat-settings__limits {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--dtm-border-subtle);
+  border-radius: var(--dtm-radius-sm);
+  overflow: hidden;
+}
+
+.chat-settings__limit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.chat-settings__limit-row + .chat-settings__limit-row {
+  border-top: 1px solid var(--dtm-border-subtle);
+}
+
+.chat-settings__limit-label {
+  color: var(--dtm-text-muted);
+}
+
+.chat-settings__limit-val {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--dtm-text-secondary);
+  letter-spacing: 0.02em;
 }
 
 .chat-settings__purchase-link {

@@ -1,5 +1,5 @@
 /**
- * Dialog Theme Maker — preview iframe bridge.
+ * Dialog Studio — preview iframe bridge.
  * Loaded only when ?dtm_preview=1 is present (see PreviewBridgeService.php).
  */
 (function () {

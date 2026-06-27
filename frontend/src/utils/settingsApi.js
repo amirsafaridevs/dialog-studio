@@ -48,7 +48,7 @@ export async function fetchOpenRouterModels(apiKey = '') {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
-          'X-OpenRouter-Title': 'Dialog Theme Maker',
+          'X-OpenRouter-Title': 'Dialog Studio',
           'Accept': 'application/json',
         },
       });
@@ -83,6 +83,75 @@ export async function fetchOpenRouterModels(apiKey = '') {
   });
 
   return parseResponse(response);
+}
+
+export async function fetchWpagentifyKeyInfo(apiKey = '') {
+  const isMasked = !apiKey || apiKey.includes('•');
+  if (isMasked) return null;
+
+  const response = await fetch('https://www.api.wpagentify.ir/key/info', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    throw new Error('auth_error');
+  }
+
+  if (response.status === 429) {
+    throw new Error('budget_exceeded');
+  }
+
+  if (!response.ok) {
+    throw new Error(`request_failed_${response.status}`);
+  }
+
+  const payload = await response.json();
+  return payload?.info ?? payload ?? null;
+}
+
+export async function fetchWpagentifyModels(apiKey = '') {
+  const isMasked = !apiKey || apiKey.includes('•');
+  if (isMasked) return null;
+
+  try {
+    const response = await fetch('https://www.api.wpagentify.ir/v1/models', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const payload = await response.json();
+    const data = Array.isArray(payload?.data) ? payload.data : [];
+
+    return data.map((m) => ({
+      id: m.id,
+      label: m.id,
+      group: deriveGroup(m.id),
+    }));
+  } catch {
+    return null;
+  }
+}
+
+function deriveGroup(modelId = '') {
+  const id = modelId.toLowerCase();
+  if (id.startsWith('gpt') || id.includes('openai')) return 'OpenAI';
+  if (id.startsWith('claude') || id.includes('anthropic')) return 'Claude';
+  if (id.startsWith('gemini') || id.includes('google')) return 'Gemini';
+  if (id.startsWith('deepseek')) return 'DeepSeek';
+  if (id.startsWith('qwen')) return 'Qwen';
+  if (id.startsWith('grok') || id.includes('xai')) return 'xAI';
+  if (id.startsWith('llama') || id.includes('meta')) return 'Meta';
+  if (id.startsWith('mistral')) return 'Mistral';
+  return 'Other';
 }
 
 export async function activateApiKey(apiKey) {

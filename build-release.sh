@@ -2,13 +2,13 @@
 set -euo pipefail
 
 # ── تنظیمات ──────────────────────────────────────────────
-PLUGIN_SLUG="dialog-theme-maker"
+PLUGIN_SLUG="dialog-studio"
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 FINAL_DIR="$ROOT/final"
 RELEASE_DIR="$FINAL_DIR/$PLUGIN_SLUG"
 ZIP_FILE="$FINAL_DIR/${PLUGIN_SLUG}.zip"
 
-echo "==> Dialog Theme Maker — ساخت نسخه توزیع"
+echo "==> Dialog Studio — ساخت نسخه توزیع"
 echo "    Root: $ROOT"
 
 # ── ۱) بیلد فرانت ───────────────────────────────────────
@@ -42,7 +42,7 @@ mkdir -p "$RELEASE_DIR"
 echo "==> کپی فایل‌های production..."
 
 INCLUDE_PATHS=(
-  "dialog-theme-maker.php"
+  "dialog-studio.php"
   "agent"
   "src"
   "vendor"

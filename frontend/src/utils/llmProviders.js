@@ -1,3 +1,20 @@
+/** Flat list of all models available through the wpagentify LiteLLM proxy. */
+export const ALL_MODELS = [
+  { id: 'deepseek-v4-flash', label: 'DeepSeek V4 Flash (پیشنهادی)', group: 'DeepSeek' },
+  { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro', group: 'DeepSeek' },
+  { id: 'gpt-5.4-mini', label: 'GPT-5.4 Mini', group: 'OpenAI' },
+  { id: 'gpt-5.4', label: 'GPT-5.4', group: 'OpenAI' },
+  { id: 'gpt-5.5', label: 'GPT-5.5', group: 'OpenAI' },
+  { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5', group: 'Claude' },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', group: 'Claude' },
+  { id: 'claude-opus-4-8', label: 'Claude Opus 4.8', group: 'Claude' },
+  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash', group: 'Gemini' },
+  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro', group: 'Gemini' },
+  { id: 'qwen3.5-flash', label: 'Qwen3.5 Flash', group: 'Qwen' },
+  { id: 'qwen3.5-plus', label: 'Qwen3.5 Plus', group: 'Qwen' },
+  { id: 'qwen3.7-plus', label: 'Qwen3.7 Plus', group: 'Qwen' },
+];
+
 export const LLM_PROVIDERS = {
   deepseek: {
     label: 'DeepSeek',

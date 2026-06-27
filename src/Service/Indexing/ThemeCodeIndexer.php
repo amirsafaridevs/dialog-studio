@@ -303,6 +303,422 @@ class ThemeCodeIndexer
     }
 
     /**
+     * Build a high-level knowledge graph spanning the child theme and its parent.
+     *
+     * Unlike the compact index (a flat symbol list of the child only), this gives
+     * the agent a mental map of the WHOLE project up front: which symbols matter
+     * most (god nodes), which parent files the child overrides, and how files
+     * cluster by responsibility. The full per-scope graphs remain available for
+     * deeper, on-demand exploration via graph_query.
+     *
+     * @return array{
+     *     child: array{slug: string, file_count: int},
+     *     parent: array{slug: string, file_count: int}|null,
+     *     god_nodes: list<array{symbol: string, type: string, scope: string, file: string, in_degree: int}>,
+     *     overrides: list<array{path: string}>,
+     *     communities: list<array{name: string, scope: string, files: list<string>}>,
+     *     graph: array{
+     *         nodes: list<array{id: string, type: string, file?: string, scope?: string}>,
+     *         edges: list<array{from: string, to: string, type: string, line?: int}>
+     *     }
+     * }
+     *
+     * @throws ThemeIndexingException
+     */
+    public function buildKnowledgeGraph(): array
+    {
+        $themes = $this->fileScanner->getActiveThemeWithParent();
+
+        $childAnalysis  = $this->buildFullIndexForDirectory( $themes['child']['directory'], 'child' );
+        $parentAnalysis = null;
+
+        if ( null !== $themes['parent'] ) {
+            $parentAnalysis = $this->buildFullIndexForDirectory( $themes['parent']['directory'], 'parent' );
+        }
+
+        $childPaths  = $this->collectFilePaths( $childAnalysis['files'] );
+        $parentPaths = null === $parentAnalysis ? [] : $this->collectFilePaths( $parentAnalysis['files'] );
+
+        // Files the child theme overrides — a parent path that also exists in child.
+        $overrides = [];
+        foreach ( $parentPaths as $path ) {
+            if ( in_array( $path, $childPaths, true ) ) {
+                $overrides[] = [ 'path' => $path ];
+            }
+        }
+
+        $mergedGraph = $this->mergeScopedGraphs( $childAnalysis, $parentAnalysis );
+
+        return [
+            'child'  => [
+                'slug'       => $themes['child']['slug'],
+                'file_count' => count( $childAnalysis['files'] ),
+            ],
+            'parent' => null === $parentAnalysis ? null : [
+                'slug'       => $themes['parent']['slug'],
+                'file_count' => count( $parentAnalysis['files'] ),
+            ],
+            'god_nodes'   => $this->computeGodNodes( $mergedGraph['nodes'], $mergedGraph['edges'], 18 ),
+            'overrides'   => $overrides,
+            'communities' => array_merge(
+                $this->computeCommunities( $childAnalysis['files'], 'child' ),
+                null === $parentAnalysis ? [] : $this->computeCommunities( $parentAnalysis['files'], 'parent' )
+            ),
+            'graph'       => $mergedGraph,
+        ];
+    }
+
+    /**
+     * Answer a focused question against the project knowledge graph.
+     *
+     * Modes:
+     *  - "explain": everything touching one symbol or file (incoming + outgoing edges).
+     *  - "neighbors": same as explain but for a single direction-agnostic hop.
+     *  - "path": the shortest relationship chain between two symbols/files.
+     *
+     * Returns a SCOPED subgraph far smaller than the full graph, so the agent can
+     * pull just the slice it needs instead of re-reading everything.
+     *
+     * @param array{mode?: string, target?: string, from?: string, to?: string, max_hops?: int} $args
+     * @return array{mode: string, result: array<string, mixed>}
+     *
+     * @throws ThemeIndexingException
+     */
+    public function queryKnowledgeGraph( array $args ): array
+    {
+        $kg    = $this->buildKnowledgeGraph();
+        $graph = $kg['graph'];
+        $mode  = strtolower( (string) ( $args['mode'] ?? 'explain' ) );
+
+        if ( 'path' === $mode ) {
+            $from = $this->resolveGraphId( $graph['nodes'], (string) ( $args['from'] ?? '' ) );
+            $to   = $this->resolveGraphId( $graph['nodes'], (string) ( $args['to'] ?? '' ) );
+
+            return [
+                'mode'   => 'path',
+                'result' => [
+                    'from'  => $from,
+                    'to'    => $to,
+                    'chain' => ( '' === $from || '' === $to )
+                        ? []
+                        : $this->shortestPath( $graph['edges'], $from, $to, (int) ( $args['max_hops'] ?? 6 ) ),
+                ],
+            ];
+        }
+
+        // explain / neighbors
+        $target  = $this->resolveGraphId( $graph['nodes'], (string) ( $args['target'] ?? '' ) );
+        $nodeMap = [];
+        foreach ( $graph['nodes'] as $node ) {
+            $nodeMap[ (string) ( $node['id'] ?? '' ) ] = $node;
+        }
+
+        $outgoing = [];
+        $incoming = [];
+        foreach ( $graph['edges'] as $edge ) {
+            if ( ( $edge['from'] ?? '' ) === $target ) {
+                $outgoing[] = $edge;
+            }
+            if ( ( $edge['to'] ?? '' ) === $target ) {
+                $incoming[] = $edge;
+            }
+        }
+
+        return [
+            'mode'   => 'explain',
+            'result' => [
+                'target'   => $target,
+                'node'     => $nodeMap[ $target ] ?? null,
+                'outgoing' => array_slice( $outgoing, 0, 40 ),
+                'incoming' => array_slice( $incoming, 0, 40 ),
+            ],
+        ];
+    }
+
+    /**
+     * Resolve a loose user-supplied symbol/file string to a real graph node id.
+     *
+     * @param list<array<string, mixed>> $nodes
+     */
+    private function resolveGraphId( array $nodes, string $needle ): string
+    {
+        $needle = trim( $needle );
+        if ( '' === $needle ) {
+            return '';
+        }
+
+        $ids = [];
+        foreach ( $nodes as $node ) {
+            $ids[] = (string) ( $node['id'] ?? '' );
+        }
+
+        if ( in_array( $needle, $ids, true ) ) {
+            return $needle;
+        }
+
+        $fileId = 'file:' . ltrim( $needle, '/' );
+        if ( in_array( $fileId, $ids, true ) ) {
+            return $fileId;
+        }
+
+        // Case-insensitive / suffix match (e.g. a bare method or class name).
+        $lower = strtolower( $needle );
+        foreach ( $ids as $id ) {
+            if ( strtolower( $id ) === $lower || str_ends_with( strtolower( $id ), '::' . $lower ) ) {
+                return $id;
+            }
+        }
+
+        return $needle;
+    }
+
+    /**
+     * Breadth-first shortest path over the (undirected) edge set.
+     *
+     * @param list<array<string, mixed>> $edges
+     * @return list<array{from: string, to: string, type: string}>
+     */
+    private function shortestPath( array $edges, string $from, string $to, int $maxHops ): array
+    {
+        if ( $from === $to ) {
+            return [];
+        }
+
+        $adjacency = [];
+        foreach ( $edges as $edge ) {
+            $a = (string) ( $edge['from'] ?? '' );
+            $b = (string) ( $edge['to'] ?? '' );
+            $t = (string) ( $edge['type'] ?? '' );
+            if ( '' === $a || '' === $b ) {
+                continue;
+            }
+            $adjacency[ $a ][] = [ 'node' => $b, 'type' => $t, 'dir' => 'out' ];
+            $adjacency[ $b ][] = [ 'node' => $a, 'type' => $t, 'dir' => 'in' ];
+        }
+
+        $queue   = [ [ $from, [] ] ];
+        $visited = [ $from => true ];
+
+        while ( ! empty( $queue ) ) {
+            [ $current, $trail ] = array_shift( $queue );
+
+            if ( count( $trail ) >= $maxHops ) {
+                continue;
+            }
+
+            foreach ( $adjacency[ $current ] ?? [] as $next ) {
+                $node = $next['node'];
+                if ( isset( $visited[ $node ] ) ) {
+                    continue;
+                }
+
+                $step      = [ 'from' => $current, 'to' => $node, 'type' => $next['type'] ];
+                $nextTrail = array_merge( $trail, [ $step ] );
+
+                if ( $node === $to ) {
+                    return $nextTrail;
+                }
+
+                $visited[ $node ] = true;
+                $queue[]          = [ $node, $nextTrail ];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $files
+     * @return list<string>
+     */
+    private function collectFilePaths( array $files ): array
+    {
+        return array_values(
+            array_map(
+                static fn ( array $file ): string => (string) ( $file['path'] ?? '' ),
+                $files
+            )
+        );
+    }
+
+    /**
+     * Merge child + parent analysis graphs, tagging every node with its scope so
+     * the agent can tell at a glance whether a symbol lives in the writable child
+     * or the read-only parent.
+     *
+     * @param array{scope: string, files: list<array<string, mixed>>, graph: array{nodes: list<array<string, mixed>>, edges: list<array<string, mixed>>}} $childAnalysis
+     * @param array{scope: string, files: list<array<string, mixed>>, graph: array{nodes: list<array<string, mixed>>, edges: list<array<string, mixed>>}}|null $parentAnalysis
+     * @return array{nodes: list<array<string, mixed>>, edges: list<array<string, mixed>>}
+     */
+    private function mergeScopedGraphs( array $childAnalysis, ?array $parentAnalysis ): array
+    {
+        $nodes   = [];
+        $edges   = [];
+        $nodeIds = [];
+
+        $append = static function ( array $analysis, string $scope ) use ( &$nodes, &$edges, &$nodeIds ): void {
+            foreach ( $analysis['graph']['nodes'] as $node ) {
+                $id = (string) ( $node['id'] ?? '' );
+                if ( '' === $id || isset( $nodeIds[ $id ] ) ) {
+                    continue;
+                }
+                $node['scope']  = $scope;
+                $nodes[]        = $node;
+                $nodeIds[ $id ] = true;
+            }
+
+            foreach ( $analysis['graph']['edges'] as $edge ) {
+                $edges[] = $edge;
+            }
+        };
+
+        $append( $childAnalysis, 'child' );
+
+        if ( null !== $parentAnalysis ) {
+            $append( $parentAnalysis, 'parent' );
+        }
+
+        return [
+            'nodes' => $nodes,
+            'edges' => $edges,
+        ];
+    }
+
+    /**
+     * God nodes = the most-referenced symbols (highest in-degree of non-structural
+     * edges). These are the load-bearing pieces of the codebase; surfacing them up
+     * front tells the agent where the gravity is before it reads anything.
+     *
+     * @param list<array<string, mixed>> $nodes
+     * @param list<array<string, mixed>> $edges
+     * @return list<array{symbol: string, type: string, scope: string, file: string, in_degree: int}>
+     */
+    private function computeGodNodes( array $nodes, array $edges, int $limit ): array
+    {
+        $structural = [ 'contains' ];
+        $inDegree   = [];
+
+        foreach ( $edges as $edge ) {
+            $type = (string) ( $edge['type'] ?? '' );
+            if ( in_array( $type, $structural, true ) ) {
+                continue;
+            }
+
+            $target = (string) ( $edge['to'] ?? '' );
+            if ( '' === $target ) {
+                continue;
+            }
+
+            $inDegree[ $target ] = ( $inDegree[ $target ] ?? 0 ) + 1;
+        }
+
+        $nodeById = [];
+        foreach ( $nodes as $node ) {
+            $id = (string) ( $node['id'] ?? '' );
+            if ( '' !== $id ) {
+                $nodeById[ $id ] = $node;
+            }
+        }
+
+        $ranked = [];
+        foreach ( $inDegree as $symbol => $degree ) {
+            $node = $nodeById[ $symbol ] ?? null;
+            $type = $node['type'] ?? 'unknown';
+
+            // File nodes are containers, not symbols of interest here.
+            if ( 'file' === $type ) {
+                continue;
+            }
+
+            $ranked[] = [
+                'symbol'    => (string) $symbol,
+                'type'      => (string) $type,
+                'scope'     => (string) ( $node['scope'] ?? 'unknown' ),
+                'file'      => (string) ( $node['file'] ?? '' ),
+                'in_degree' => (int) $degree,
+            ];
+        }
+
+        usort(
+            $ranked,
+            static function ( array $a, array $b ): int {
+                if ( $a['in_degree'] === $b['in_degree'] ) {
+                    return strcmp( $a['symbol'], $b['symbol'] );
+                }
+
+                return $b['in_degree'] <=> $a['in_degree'];
+            }
+        );
+
+        return array_slice( $ranked, 0, $limit );
+    }
+
+    /**
+     * Cluster files into responsibility communities by their location/role so the
+     * agent has a coarse table of contents (header, footer, template-parts,
+     * woocommerce, assets, includes, root).
+     *
+     * @param list<array<string, mixed>> $files
+     * @return list<array{name: string, scope: string, files: list<string>}>
+     */
+    private function computeCommunities( array $files, string $scope ): array
+    {
+        $buckets = [];
+
+        foreach ( $files as $file ) {
+            $path   = (string) ( $file['path'] ?? '' );
+            $bucket = $this->classifyCommunity( $path );
+
+            if ( ! isset( $buckets[ $bucket ] ) ) {
+                $buckets[ $bucket ] = [];
+            }
+
+            $buckets[ $bucket ][] = $path;
+        }
+
+        $communities = [];
+        foreach ( $buckets as $name => $paths ) {
+            sort( $paths, SORT_STRING );
+            $communities[] = [
+                'name'  => $name,
+                'scope' => $scope,
+                'files' => array_slice( $paths, 0, 25 ),
+            ];
+        }
+
+        return $communities;
+    }
+
+    private function classifyCommunity( string $path ): string
+    {
+        $lower = strtolower( $path );
+
+        if ( str_contains( $lower, 'woocommerce' ) || str_contains( $lower, '/woo' ) ) {
+            return 'woocommerce';
+        }
+        if ( str_starts_with( $lower, 'templates/' ) || str_contains( $lower, '/templates/' ) ) {
+            return 'templates';
+        }
+        if ( str_starts_with( $lower, 'template-parts/' ) ) {
+            return 'template-parts';
+        }
+        if ( str_starts_with( $lower, 'inc/' ) ) {
+            return 'includes';
+        }
+        if ( str_starts_with( $lower, 'assets/' ) ) {
+            return 'assets';
+        }
+        if ( in_array( $lower, [ 'header.php', 'footer.php' ], true ) ) {
+            return 'site-chrome';
+        }
+        if ( str_starts_with( $lower, 'page-' ) || str_starts_with( $lower, 'single' ) || str_starts_with( $lower, 'archive' ) ) {
+            return 'wp-templates';
+        }
+
+        return 'root';
+    }
+
+    /**
      * @return array{
      *     path: string,
      *     namespace: string|null,

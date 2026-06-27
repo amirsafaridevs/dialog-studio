@@ -100,6 +100,8 @@ const {
 
   themeError,
 
+  error: agentError,
+
   getStats,
 
 } = useAgent();
@@ -1586,6 +1588,8 @@ async function handleCustomPromptSaved(payload) {
       v-if="!showSettings && !showCustomPrompt"
 
       :visible="isInterrupted && !isRunning && messages.length > 0"
+
+      :error-message="agentError"
 
       @continue="handleContinue"
 

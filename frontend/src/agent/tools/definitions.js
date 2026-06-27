@@ -116,6 +116,38 @@ const FILE_READ_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'graph_query',
+      description:
+        'Query the project knowledge graph (parent + child theme) that is already summarized in your context. Returns a small scoped subgraph — far cheaper than reading files or grepping for call sites. mode:"explain" returns everything touching one symbol or file (callers + callees, extends/implements, hook callbacks). mode:"path" returns the shortest relationship chain between two symbols/files. Prefer this over search_content for "what uses X" / "how does A reach B" questions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          mode: {
+            type: 'string',
+            enum: ['explain', 'path'],
+            default: 'explain',
+            description: 'explain: relationships of one target. path: chain between from→to.',
+          },
+          target: {
+            type: 'string',
+            description: 'For mode:"explain" — a symbol (function/class/Class::method) or a file path (e.g. functions.php, inc/shop.php).',
+          },
+          from: {
+            type: 'string',
+            description: 'For mode:"path" — the start symbol or file.',
+          },
+          to: {
+            type: 'string',
+            description: 'For mode:"path" — the end symbol or file.',
+          },
+          max_hops: { type: 'integer', default: 6, description: 'For mode:"path" — max relationship hops to search.' },
+        },
+      },
+    },
+  },
 ];
 
 const FILE_WRITE_TOOLS = [
@@ -502,6 +534,7 @@ export const TOOL_LABELS = {
   search_files: 'جستجوی فایل',
   search_content: 'جستجو در محتوا',
   code_graph: 'گراف کد PHP',
+  graph_query: 'کاوش گراف دانش',
   validate_code: 'اعتبارسنجی کد',
   toggle_debug: 'تغییر حالت دیباگ',
   read_debug_log: 'خواندن لاگ',

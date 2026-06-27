@@ -392,7 +392,7 @@ export async function runAgentLoop({
         toolContent += `\n\n[LOOP WARNING] You have already called \`${toolName}\` with these exact arguments ${priorIdenticalCalls + 1} times and got the same result. Stop repeating it. Use what you already know to act now — make the change with edit_file/write_file, or give your final answer.`;
       }
 
-      const isDiscoveryTool = ['search_content', 'search_files', 'grep_content', 'grep', 'read_file', 'code_graph', 'validate_code'].includes(toolName);
+      const isDiscoveryTool = ['search_content', 'search_files', 'grep_content', 'grep', 'read_file', 'code_graph', 'graph_query', 'validate_code'].includes(toolName);
       const isActionTool = ['edit_file', 'write_file'].includes(toolName);
 
       if (isDiscoveryTool && result.success) {
@@ -545,6 +545,10 @@ export async function runAgentLoop({
 // LLM streaming helpers (unchanged from original)
 // ─────────────────────────────────────────────────────────────
 
+function isWpagentifyApiError(error) {
+  return error?.name === 'WpagentifyApiError';
+}
+
 async function streamAssistantTurn(llm, messages, onStreamToken, onToolStream, signal = null) {
   let gathered = null;
   let streamedText = '';
@@ -552,30 +556,41 @@ async function streamAssistantTurn(llm, messages, onStreamToken, onToolStream, s
   const partialToolCalls = [];
 
   throwIfAborted(signal);
-  const stream = await llm.stream(messages, signal ? { signal } : undefined);
 
-  for await (const chunk of stream) {
-    throwIfAborted(signal);
-    gathered = gathered ? gathered.concat(chunk) : chunk;
+  let stream;
+  try {
+    stream = await llm.stream(messages, signal ? { signal } : undefined);
+  } catch (error) {
+    if (isWpagentifyApiError(error)) throw error;
+    throw error;
+  }
 
-    const reasoningDelta = typeof chunk.additional_kwargs?.reasoning_content === 'string'
-      ? chunk.additional_kwargs.reasoning_content
-      : '';
-    if (reasoningDelta) reasoningText += reasoningDelta;
+  try {
+    for await (const chunk of stream) {
+      throwIfAborted(signal);
+      gathered = gathered ? gathered.concat(chunk) : chunk;
 
-    const token = typeof chunk.content === 'string' ? chunk.content : '';
-    if (token) {
-      streamedText += token;
-      onStreamToken?.(token, streamedText);
+      const reasoningDelta = typeof chunk.additional_kwargs?.reasoning_content === 'string'
+        ? chunk.additional_kwargs.reasoning_content
+        : '';
+      if (reasoningDelta) reasoningText += reasoningDelta;
+
+      const token = typeof chunk.content === 'string' ? chunk.content : '';
+      if (token) {
+        streamedText += token;
+        onStreamToken?.(token, streamedText);
+      }
+
+      accumulateToolCallChunks(chunk, partialToolCalls);
+      const activeTools = summarizePartialToolCalls(partialToolCalls);
+      if (activeTools.length > 0) {
+        onToolStream?.({ phase: 'tool-args', text: streamedText, tools: activeTools });
+      } else if (reasoningText && !streamedText) {
+        onToolStream?.({ phase: 'thinking', text: reasoningText });
+      }
     }
-
-    accumulateToolCallChunks(chunk, partialToolCalls);
-    const activeTools = summarizePartialToolCalls(partialToolCalls);
-    if (activeTools.length > 0) {
-      onToolStream?.({ phase: 'tool-args', text: streamedText, tools: activeTools });
-    } else if (reasoningText && !streamedText) {
-      onToolStream?.({ phase: 'thinking', text: reasoningText });
-    }
+  } catch (error) {
+    throw error;
   }
 
   if (!gathered) {
@@ -781,7 +796,7 @@ function isToolPermitted(toolName, permissions = {}) {
   const readFiles = permissions.read_files !== false;
   const writeFiles = permissions.write_files !== false;
 
-  const readTools = ['read_file', 'search_files', 'search_content', 'code_graph', 'validate_code'];
+  const readTools = ['read_file', 'search_files', 'search_content', 'code_graph', 'graph_query', 'validate_code'];
   const writeTools = ['write_file', 'edit_file'];
   const templateReadTools = ['list_templates'];
   const templateWriteTools = ['create_template', 'update_template', 'delete_template'];

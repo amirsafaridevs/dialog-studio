@@ -1,5 +1,5 @@
 /**
- * WordPress API Client for Dialog Theme Maker
+ * WordPress API Client for Dialog Studio
  */
 
 import { getDtmConfig } from './dtmConfig.js';
