@@ -48,7 +48,6 @@ export class ToolExecutor {
       check_theme: { method: 'post', path: '/theme/check' },
       create_template: { method: 'post', path: '/templates/create' },
       update_template: { method: 'post', path: '/templates/update' },
-      list_templates: { method: 'get', path: '/templates/list' },
       delete_template: { method: 'post', path: '/templates/delete' },
       code_graph: { method: 'post', path: '/code/graph' },
       graph_query: { method: 'post', path: '/theme/graph-query' },

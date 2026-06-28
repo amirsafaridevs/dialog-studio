@@ -1,9 +1,15 @@
 /**
- * Dialog Theme Maker — preview iframe bridge.
+ * Dialog Studio — preview iframe bridge.
  * Loaded only when ?dtm_preview=1 is present (see PreviewBridgeService.php).
  */
 (function () {
   'use strict';
+
+  if (window.__DTM_PREVIEW_BRIDGE_LOADED__) {
+    return;
+  }
+
+  window.__DTM_PREVIEW_BRIDGE_LOADED__ = true;
 
   var CHANNEL = 'dtm-preview-bridge';
   var PICKER_STYLE_ID = 'dtm-element-picker-style';
@@ -359,6 +365,141 @@
     });
   }
 
+  function handleGetLoadedAssetsCommand(payload) {
+    var requestId = payload && payload.requestId;
+
+    whenPageFullyLoaded(function () {
+      var css = [];
+      var js = [];
+
+      var styleLinks = document.querySelectorAll('link[rel="stylesheet"][href]');
+      for (var i = 0; i < styleLinks.length; i++) {
+        var link = styleLinks[i];
+        css.push({
+          href: link.href,
+          id: link.id || null,
+          media: link.media || 'all',
+        });
+      }
+
+      var scripts = document.querySelectorAll('script[src]');
+      for (var j = 0; j < scripts.length; j++) {
+        var script = scripts[j];
+        js.push({
+          src: script.src,
+          id: script.id || null,
+          async: script.async || false,
+          defer: script.defer || false,
+          type: script.type || null,
+        });
+      }
+
+      respondToParent(requestId, true, {
+        css: css,
+        js: js,
+        url: window.location.href,
+      });
+    });
+  }
+
+  function handleGetElementStylesCommand(payload) {
+    var requestId = payload && payload.requestId;
+
+    whenPageFullyLoaded(function () {
+      var target = resolveHtmlTarget(payload || {});
+
+      if (target && target.error) {
+        respondToParent(requestId, false, null, target.error);
+        return;
+      }
+
+      if (!target || target === document.documentElement) {
+        respondToParent(requestId, false, null, 'A specific element selector or dom_path is required');
+        return;
+      }
+
+      var computed = window.getComputedStyle(target);
+      var computedMap = {};
+      for (var i = 0; i < computed.length; i++) {
+        var prop = computed[i];
+        computedMap[prop] = computed.getPropertyValue(prop).trim();
+      }
+
+      var matched = [];
+      var sheets = document.styleSheets;
+      for (var s = 0; s < sheets.length; s++) {
+        var sheet = sheets[s];
+        var rules;
+        try {
+          rules = sheet.cssRules || sheet.rules;
+        } catch (e) {
+          continue;
+        }
+        if (!rules) {
+          continue;
+        }
+        var sheetHref = sheet.href || '(inline)';
+        for (var r = 0; r < rules.length; r++) {
+          var rule = rules[r];
+          if (rule.type !== 1) {
+            continue;
+          }
+          var selector = rule.selectorText;
+          if (!selector) {
+            continue;
+          }
+          var matches = false;
+          try {
+            matches = target.matches(selector);
+          } catch (e) {
+            continue;
+          }
+          if (!matches) {
+            continue;
+          }
+          var declarations = [];
+          var style = rule.style;
+          for (var d = 0; d < style.length; d++) {
+            var p = style[d];
+            declarations.push({
+              property: p,
+              value: style.getPropertyValue(p).trim(),
+              priority: style.getPropertyPriority(p) || null,
+            });
+          }
+          if (declarations.length) {
+            matched.push({
+              selector: selector,
+              source: sheetHref,
+              declarations: declarations,
+            });
+          }
+        }
+      }
+
+      var inlineStyle = [];
+      if (target.style && target.style.length) {
+        for (var k = 0; k < target.style.length; k++) {
+          var ip = target.style[k];
+          inlineStyle.push({
+            property: ip,
+            value: target.style.getPropertyValue(ip).trim(),
+            priority: target.style.getPropertyPriority(ip) || null,
+          });
+        }
+      }
+
+      respondToParent(requestId, true, {
+        tagName: target.tagName.toLowerCase(),
+        domPath: getDomPath(target),
+        computedStyles: computedMap,
+        matchedRules: matched,
+        inlineStyles: inlineStyle,
+        url: window.location.href,
+      });
+    });
+  }
+
   function serializeConsoleArg(arg) {
     if (arg === undefined) {
       return 'undefined';
@@ -675,6 +816,29 @@
     }
   }
 
+  function getElementAttributes(element) {
+    var attrs = {};
+    var skipAttrs = { 'class': true, 'id': true, 'style': true };
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      if (!skipAttrs[attr.name]) {
+        attrs[attr.name] = attr.value;
+      }
+    }
+    return attrs;
+  }
+
+  function getElementSnippet(element) {
+    var html = element.outerHTML || '';
+    var MAX = 400;
+    if (html.length <= MAX) {
+      return html;
+    }
+    var open = html.indexOf('>');
+    var openTag = open !== -1 ? html.slice(0, open + 1) : html.slice(0, MAX);
+    return openTag.length <= MAX ? openTag + '…' : openTag.slice(0, MAX) + '…';
+  }
+
   function onClick(event) {
     if (!pickerActive) {
       return;
@@ -692,10 +856,22 @@
       return;
     }
 
+    var textContent = (target.textContent || '').trim().slice(0, 200);
+    var attrs = getElementAttributes(target);
+    var classes = target.className && typeof target.className === 'string'
+      ? target.className.trim().split(/\s+/).filter(Boolean)
+      : [];
+    var snippet = getElementSnippet(target);
+
     postToParent('element-picked', {
       tagName: target.tagName.toLowerCase(),
       label: getElementLabel(target),
       domPath: getDomPath(target),
+      id: target.id || null,
+      classes: classes,
+      attributes: attrs,
+      textContent: textContent || null,
+      snippet: snippet,
     });
   }
 
@@ -857,6 +1033,14 @@
 
     if (data.type === 'get-html') {
       handleGetHtmlCommand(data.payload || {});
+    }
+
+    if (data.type === 'get-loaded-assets') {
+      handleGetLoadedAssetsCommand(data.payload || {});
+    }
+
+    if (data.type === 'get-element-styles') {
+      handleGetElementStylesCommand(data.payload || {});
     }
   });
 

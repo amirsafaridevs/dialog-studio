@@ -34,8 +34,7 @@ Avoid the default-AI look (dark + neon; off-white + serif + terracotta; dense ed
 const TEMPLATE_SKILL = `## Dialog template system — the rules that make a template actually load
 Dialog templates are DB-registered PHP files under wp-content/dialog/templates/. A file written there with write_file will NEVER load — the registration is what wires it in.
 Workflow, every time:
-  1. list_templates → find the target's id, slug, type, conditions (skip only when creating something brand new).
-  2. create_template (new) or update_template (existing, by id/slug, only the fields you change) or delete_template.
+  1. create_template (new) or update_template (existing, by id/slug, only the fields you change) or delete_template.
 type = where it loads: header | footer | singular | archive | canvas | front_page | search | 404 | woocommerce | section.
 conditions MUST use the rules wrapper:
   {"rules":[{"page":"front_page"},{"page":"singular","post_type":"page"},{"page":"singular","post_type":"product"},{"page":"archive","post_type":"post"},{"page":"archive","taxonomy":"category"},{"page":"woocommerce","endpoint":"cart"},{"page":"search"},{"page":"404"}]}
@@ -109,7 +108,7 @@ export const SKILLS = [
     when: ({ editTarget, lastTool, userText }) =>
       /templates\//i.test(editTarget)
       || /template|قالب|هدر|header|فوتر|footer|archive|آرشیو|single|canvas/i.test(userText)
-      || ['create_template', 'update_template', 'delete_template', 'list_templates'].includes(lastTool),
+      || ['create_template', 'update_template', 'delete_template'].includes(lastTool),
   },
   {
     id: 'woocommerce',
@@ -136,7 +135,7 @@ export const SKILLS = [
     body: ARCHITECTURE_SKILL,
     when: ({ userText, lastTool }) =>
       /override|اورراید|بازنویسی|parent|قالب اصلی|قالب والد|child|قالب فرزند|inherit|ارث|extend|توسعه|hook|فیلتر|filter|reuse/i.test(userText)
-      || ['graph_query', 'code_graph', 'list_templates'].includes(lastTool),
+      || ['graph_query', 'code_graph'].includes(lastTool),
   },
   {
     id: 'performance',

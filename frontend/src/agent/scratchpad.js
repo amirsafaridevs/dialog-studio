@@ -85,13 +85,6 @@ export function recordToolFacts(scratchpad, toolName, toolArgs = {}, payload = {
       break;
     }
 
-    case 'list_templates': {
-      const list = Array.isArray(data.templates) ? data.templates : (Array.isArray(data) ? data : []);
-      const slugs = list.map((t) => t.slug || t.title).filter(Boolean).slice(0, 12);
-      if (slugs.length) scratchpad.add('templates:list', `Registered templates: ${slugs.join(', ')}`);
-      break;
-    }
-
     case 'create_page':
     case 'update_page': {
       const label = firstString(data.title, toolArgs.title, data.slug, toolArgs.slug);

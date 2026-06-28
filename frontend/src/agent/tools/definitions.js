@@ -250,16 +250,6 @@ const THEME_TOOLS = [
   },
 ];
 
-const TEMPLATE_LIST_TOOL = {
-  type: 'function',
-  function: {
-    name: 'list_templates',
-    description:
-      'List all registered Dialog templates from the database (id, slug, title, type, conditions, file_path, status, priority). Use before update_template or delete_template to find the target.',
-    parameters: { type: 'object', properties: {} },
-  },
-};
-
 const TEMPLATE_WRITE_TOOLS = [
   {
     type: 'function',
@@ -302,7 +292,7 @@ const TEMPLATE_WRITE_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          id: { type: 'integer', description: 'Template database id (from list_templates)' },
+          id: { type: 'integer', description: 'Template database id' },
           slug: { type: 'string', description: 'Template slug when id is unknown' },
           title: { type: 'string' },
           type: {
@@ -329,7 +319,7 @@ const TEMPLATE_WRITE_TOOLS = [
       parameters: {
         type: 'object',
         properties: {
-          id: { type: 'integer', description: 'Template database id (from list_templates)' },
+          id: { type: 'integer', description: 'Template database id' },
           slug: { type: 'string', description: 'Template slug when id is unknown' },
         },
       },
@@ -420,6 +410,36 @@ const PAGE_TOOLS = [
 ];
 
 const PREVIEW_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'preview_get_loaded_assets',
+      description:
+        'List all CSS stylesheets and JS scripts currently loaded in the live site preview iframe. Returns href/src, element id, and load attributes for each asset. Use to diagnose missing styles, plugin conflicts, or verify a stylesheet is enqueued.',
+      parameters: { type: 'object', properties: {} },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'preview_get_element_styles',
+      description:
+        'Inspect the CSS applied to a specific element in the live site preview iframe — exactly like Chrome DevTools Styles panel. Returns: (1) matchedRules: every CSS rule whose selector matches the element, with the source stylesheet and declarations; (2) inlineStyles: any style="" attributes; (3) computedStyles: the final computed value for every CSS property. Requires selector or dom_path to target the element.',
+      parameters: {
+        type: 'object',
+        properties: {
+          selector: {
+            type: 'string',
+            description: 'CSS selector for the target element (e.g. ".site-header .welcome-user", "#primary-menu > li.current")',
+          },
+          dom_path: {
+            type: 'string',
+            description: 'DOM path from the element picker (e.g. "header#site-header > div.header-inner > span.welcome-user")',
+          },
+        },
+      },
+    },
+  },
   {
     type: 'function',
     function: {
@@ -542,7 +562,6 @@ export const TOOL_LABELS = {
   check_theme: 'بررسی workspace',
   create_template: 'ایجاد قالب',
   update_template: 'ویرایش قالب',
-  list_templates: 'لیست قالب‌ها',
   delete_template: 'حذف قالب',
   list_plugins: 'لیست پلاگین‌ها',
   create_page: 'ایجاد برگه',
@@ -551,6 +570,8 @@ export const TOOL_LABELS = {
   preview_navigate: 'رفتن به صفحه پیش‌نمایش',
   preview_reload: 'بارگذاری مجدد پیش‌نمایش',
   preview_get_html: 'خواندن HTML پیش‌نمایش',
+  preview_get_loaded_assets: 'لیست فایل‌های CSS/JS لود شده',
+  preview_get_element_styles: 'بررسی CSS المان',
 };
 
 export default buildToolDefinitions;

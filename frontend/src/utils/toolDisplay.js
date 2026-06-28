@@ -36,7 +36,6 @@ export const TOOL_ICONS = {
   check_theme: Palette,
   create_template: LayoutTemplate,
   update_template: FilePenLine,
-  list_templates: List,
   delete_template: Trash2,
   create_theme: FolderPlus,
   list_plugins: Package,
@@ -62,7 +61,6 @@ export const TOOL_ACTIVE_LABELS = {
   check_theme: 'در حال بررسی تم',
   create_template: 'در حال ایجاد قالب',
   update_template: 'در حال ویرایش قالب',
-  list_templates: 'در حال دریافت لیست قالب‌ها',
   delete_template: 'در حال حذف قالب',
   create_theme: 'در حال ایجاد تم',
   list_plugins: 'در حال دریافت لیست پلاگین‌ها',
@@ -88,7 +86,6 @@ export const TOOL_DONE_LABELS = {
   check_theme: 'بررسی تم',
   create_template: 'ایجاد قالب',
   update_template: 'ویرایش قالب',
-  list_templates: 'لیست قالب‌ها',
   delete_template: 'حذف قالب',
   create_theme: 'ایجاد تم',
   list_plugins: 'لیست پلاگین‌ها',
@@ -291,13 +288,6 @@ export function formatToolContext(toolName, args = null) {
     if (args.id) return `#${args.id}`;
   }
 
-  if (toolName === 'list_templates') {
-    if (args.total != null) {
-      return `${args.total} قالب`;
-    }
-    return 'همه قالب‌ها';
-  }
-
   if (toolName === 'delete_template') {
     if (args.slug) return String(args.slug);
     if (args.id) return `#${args.id}`;
@@ -466,10 +456,6 @@ export function extractToolArgsFromResult(toolName, parsed) {
       title: data.title,
       slug: data.slug,
     };
-  }
-
-  if (toolName === 'list_templates' && Array.isArray(data)) {
-    return { total: data.length };
   }
 
   if (toolName === 'delete_template') {

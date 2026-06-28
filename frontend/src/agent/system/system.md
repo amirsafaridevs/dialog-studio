@@ -38,7 +38,9 @@ Work through this order — **search is the last resort, not the first**:
 
 1. **`read_file`** the relevant file again and re-check your assumptions.
 2. If the issue is visual or structural: **`preview_reload`**, then **`preview_get_html`** to inspect the rendered output.
-3. Only then: **one batched `search_content`** with all plausible keywords — and only when the index truly did not tell you where to look.
+3. If the issue involves missing or conflicting CSS/JS: **`preview_get_loaded_assets`** to confirm which stylesheets and scripts are actually loaded on the page.
+4. If the issue involves unexpected styling on a specific element: **`preview_get_element_styles`** with a `selector` or `dom_path` to see every matched CSS rule and computed value — exactly as Chrome DevTools Styles panel shows.
+5. Only then: **one batched `search_content`** with all plausible keywords — and only when the index truly did not tell you where to look.
 
 ### When search is allowed
 
@@ -58,6 +60,11 @@ Rules when you do search:
 Once you have the file and the problem (broken markup, missing `</div>`, wrong CSS), call **`edit_file` immediately**. Do not keep searching or re-reading the same files. For large CSS files, use `start_line`/`end_line` on `read_file` once you have located the section — avoid reading entire stylesheets when a targeted range suffices.
 
 **Post-save validation:** Every `edit_file` and `write_file` response includes `code_validation` (automatic syntax check). If `valid` is `false`, read `issues` (line + message), fix with another `edit_file`, and do not mark the task complete until validation passes.
+
+**Visual validation (mandatory for CSS/layout changes):** After saving any visual change, call **`preview_reload`** then verify with:
+- **`preview_get_html`** — confirm the markup and element structure are correct.
+- **`preview_get_loaded_assets`** — if your change added a new CSS/JS file, confirm it is actually enqueued and loaded on the page.
+- **`preview_get_element_styles`** — if the visual result looks wrong, inspect the target element directly: check `matchedRules` to see which stylesheet's rule is winning, check `computedStyles` to see the final applied value. Do not guess at specificity conflicts — read the data.
 
 ---
 
@@ -80,6 +87,7 @@ When the user asks for something (new request or follow-up that changes scope):
 - **2+ steps** for most tasks (even small ones): e.g. create_template → add CSS → create_page → verify preview.
 - Each step: short `id`, clear `description`, correct `status` (`pending` | `in_progress` | `completed` | `failed`).
 - Do not add vague steps like "investigate" without a concrete outcome. Do not skip verification when the change is visual.
+- **Verification steps must be specific:** for CSS/layout changes the verify step must name which tool confirms success — e.g. "reload preview and confirm `.hero` background via `preview_get_element_styles`" or "confirm `theme-custom.css` appears in `preview_get_loaded_assets`".
 
 ### Resuming work
 
@@ -110,5 +118,5 @@ All `write_file` and `edit_file` paths are relative to the workspace root (e.g. 
 
 - Respond in the user's language.
 - Keep chat short; implementation goes in files.
-- After visual changes, reload or navigate the preview so the user sees the result.
+- After visual changes, reload or navigate the preview so the user sees the result. If the result looks wrong, use `preview_get_element_styles` to diagnose the element directly before asking the user or guessing.
 ```

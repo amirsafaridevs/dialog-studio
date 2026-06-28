@@ -790,8 +790,8 @@ const ELEMENT_TAG_PATTERN =
   /<Dialog:element\s+tag="([^"]*)"\s+path="([^"]*)"(?:\s+meta="([^"]*)")?>\s*([^<]*)\s*<\/Dialog:element>/g;
 
 const ELEMENT_TEMPLATE_HINTS = {
-  footer: 'Dialog footer template (list_templates → update_template) or assets/front/css/',
-  header: 'Dialog header template (list_templates → update_template) or assets/front/css/',
+  footer: 'Dialog footer template (update_template by slug) or assets/front/css/',
+  header: 'Dialog header template (update_template by slug) or assets/front/css/',
   nav: 'Dialog header template or assets/front/css/',
   main: 'Dialog page/canvas template (create_template) or assets/front/css/',
 };
@@ -880,7 +880,7 @@ export function buildSelectedElementBlock(messages = []) {
       }
     }
 
-    lines.push('- Call preview_get_html with the selector above, then list_templates/read_file the Dialog template or CSS, and update_template/edit_file the fix.');
+    lines.push('- Call preview_get_html with the selector above, then read_file the Dialog template or CSS, and update_template/edit_file the fix.');
     return lines.join('\n');
   }
 

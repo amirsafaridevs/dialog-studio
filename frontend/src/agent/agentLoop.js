@@ -798,7 +798,7 @@ function isToolPermitted(toolName, permissions = {}) {
 
   const readTools = ['read_file', 'search_files', 'search_content', 'code_graph', 'graph_query', 'validate_code'];
   const writeTools = ['write_file', 'edit_file'];
-  const templateReadTools = ['list_templates'];
+  const templateReadTools = [];
   const templateWriteTools = ['create_template', 'update_template', 'delete_template'];
   const debugTools = ['toggle_debug', 'read_debug_log', 'clear_debug_log'];
   const themeTools = ['check_theme'];
