@@ -10,31 +10,37 @@
  * @var string $version
  * @var string $api_base
  * @var string $settings_nonce
- * @var array{ready: bool, installed: bool, workspace_path?: string, active_theme: array{name: string, slug: string}} $theme_status
+ * @var array<string, mixed> $theme_status
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$css_href   = htmlspecialchars( (string) ( $css_url ?? '' ), ENT_QUOTES, 'UTF-8' );
-$js_src     = htmlspecialchars( (string) ( $js_url ?? '' ), ENT_QUOTES, 'UTF-8' );
-$asset_ver  = htmlspecialchars( (string) ( $version ?? '1.0.0' ), ENT_QUOTES, 'UTF-8' );
-$config_api = json_encode( $api_base ?? '/DialogStudio/v1', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-$config_nonce = json_encode( $settings_nonce ?? '', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+$css_href      = htmlspecialchars( (string) ( $css_url ?? '' ), ENT_QUOTES, 'UTF-8' );
+$js_src        = htmlspecialchars( (string) ( $js_url ?? '' ), ENT_QUOTES, 'UTF-8' );
+$asset_ver     = htmlspecialchars( (string) ( $version ?? '1.0.0' ), ENT_QUOTES, 'UTF-8' );
+$config_api    = json_encode( $api_base ?? '/DialogStudio/v1', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+$config_nonce  = json_encode( $settings_nonce ?? '', JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
-$theme_ready = ! empty( $theme_status['ready'] );
-$theme_message = '';
-if ( ! $theme_ready ) {
-	$theme_message = 'پوشه wp-content/dialog آماده نیست. پلاگین Dialog Maker را غیرفعال و دوباره فعال کنید.';
-}
+$is_managed      = ! empty( $theme_status['is_managed'] );
+$setup_required  = ! empty( $theme_status['setup_required'] );
+$active_name     = htmlspecialchars( (string) ( $theme_status['active_name'] ?? '' ), ENT_QUOTES, 'UTF-8' );
+$parent_name     = htmlspecialchars( (string) ( $theme_status['parent_name'] ?? $theme_status['active_name'] ?? '' ), ENT_QUOTES, 'UTF-8' );
+$child_preview   = htmlspecialchars( (string) ( $theme_status['child_preview_slug'] ?? '' ), ENT_QUOTES, 'UTF-8' );
+$workspace_path  = htmlspecialchars( (string) ( $theme_status['workspace_path'] ?? '' ), ENT_QUOTES, 'UTF-8' );
 
 $config_theme = json_encode(
 	[
-		'workspacePath' => (string) ( $theme_status['workspace_path'] ?? 'wp-content/dialog' ),
-		'ready'         => $theme_ready,
-		'installed'     => ! empty( $theme_status['installed'] ),
-		'message'       => $theme_message,
+		'isManaged'       => $is_managed,
+		'setupRequired'   => $setup_required,
+		'workspacePath'   => (string) ( $theme_status['workspace_path'] ?? '' ),
+		'ready'           => ! empty( $theme_status['ready'] ),
+		'activeSlug'      => (string) ( $theme_status['active_slug'] ?? '' ),
+		'activeName'      => (string) ( $theme_status['active_name'] ?? '' ),
+		'parentSlug'      => (string) ( $theme_status['parent_slug'] ?? '' ),
+		'parentName'      => (string) ( $theme_status['parent_name'] ?? '' ),
+		'childPreviewSlug' => (string) ( $theme_status['child_preview_slug'] ?? '' ),
 	],
 	JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
 );
@@ -45,7 +51,7 @@ $config_theme = json_encode(
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="robots" content="noindex, nofollow">
-	<title>دیالوگ — سازنده قالب</title>
+	<title>Dialog Studio</title>
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600&display=swap" rel="stylesheet">
@@ -57,9 +63,128 @@ $config_theme = json_encode(
 			theme: <?php echo $config_theme; ?>
 		};
 	</script>
+	<style>
+		#ds-setup-overlay {
+			position: fixed; inset: 0; z-index: 99999;
+			background: rgba(0,0,0,.72); backdrop-filter: blur(6px);
+			display: flex; align-items: center; justify-content: center;
+			font-family: Vazirmatn, system-ui, sans-serif; direction: rtl;
+		}
+		#ds-setup-modal {
+			background: #0b0b0b; color: rgba(255,255,255,.72); border-radius: 14px;
+			padding: 32px 28px; max-width: 440px; width: 90%;
+			box-shadow: 0 8px 32px rgba(0,0,0,.45);
+			border: 1px solid rgba(255,255,255,.08);
+		}
+		#ds-setup-modal h2 {
+			margin: 0 0 8px; font-size: 1.15rem; font-weight: 600;
+			color: #ffffff;
+		}
+		#ds-setup-modal p { margin: 0 0 12px; line-height: 1.7; font-size: .9rem; color: rgba(255,255,255,.55); }
+		#ds-setup-modal .ds-info-box {
+			background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+			border-radius: 10px; padding: 14px 16px; margin: 16px 0;
+			font-size: .875rem; color: rgba(255,255,255,.6);
+		}
+		#ds-setup-modal .ds-info-box span { display: block; margin-bottom: 6px; }
+		#ds-setup-modal .ds-info-box span:last-child { margin-bottom: 0; }
+		#ds-setup-modal .ds-info-box strong { color: rgba(255,255,255,.85); font-weight: 600; }
+		#ds-setup-btn {
+			display: inline-flex; align-items: center; gap: 8px;
+			background: #50c879; color: #04140a; border: none;
+			border-radius: 10px; padding: 11px 24px; font-size: .95rem;
+			font-weight: 600; cursor: pointer; transition: opacity .18s cubic-bezier(.4,0,.2,1);
+			font-family: inherit; margin-top: 8px; width: 100%; justify-content: center;
+		}
+		#ds-setup-btn:hover { opacity: .88; }
+		#ds-setup-btn:disabled { opacity: .45; cursor: not-allowed; }
+		#ds-setup-status {
+			margin-top: 12px; font-size: .85rem; min-height: 20px;
+			padding: 10px 14px; border-radius: 8px; display: none;
+		}
+		#ds-setup-status.ds-error { background: rgba(248,113,113,.1); color: #fca5a5; display: block; border: 1px solid rgba(248,113,113,.2); }
+		#ds-setup-status.ds-success { background: rgba(80,200,121,.1); color: #50c879; display: block; border: 1px solid rgba(80,200,121,.2); }
+		#ds-setup-status.ds-loading { background: rgba(255,255,255,.04); color: rgba(255,255,255,.55); display: block; border: 1px solid rgba(255,255,255,.08); }
+	</style>
 </head>
 <body class="dtm-body" lang="fa">
-	<div id="dtm-chat-app"></div>
-	<script type="module" src="<?php echo $js_src; ?>?v=<?php echo $asset_ver; ?>"></script>
+
+<?php if ( $setup_required ) : ?>
+<div id="ds-setup-overlay">
+	<div id="ds-setup-modal">
+		<h2>راه‌اندازی محیط کاری</h2>
+		<p>برای شروع کار با Dialog Studio، یک Child Theme ساخته و فعال می‌شود.</p>
+
+		<div class="ds-info-box">
+			<span>📦 قالب فعلی: <strong><?php echo $parent_name; ?></strong></span>
+			<span>✨ Child Theme جدید: <strong><?php echo $child_preview; ?></strong></span>
+			<span>🔒 قالب اصلی دست نخورده باقی می‌ماند و می‌توان آن را به‌روزرسانی کرد</span>
+		</div>
+
+		<p style="font-size:.85rem;color:#6c7086;">
+			Agent فقط در child theme کار می‌کند و کدها در آنجا ذخیره می‌شوند.
+		</p>
+
+		<button id="ds-setup-btn" onclick="dsSetupChildTheme()">
+			<span id="ds-setup-btn-text">ساخت و فعال‌سازی Child Theme</span>
+		</button>
+		<div id="ds-setup-status"></div>
+	</div>
+</div>
+
+<script>
+async function dsSetupChildTheme() {
+	const btn    = document.getElementById('ds-setup-btn');
+	const status = document.getElementById('ds-setup-status');
+	const btnTxt = document.getElementById('ds-setup-btn-text');
+
+	btn.disabled = true;
+	btnTxt.textContent = 'در حال پردازش…';
+	status.className   = 'ds-loading';
+	status.textContent = 'در حال ساخت child theme…';
+
+	try {
+		const apiBase = (window.__DTM_CONFIG__ && window.__DTM_CONFIG__.apiBase)
+			? window.__DTM_CONFIG__.apiBase
+			: '/DialogStudio/v1';
+
+		const res = await fetch(apiBase + '/theme/child-setup', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'X-DTM-Nonce': (window.__DTM_CONFIG__ && window.__DTM_CONFIG__.settingsNonce) || '',
+			},
+			credentials: 'same-origin',
+			body: JSON.stringify({ confirm: true })
+		});
+
+		const json = await res.json();
+
+		if (json && json.success) {
+			status.className   = 'ds-success';
+			status.textContent = json.data && json.data.already_managed
+				? 'محیط کاری آماده است. در حال بارگذاری…'
+				: 'Child theme با موفقیت ساخته و فعال شد. در حال بارگذاری…';
+
+			setTimeout(() => window.location.reload(), 1200);
+		} else {
+			const errMsg = (json && json.error) ? json.error : 'خطای ناشناخته';
+			status.className   = 'ds-error';
+			status.textContent = 'خطا: ' + errMsg;
+			btn.disabled       = false;
+			btnTxt.textContent = 'تلاش مجدد';
+		}
+	} catch (err) {
+		status.className   = 'ds-error';
+		status.textContent = 'خطا در ارتباط با سرور: ' + err.message;
+		btn.disabled       = false;
+		btnTxt.textContent = 'تلاش مجدد';
+	}
+}
+</script>
+<?php endif; ?>
+
+<div id="dtm-chat-app"></div>
+<script type="module" src="<?php echo $js_src; ?>?v=<?php echo $asset_ver; ?>"></script>
 </body>
 </html>

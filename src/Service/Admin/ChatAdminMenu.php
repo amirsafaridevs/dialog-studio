@@ -7,7 +7,7 @@ namespace DialogStudio\Service\Admin;
 use DialogStudio\Contract\Abstract\AbstractService;
 
 /**
- * Adds a top-level wp-admin menu item that opens the Dialog Theme Maker chat UI.
+ * Adds a top-level wp-admin menu item that opens the Dialog Studio chat UI.
  */
 class ChatAdminMenu extends AbstractService
 {
@@ -25,7 +25,7 @@ class ChatAdminMenu extends AbstractService
     public function registerMenu(): void
     {
         add_menu_page(
-            __( 'Dialog Theme Maker', 'DialogStudio' ),
+            __( 'Dialog Studio', 'DialogStudio' ),
             __( 'Dialog', 'DialogStudio' ),
             'manage_options',
             self::MENU_SLUG,

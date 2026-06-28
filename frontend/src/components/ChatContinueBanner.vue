@@ -4,6 +4,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  errorMessage: {
+    type: String,
+    default: '',
+  },
 });
 
 defineEmits(['continue']);
@@ -11,7 +15,7 @@ defineEmits(['continue']);
 
 <template>
   <div v-if="visible" class="chat-continue" dir="rtl">
-    <p class="chat-continue__text">ارتباط قطع شد.</p>
+    <p class="chat-continue__text">{{ errorMessage || 'ارتباط قطع شد.' }}</p>
     <button type="button" class="chat-continue__button" @click="$emit('continue')">
       ادامه
     </button>

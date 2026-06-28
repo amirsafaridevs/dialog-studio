@@ -40,6 +40,33 @@ export async function fetchAgentSettings() {
 }
 
 export async function fetchOpenRouterModels(apiKey = '') {
+  const isMasked = apiKey.includes('•') || apiKey === '';
+  if (!isMasked) {
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+          'X-OpenRouter-Title': 'Dialog Studio',
+          'Accept': 'application/json',
+        },
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        if (Array.isArray(payload?.data)) {
+          const models = payload.data.map(model => ({
+            id: model.id,
+            label: model.name || model.id
+          }));
+          return { models };
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch directly from OpenRouter, falling back to backend proxy:', e);
+    }
+  }
+
   const { apiBase, settingsNonce } = getDtmConfig();
 
   const response = await fetch(`${apiBase}/settings/openrouter-models`, {
@@ -53,6 +80,91 @@ export async function fetchOpenRouterModels(apiKey = '') {
     body: JSON.stringify({
       api_key: apiKey,
     }),
+  });
+
+  return parseResponse(response);
+}
+
+export async function fetchWpagentifyKeyInfo(apiKey = '') {
+  const isMasked = !apiKey || apiKey.includes('•');
+  if (isMasked) return null;
+
+  const response = await fetch('https://www.api.wpagentify.ir/key/info', {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    let apiMessage = null;
+    try {
+      const body = await response.clone().json();
+      apiMessage = body?.error?.message || body?.message || null;
+    } catch {}
+    if (response.status === 401) throw new Error(apiMessage || 'کلید API نامعتبر است. لطفاً کلید صحیح وارد کنید.');
+    if (response.status === 429) throw new Error(apiMessage || 'اعتبار کلید API به پایان رسیده است.');
+    throw new Error(apiMessage || `خطای سرور (${response.status})`);
+  }
+
+  const payload = await response.json();
+  return payload?.info ?? payload ?? null;
+}
+
+export async function fetchWpagentifyModels(apiKey = '') {
+  const isMasked = !apiKey || apiKey.includes('•');
+  if (isMasked) return null;
+
+  try {
+    const response = await fetch('https://www.api.wpagentify.ir/v1/models', {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) return null;
+
+    const payload = await response.json();
+    const data = Array.isArray(payload?.data) ? payload.data : [];
+
+    return data.map((m) => ({
+      id: m.id,
+      label: m.id,
+      group: deriveGroup(m.id),
+    }));
+  } catch {
+    return null;
+  }
+}
+
+function deriveGroup(modelId = '') {
+  const id = modelId.toLowerCase();
+  if (id.startsWith('gpt') || id.includes('openai')) return 'OpenAI';
+  if (id.startsWith('claude') || id.includes('anthropic')) return 'Claude';
+  if (id.startsWith('gemini') || id.includes('google')) return 'Gemini';
+  if (id.startsWith('deepseek')) return 'DeepSeek';
+  if (id.startsWith('qwen')) return 'Qwen';
+  if (id.startsWith('grok') || id.includes('xai')) return 'xAI';
+  if (id.startsWith('llama') || id.includes('meta')) return 'Meta';
+  if (id.startsWith('mistral')) return 'Mistral';
+  return 'Other';
+}
+
+export async function activateApiKey(apiKey) {
+  const { apiBase, settingsNonce } = getDtmConfig();
+
+  const response = await fetch(`${apiBase}/settings/activate-key`, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-DTM-Nonce': settingsNonce,
+    },
+    body: JSON.stringify({ api_key: apiKey }),
   });
 
   return parseResponse(response);

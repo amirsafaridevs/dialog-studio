@@ -1,15 +1,12 @@
 <?php
 /**
- * Dialog page shell — ensures wp_head/wp_footer always run for canvas and page templates.
- * Header/footer HTML visibility is controlled by includes_header / includes_footer on the active template.
+ * Dialog page shell stub — kept for compatibility.
+ * Template rendering is now handled directly by the active child theme.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-
-use DialogStudio\Service\Dialog\DialogTemplateRenderer;
-
 ?><!DOCTYPE html>
 <html <?php language_attributes(); ?>>
 <head>
@@ -18,16 +15,8 @@ use DialogStudio\Service\Dialog\DialogTemplateRenderer;
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class(); ?>>
-<?php
-wp_body_open();
-get_header();
-?>
-<main id="dialog-content" class="dialog-content">
-<?php DialogTemplateRenderer::renderActiveContent(); ?>
-</main>
-<?php
-get_footer();
-wp_footer();
-?>
+<?php wp_body_open(); get_header(); ?>
+<main id="dialog-content" class="dialog-content"></main>
+<?php get_footer(); wp_footer(); ?>
 </body>
 </html>

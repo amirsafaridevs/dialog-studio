@@ -3,7 +3,7 @@ export function getDtmConfig() {
     apiBase: '/DialogStudio/v1',
     settingsNonce: '',
     theme: {
-      workspacePath: 'wp-content/dialog',
+      workspacePath: '',
       ready: true,
       installed: true,
       message: '',

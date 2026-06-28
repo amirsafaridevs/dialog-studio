@@ -22,33 +22,23 @@ class DialogWorkspaceService extends AbstractService
     {
         $root = DialogPath::root();
 
-        if ( ! wp_mkdir_p( $root ) ) {
+        if ( ! is_dir( $root ) ) {
             return false;
         }
 
-        $directories = array_merge(
-            [
-                DialogPath::assets( 'admin' ),
-                DialogPath::assets( 'front' ),
-                DialogPath::modules(),
-                DialogPath::templates(),
-            ],
+        foreach ( array_merge(
+            [ DialogPath::assets( 'front' ), DialogPath::assets( 'admin' ), DialogPath::modules() ],
             array_map(
                 static fn ( string $sub ): string => DialogPath::assets( $sub ),
                 DialogPath::assetSubdirectories()
             )
-        );
-
-        foreach ( $directories as $directory ) {
+        ) as $directory ) {
             if ( ! is_dir( $directory ) ) {
                 wp_mkdir_p( $directory );
             }
         }
 
-        $this->maybeWriteGitkeep( DialogPath::modules() );
-        $this->maybeWriteGitkeep( DialogPath::templates() );
-
-        return is_dir( $root ) && is_writable( $root );
+        return is_writable( $root );
     }
 
     /**
@@ -64,14 +54,5 @@ class DialogWorkspaceService extends AbstractService
             'writable' => is_dir( $path ) && is_writable( $path ),
             'exists'   => is_dir( $path ),
         ];
-    }
-
-    private function maybeWriteGitkeep( string $directory ): void
-    {
-        $gitkeep = $directory . '/.gitkeep';
-
-        if ( is_dir( $directory ) && ! file_exists( $gitkeep ) ) {
-            file_put_contents( $gitkeep, '' );
-        }
     }
 }

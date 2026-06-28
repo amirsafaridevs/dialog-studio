@@ -8,13 +8,13 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'read_file',
       description:
-        'Read files in wp-content/dialog/, plugins, or WordPress core. Never read wp-content/themes/. Use wp-content/dialog/assets/front/css/main.css or workspace-relative paths like assets/front/css/main.css.',
+        'Read any file in the WordPress install. For workspace (child theme) files use relative paths like assets/front/css/main.css. For plugins use wp-content/plugins/my-plugin/main.php. For WordPress core use wp-includes/formatting.php.',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Path to the file (WordPress-relative or wp-content/dialog-relative)',
+            description: 'WordPress-relative path or workspace-relative path (e.g. assets/front/css/main.css, wp-content/plugins/woocommerce/woocommerce.php)',
           },
           start_line: {
             type: 'integer',
@@ -34,12 +34,12 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'search_files',
       description:
-        'Search files by name. Default directory: wp-content/dialog. Never use wp-content/themes/. For plugins use wp-content/plugins.',
+        'Search files by name inside a directory. Omit directory to search the workspace (child theme). For plugins use wp-content/plugins. For WordPress root use wp-content.',
       parameters: {
         type: 'object',
         properties: {
           keywords: { type: 'array', items: { type: 'string' } },
-          directory: { type: 'string', description: 'Directory to search (default: wp-content/dialog). Examples: wp-content/dialog, wp-content/plugins' },
+          directory: { type: 'string', description: 'Directory to search. Omit to search workspace. Examples: wp-content/plugins, wp-content/plugins/woocommerce' },
           operator: { type: 'string', enum: ['AND', 'OR'], default: 'AND' },
         },
         required: ['keywords'],
@@ -51,7 +51,7 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'search_content',
       description:
-        'LAST RESORT ONLY — blocked when the Dialog Code Index already maps the keyword or file. Never search wp-content/themes/. Omit path to search wp-content/dialog.',
+        'LAST RESORT ONLY — blocked when the Dialog Code Index already maps the keyword or file. Omit path to search the workspace (child theme).',
       parameters: {
         type: 'object',
         properties: {
@@ -64,7 +64,7 @@ const FILE_READ_TOOLS = [
           path: {
             type: 'string',
             description:
-              'Directory or file scope (WordPress-relative). Defaults to wp-content/dialog. Set only when searching outside the workspace.',
+              'Directory or file scope (WordPress-relative). Omit to search workspace. Set only when searching outside the workspace (e.g. wp-content/plugins/woocommerce).',
           },
           operator: {
             type: 'string',
@@ -85,14 +85,14 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'validate_code',
       description:
-        'Validate PHP/CSS/JS syntax. Defaults to wp-content/dialog. Never validate wp-content/themes/.',
+        'Validate PHP/CSS/JS syntax. Omit directory to validate the workspace (child theme).',
       parameters: {
         type: 'object',
         properties: {
           directory: {
             type: 'string',
             description:
-              'Directory to validate (WordPress-relative). Examples: wp-content/dialog, wp-content/plugins/my-plugin',
+              'Directory to validate (WordPress-relative). Omit for workspace. Examples: wp-content/plugins/my-plugin',
           },
         },
       },
@@ -103,15 +103,47 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'code_graph',
       description:
-        'Build a PHP code graph for a directory. Defaults to wp-content/dialog. Never analyze wp-content/themes/.',
+        'Build a PHP code graph for a directory. Omit directory to analyze the workspace (child theme).',
       parameters: {
         type: 'object',
         properties: {
           directory: {
             type: 'string',
             description:
-              'Directory to analyze (WordPress-relative). Examples: wp-content/dialog, wp-content/plugins/my-plugin',
+              'Directory to analyze (WordPress-relative). Omit for workspace. Examples: wp-content/plugins/my-plugin',
           },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'graph_query',
+      description:
+        'Query the project knowledge graph (parent + child theme) that is already summarized in your context. Returns a small scoped subgraph — far cheaper than reading files or grepping for call sites. mode:"explain" returns everything touching one symbol or file (callers + callees, extends/implements, hook callbacks). mode:"path" returns the shortest relationship chain between two symbols/files. Prefer this over search_content for "what uses X" / "how does A reach B" questions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          mode: {
+            type: 'string',
+            enum: ['explain', 'path'],
+            default: 'explain',
+            description: 'explain: relationships of one target. path: chain between from→to.',
+          },
+          target: {
+            type: 'string',
+            description: 'For mode:"explain" — a symbol (function/class/Class::method) or a file path (e.g. functions.php, inc/shop.php).',
+          },
+          from: {
+            type: 'string',
+            description: 'For mode:"path" — the start symbol or file.',
+          },
+          to: {
+            type: 'string',
+            description: 'For mode:"path" — the end symbol or file.',
+          },
+          max_hops: { type: 'integer', default: 6, description: 'For mode:"path" — max relationship hops to search.' },
         },
       },
     },
@@ -124,13 +156,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'edit_file',
       description:
-        'Edit a specific line range in an existing wp-content/dialog file. Replaces lines start_line through end_line (1-indexed, inclusive) with new content. Path is relative to wp-content/dialog (e.g. assets/front/css/main.css, modules/shop.php). Do not use for templates/ — use update_template.',
+        'Edit a specific line range in an existing workspace (child theme) file. Replaces lines start_line through end_line (1-indexed, inclusive) with new content. Path is relative to workspace root (e.g. assets/front/css/main.css, inc/shop.php).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside wp-content/dialog (e.g. assets/front/css/main.css, modules/helpers.php)',
+            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
           },
           start_line: {
             type: 'integer',
@@ -154,13 +186,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'write_file',
       description:
-        'Create or overwrite a file inside wp-content/dialog (assets/ or modules/). Never write directly to templates/ — use create_template.',
+        'Create or overwrite a file inside the workspace (child theme). Path is relative to workspace root (e.g. assets/front/css/main.css, inc/helpers.php, style.css).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside wp-content/dialog (e.g. assets/front/css/main.css, modules/helpers.php)',
+            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
           },
           content: { type: 'string' },
           mode: { type: 'string', enum: ['create', 'overwrite'], default: 'create' },
@@ -212,7 +244,7 @@ const THEME_TOOLS = [
     function: {
       name: 'check_theme',
       description:
-        'Check whether the wp-content/dialog workspace is ready. Only use when the user explicitly asks about workspace status.',
+        'Check whether the workspace (child theme) is ready. Only use when the user explicitly asks about workspace status.',
       parameters: { type: 'object', properties: {} },
     },
   },
@@ -252,7 +284,7 @@ const TEMPLATE_WRITE_TOOLS = [
           conditions: {
             type: 'object',
             description:
-              'Display rules, e.g. { "rules": [{ "type": "singular", "post_type": "page", "post_id": 42 }, { "type": "url", "pattern": "/shop/*" }, { "type": "woocommerce", "endpoint": "orders" }] }',
+              'Display rules (must use "rules" wrapper): { "rules": [{"page":"front_page"}, {"page":"singular","post_type":"page"}, {"page":"singular","post_type":"product"}, {"page":"archive","post_type":"post"}, {"page":"archive","taxonomy":"category"}, {"page":"woocommerce","endpoint":"cart"}, {"page":"search"}, {"page":"404"}] }. See system prompt for full examples.',
           },
           status: { type: 'string', enum: ['active', 'draft', 'inactive'], default: 'active' },
           meta: { type: 'object', description: 'Optional extra metadata' },
@@ -281,7 +313,7 @@ const TEMPLATE_WRITE_TOOLS = [
           includes_header: { type: 'boolean' },
           includes_footer: { type: 'boolean' },
           priority: { type: 'integer' },
-          conditions: { type: 'object' },
+          conditions: { type: 'object', description: 'Display rules with "rules" wrapper: {"rules": [...]}. See create_template description for examples.' },
           status: { type: 'string', enum: ['active', 'draft', 'inactive'] },
           meta: { type: 'object' },
         },
@@ -443,7 +475,7 @@ export const UPDATE_TODOS_TOOL = {
   function: {
     name: 'update_todos',
     description:
-      'Your planning tool (shown to the user as "برنامه اجرا"). REQUIRED workflow: (1) on every new user request, call this FIRST — before read_file, preview_get_html, edit_file, or any other tool; (2) list concrete ordered steps with one in_progress and the rest pending; (3) after each step, call again to mark completed and advance in_progress to the next step.',
+      'Your planning tool (shown to the user as "برنامه اجرا"). Plan in proportion to the work: skip it for a single obvious change, but for multi-step / multi-file / ambiguous / visual tasks call it FIRST. Each step should name a user-visible OUTCOME and how you will verify it — not mechanical steps like "read the file". Keep exactly one step in_progress; after finishing a step call this again to mark it completed and advance.',
     parameters: {
       type: 'object',
       properties: {
@@ -478,11 +510,9 @@ export function buildToolDefinitions(permissions = {}) {
 
   if (readFiles) {
     tools.push(...FILE_READ_TOOLS);
-    tools.push(TEMPLATE_LIST_TOOL);
   }
   if (writeFiles) {
     tools.push(...FILE_WRITE_TOOLS);
-    tools.push(...TEMPLATE_WRITE_TOOLS);
   }
   if (permissions.debugger) {
     tools.push(...DEBUG_TOOLS);
@@ -504,6 +534,7 @@ export const TOOL_LABELS = {
   search_files: 'جستجوی فایل',
   search_content: 'جستجو در محتوا',
   code_graph: 'گراف کد PHP',
+  graph_query: 'کاوش گراف دانش',
   validate_code: 'اعتبارسنجی کد',
   toggle_debug: 'تغییر حالت دیباگ',
   read_debug_log: 'خواندن لاگ',
