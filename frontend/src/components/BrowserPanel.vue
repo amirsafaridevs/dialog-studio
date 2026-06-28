@@ -321,6 +321,11 @@ const previewBridge = createPreviewBridge(iframeRef, {
       tagName: payload.tagName,
       label: payload.label,
       domPath: payload.domPath,
+      id: payload.id || null,
+      classes: payload.classes || [],
+      attributes: payload.attributes || {},
+      textContent: payload.textContent || null,
+      snippet: payload.snippet || null,
     });
   },
   onConsoleEntry(payload) {

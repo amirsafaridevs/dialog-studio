@@ -679,7 +679,7 @@ final class DialogStudio_Agent {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => 'اتصال به سرور wpagentify.ir برقرار نشد. مجدداً تلاش کنید.',
+				'error'   => 'اتصال به سرور wpagentify.ir برقرار نشد. مجدداً تلاش کنید. در صورتی که VPN متصل است، آن را غیرفعال کنید.',
 			];
 		}
 

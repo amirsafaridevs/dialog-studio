@@ -787,7 +787,7 @@ export function buildKnowledgeGraphBlock(knowledgeGraph) {
 }
 
 const ELEMENT_TAG_PATTERN =
-  /<Dialog:element\s+tag="([^"]*)"\s+path="([^"]*)">([^<]*)<\/Dialog:element>/g;
+  /<Dialog:element\s+tag="([^"]*)"\s+path="([^"]*)"(?:\s+meta="([^"]*)")?>\s*([^<]*)\s*<\/Dialog:element>/g;
 
 const ELEMENT_TEMPLATE_HINTS = {
   footer: 'Dialog footer template (list_templates → update_template) or assets/front/css/',
@@ -806,11 +806,21 @@ export function parseElementTags(content) {
   let match = pattern.exec(content);
 
   while (match) {
-    tags.push({
+    const entry = {
       tag: match[1],
       path: match[2],
-      label: match[3],
-    });
+      label: match[4],
+    };
+
+    if (match[3]) {
+      try {
+        entry.meta = JSON.parse(match[3].replace(/&quot;/g, '"'));
+      } catch {
+        // ignore malformed meta
+      }
+    }
+
+    tags.push(entry);
     match = pattern.exec(content);
   }
 
@@ -845,6 +855,29 @@ export function buildSelectedElementBlock(messages = []) {
       const tag = element.tag?.toLowerCase() || '';
       const hint = ELEMENT_TEMPLATE_HINTS[tag] || 'check index for matching template/CSS file';
       lines.push(`- <${element.tag}> at \`${element.path}\` → likely ${hint}`);
+
+      const meta = element.meta;
+      if (meta) {
+        if (meta.id) {
+          lines.push(`  id: "${meta.id}"`);
+        }
+        if (meta.classes?.length) {
+          lines.push(`  classes: ${meta.classes.join(' ')}`);
+        }
+        if (meta.attributes && Object.keys(meta.attributes).length) {
+          const attrParts = Object.entries(meta.attributes)
+            .slice(0, 10)
+            .map(([k, v]) => `${k}="${v}"`)
+            .join(' ');
+          lines.push(`  attributes: ${attrParts}`);
+        }
+        if (meta.textContent) {
+          lines.push(`  text: "${meta.textContent}"`);
+        }
+        if (meta.snippet) {
+          lines.push(`  html snippet: ${meta.snippet}`);
+        }
+      }
     }
 
     lines.push('- Call preview_get_html with the selector above, then list_templates/read_file the Dialog template or CSS, and update_template/edit_file the fix.');

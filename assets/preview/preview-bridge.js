@@ -681,6 +681,29 @@
     }
   }
 
+  function getElementAttributes(element) {
+    var attrs = {};
+    var skipAttrs = { 'class': true, 'id': true, 'style': true };
+    for (var i = 0; i < element.attributes.length; i++) {
+      var attr = element.attributes[i];
+      if (!skipAttrs[attr.name]) {
+        attrs[attr.name] = attr.value;
+      }
+    }
+    return attrs;
+  }
+
+  function getElementSnippet(element) {
+    var html = element.outerHTML || '';
+    var MAX = 400;
+    if (html.length <= MAX) {
+      return html;
+    }
+    var open = html.indexOf('>');
+    var openTag = open !== -1 ? html.slice(0, open + 1) : html.slice(0, MAX);
+    return openTag.length <= MAX ? openTag + '…' : openTag.slice(0, MAX) + '…';
+  }
+
   function onClick(event) {
     if (!pickerActive) {
       return;
@@ -698,10 +721,22 @@
       return;
     }
 
+    var textContent = (target.textContent || '').trim().slice(0, 200);
+    var attrs = getElementAttributes(target);
+    var classes = target.className && typeof target.className === 'string'
+      ? target.className.trim().split(/\s+/).filter(Boolean)
+      : [];
+    var snippet = getElementSnippet(target);
+
     postToParent('element-picked', {
       tagName: target.tagName.toLowerCase(),
       label: getElementLabel(target),
       domPath: getDomPath(target),
+      id: target.id || null,
+      classes: classes,
+      attributes: attrs,
+      textContent: textContent || null,
+      snippet: snippet,
     });
   }
 

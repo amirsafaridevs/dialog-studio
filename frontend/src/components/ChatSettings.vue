@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue';
-import { AlertCircle, Check, ExternalLink, Loader2, RefreshCw } from 'lucide-vue-next';
+import { AlertCircle, Check, ExternalLink, KeyRound, Loader2, Pencil, RefreshCw, X } from 'lucide-vue-next';
 import { ALL_MODELS } from '../utils/llmProviders.js';
 import { activateApiKey, fetchAgentSettings, fetchSettings, fetchWpagentifyKeyInfo, fetchWpagentifyModels, saveSettings } from '../utils/settingsApi.js';
 
@@ -17,6 +17,7 @@ const apiKeyInput = ref('');
 const isActivating = ref(false);
 const activationError = ref('');
 const activationSuccess = ref('');
+const showReplaceKey = ref(false);
 
 const availableModels = ref(ALL_MODELS);
 const isFetchingModels = ref(false);
@@ -135,6 +136,7 @@ async function handleActivate() {
     hasStoredApiKey.value = true;
     apiKeyMasked.value = key.slice(0, 4) + '••••••••' + key.slice(-4);
     apiKeyInput.value = '';
+    showReplaceKey.value = false;
     await Promise.all([loadModels(key), loadKeyInfo(key)]);
     emit('saved', { server: data, client: { llm: { api_key: key } } });
   } catch (error) {
@@ -158,6 +160,7 @@ async function handleRefreshModels() {
 function handleRetryActivation() {
   activationError.value = '';
   activationSuccess.value = '';
+  showReplaceKey.value = false;
 }
 
 async function handleSave() {
@@ -197,72 +200,39 @@ async function handleSave() {
 
     <template v-else>
       <div class="chat-settings__scroll">
+
+        <!-- ── Step 1: API Key ── -->
         <section class="chat-settings__section">
-          <h2 class="chat-settings__section-title">کلید API</h2>
-          <p class="chat-settings__section-desc">
-            برای استفاده از افزونه Dialog Studio نیاز به کلید API دارید. کلید API خود را از سایت wpagentify.ir تهیه کنید.
-          </p>
-
-          <!-- Current key status -->
-          <div v-if="hasStoredApiKey && !activationSuccess" class="chat-settings__key-status">
-            <Check :size="14" :stroke-width="2.5" class="chat-settings__key-status-icon" />
-            <span>کلید فعال: <span class="chat-settings__key-masked" dir="ltr">{{ apiKeyMasked }}</span></span>
-          </div>
-
-          <!-- Model selector -->
-          <div class="chat-settings__field">
-            <div class="chat-settings__model-header">
-              <span class="chat-settings__label">مدل زبانی</span>
-              <button
-                v-if="hasStoredApiKey || apiKeyInput.trim()"
-                type="button"
-                class="chat-settings__refresh-models"
-                :disabled="isFetchingModels"
-                @click="handleRefreshModels"
-              >
-                <Loader2 v-if="isFetchingModels" :size="12" :stroke-width="2" class="chat-settings__spinner" />
-                <RefreshCw v-else :size="12" :stroke-width="2" />
-                <span>{{ isFetchingModels ? 'در حال دریافت…' : 'بروزرسانی مدل‌ها' }}</span>
-              </button>
-            </div>
-            <select v-model="form.model" class="chat-settings__select" :disabled="isFetchingModels">
-              <option v-for="m in availableModels" :key="m.id" :value="m.id">
-                {{ m.group }} — {{ m.label }}
-              </option>
-            </select>
-            <span class="chat-settings__hint">مدل انتخابی از طریق سرویس wpagentify.ir اجرا می‌شود.</span>
-          </div>
-
-          <!-- Activation success -->
-          <div v-if="activationSuccess" class="chat-settings__activation-result chat-settings__activation-result--success">
-            <Check :size="15" :stroke-width="2.5" />
-            <span>{{ activationSuccess }}</span>
-          </div>
-
-          <!-- Activation error -->
-          <div v-if="activationError" class="chat-settings__activation-result chat-settings__activation-result--error">
-            <AlertCircle :size="15" :stroke-width="2" />
-            <div class="chat-settings__activation-result-body">
-              <span>{{ activationError }}</span>
-              <button
-                type="button"
-                class="chat-settings__retry-btn"
-                @click="handleRetryActivation"
-              >
-                <RefreshCw :size="12" :stroke-width="2" />
-                تلاش مجدد
-              </button>
+          <div class="chat-settings__section-header">
+            <div>
+              <h2 class="chat-settings__section-title">کلید API</h2>
+              <p class="chat-settings__section-desc">برای شروع، کلید API خود را وارد و فعال کنید.</p>
             </div>
           </div>
 
-          <!-- Key input -->
-          <label v-if="!activationError" class="chat-settings__field">
-            <span class="chat-settings__label">{{ hasStoredApiKey ? 'جایگزینی کلید API' : 'کلید API' }}</span>
-            <div class="chat-settings__key-row">
+          <!-- ── Has key: show status row ── -->
+          <template v-if="(hasStoredApiKey || activationSuccess) && !activationError">
+
+            <!-- Key status row -->
+            <div v-if="!showReplaceKey" class="chat-settings__key-status-row">
+              <KeyRound :size="13" :stroke-width="2" class="chat-settings__key-status-icon" />
+              <span class="chat-settings__key-masked" dir="ltr">{{ apiKeyMasked }}</span>
+              <button
+                type="button"
+                class="chat-settings__icon-btn"
+                title="ویرایش کلید"
+                @click="showReplaceKey = true"
+              >
+                <Pencil :size="13" :stroke-width="2" />
+              </button>
+            </div>
+
+            <!-- Replace key input (shown on demand) -->
+            <div v-else class="chat-settings__key-replace-row">
               <input
                 v-model="apiKeyInput"
                 type="password"
-                class="chat-settings__input"
+                class="chat-settings__input chat-settings__input--sm"
                 placeholder="sk-..."
                 autocomplete="off"
                 spellcheck="false"
@@ -272,107 +242,144 @@ async function handleSave() {
               />
               <button
                 type="button"
-                class="chat-settings__activate-btn"
+                class="chat-settings__icon-btn chat-settings__icon-btn--confirm"
                 :disabled="isActivating || !apiKeyInput.trim()"
+                title="تأیید"
                 @click="handleActivate"
               >
-                <Loader2
-                  v-if="isActivating"
-                  class="chat-settings__spinner"
-                  :size="14"
-                  :stroke-width="2"
-                />
-                <span>{{ isActivating ? 'در حال تأیید…' : 'فعال‌سازی' }}</span>
+                <Loader2 v-if="isActivating" :size="13" :stroke-width="2" class="chat-settings__spinner" />
+                <Check v-else :size="13" :stroke-width="2.5" />
+              </button>
+              <button
+                type="button"
+                class="chat-settings__icon-btn"
+                title="انصراف"
+                @click="showReplaceKey = false; apiKeyInput = ''; activationError = ''"
+              >
+                <X :size="13" :stroke-width="2" />
               </button>
             </div>
-            <span v-if="hasStoredApiKey" class="chat-settings__hint">
-              کلید ذخیره‌شده فعال است. برای جایگزینی، کلید جدید وارد کنید.
-            </span>
-          </label>
 
-          <!-- Purchase link -->
-          <a
-            href="https://www.wpagentify.ir/panel/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="chat-settings__purchase-link"
-          >
-            <ExternalLink :size="13" :stroke-width="2" />
-            <span>برای خرید کلید API کلیک کنید</span>
-          </a>
-        </section>
-
-        <!-- Account usage section -->
-        <section class="chat-settings__section">
-          <h2 class="chat-settings__section-title">وضعیت اکانت</h2>
-
-          <!-- Loading -->
-          <div v-if="isFetchingKeyInfo" class="chat-settings__usage-loading">
-            <Loader2 :size="14" :stroke-width="2" class="chat-settings__spinner" />
-            <span>در حال دریافت اطلاعات…</span>
-          </div>
-
-          <!-- No key yet -->
-          <div v-else-if="!hasStoredApiKey && !activationSuccess" class="chat-settings__usage-empty">
-            <AlertCircle :size="14" :stroke-width="2" />
-            <span>برای مشاهده وضعیت اکانت، ابتدا کلید API را وارد و فعال کنید.</span>
-          </div>
-
-          <!-- Auth error -->
-          <div v-else-if="keyInfoError" class="chat-settings__usage-empty chat-settings__usage-empty--error">
-            <AlertCircle :size="14" :stroke-width="2" />
-            <span>{{ keyInfoError }}</span>
-          </div>
-
-          <!-- Budget info -->
-          <template v-else-if="keyInfo">
-            <!-- Main budget progress -->
-            <div v-if="remainingPercent(keyInfo) !== null" class="chat-settings__budget-block">
-              <div class="chat-settings__budget-header">
-                <span class="chat-settings__label">موجودی باقی‌مانده</span>
-                <span class="chat-settings__budget-pct" :class="remainingPercent(keyInfo) < 20 ? 'chat-settings__budget-pct--warn' : ''">
-                  {{ remainingPercent(keyInfo) }}٪
-                </span>
+            <!-- Budget strip -->
+            <div class="chat-settings__budget-strip">
+              <div v-if="isFetchingKeyInfo" class="chat-settings__usage-loading">
+                <Loader2 :size="12" :stroke-width="2" class="chat-settings__spinner" />
+                <span>دریافت اطلاعات…</span>
               </div>
-              <div class="chat-settings__progress-track">
-                <div
-                  class="chat-settings__progress-fill"
-                  :class="remainingPercent(keyInfo) < 20 ? 'chat-settings__progress-fill--warn' : ''"
-                  :style="{ width: remainingPercent(keyInfo) + '%' }"
-                />
+              <div v-else-if="keyInfoError" class="chat-settings__info-error">
+                <AlertCircle :size="12" :stroke-width="2" />
+                <span>{{ keyInfoError }}</span>
               </div>
+              <template v-else-if="keyInfo && remainingPercent(keyInfo) !== null">
+                <div class="chat-settings__budget-meta">
+                  <span v-if="keyInfo.expires" class="chat-settings__budget-expires">{{ new Date(keyInfo.expires).toLocaleDateString('fa-IR') }}</span>
+                  <span
+                    class="chat-settings__budget-pct"
+                    :class="remainingPercent(keyInfo) < 20 ? 'chat-settings__budget-pct--warn' : ''"
+                  >{{ remainingPercent(keyInfo) }}٪</span>
+                </div>
+                <div class="chat-settings__progress-track">
+                  <div
+                    class="chat-settings__progress-fill"
+                    :class="remainingPercent(keyInfo) < 20 ? 'chat-settings__progress-fill--warn' : ''"
+                    :style="{ width: remainingPercent(keyInfo) + '%' }"
+                  />
+                </div>
+              </template>
             </div>
 
-            <!-- Limits -->
-            <div class="chat-settings__limits">
-              <div v-if="keyInfo.tpm_limit" class="chat-settings__limit-row">
-                <span class="chat-settings__limit-label">TPM (توکن/دقیقه)</span>
-                <span class="chat-settings__limit-val" dir="ltr">{{ formatLimit(keyInfo.tpm_limit) }}</span>
-              </div>
-              <div v-if="keyInfo.rpm_limit" class="chat-settings__limit-row">
-                <span class="chat-settings__limit-label">RPM (درخواست/دقیقه)</span>
-                <span class="chat-settings__limit-val" dir="ltr">{{ formatLimit(keyInfo.rpm_limit) }}</span>
-              </div>
-              <div v-if="keyInfo.budget_duration" class="chat-settings__limit-row">
-                <span class="chat-settings__limit-label">دوره بودجه</span>
-                <span class="chat-settings__limit-val" dir="ltr">{{ keyInfo.budget_duration }}</span>
-              </div>
-              <div v-if="keyInfo.expires" class="chat-settings__limit-row">
-                <span class="chat-settings__limit-label">انقضا</span>
-                <span class="chat-settings__limit-val" dir="ltr">{{ new Date(keyInfo.expires).toLocaleDateString('fa-IR') }}</span>
-              </div>
-            </div>
           </template>
 
-          <!-- No budget data returned -->
-          <div v-else class="chat-settings__usage-empty">
-            <span>اطلاعات موجودی در دسترس نیست.</span>
+          <!-- ── No key yet ── -->
+          <template v-else>
+
+            <!-- Activation error -->
+            <div v-if="activationError" class="chat-settings__activation-result chat-settings__activation-result--error">
+              <AlertCircle :size="14" :stroke-width="2" />
+              <div class="chat-settings__activation-result-body">
+                <span>{{ activationError }}</span>
+                <button type="button" class="chat-settings__retry-btn" @click="handleRetryActivation">
+                  <RefreshCw :size="12" :stroke-width="2" />
+                  تلاش مجدد
+                </button>
+              </div>
+            </div>
+
+            <!-- Key input -->
+            <label v-if="!activationError" class="chat-settings__field">
+              <div class="chat-settings__key-row">
+                <input
+                  v-model="apiKeyInput"
+                  type="password"
+                  class="chat-settings__input"
+                  placeholder="sk-..."
+                  autocomplete="off"
+                  spellcheck="false"
+                  dir="ltr"
+                  :disabled="isActivating"
+                  @keyup.enter="handleActivate"
+                />
+                <button
+                  type="button"
+                  class="chat-settings__activate-btn"
+                  :disabled="isActivating || !apiKeyInput.trim()"
+                  @click="handleActivate"
+                >
+                  <Loader2 v-if="isActivating" class="chat-settings__spinner" :size="14" :stroke-width="2" />
+                  <Check v-else :size="14" :stroke-width="2.5" />
+                </button>
+              </div>
+            </label>
+
+            <a
+              href="https://www.wpagentify.ir/panel/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="chat-settings__purchase-link"
+            >
+              <ExternalLink :size="12" :stroke-width="2" />
+              <span>کلید API ندارید؟ از اینجا تهیه کنید</span>
+            </a>
+          </template>
+        </section>
+
+        <!-- ── Step 2: Model ── -->
+        <section class="chat-settings__section" :class="{ 'chat-settings__section--locked': !hasStoredApiKey && !activationSuccess }">
+          <div class="chat-settings__section-header">
+            <div>
+              <h2 class="chat-settings__section-title">مدل زبانی</h2>
+              <p class="chat-settings__section-desc">مدل هوش مصنوعی برای پردازش پیام‌ها.</p>
+            </div>
+          </div>
+
+          <div class="chat-settings__field chat-settings__field--no-gap">
+            <div class="chat-settings__model-header">
+              <select v-model="form.model" class="chat-settings__select" :disabled="isFetchingModels || (!hasStoredApiKey && !activationSuccess)">
+                <option v-for="m in availableModels" :key="m.id" :value="m.id">
+                  {{ m.group }} — {{ m.label }}
+                </option>
+              </select>
+              <button
+                v-if="hasStoredApiKey || activationSuccess"
+                type="button"
+                class="chat-settings__refresh-models"
+                :disabled="isFetchingModels"
+                @click="handleRefreshModels"
+              >
+                <Loader2 v-if="isFetchingModels" :size="12" :stroke-width="2" class="chat-settings__spinner" />
+                <RefreshCw v-else :size="12" :stroke-width="2" />
+              </button>
+            </div>
           </div>
         </section>
 
         <section class="chat-settings__section">
-          <h2 class="chat-settings__section-title">دسترسی Agent</h2>
-          <p class="chat-settings__section-desc">محدودیت‌های ابزار و دسترسی مدل.</p>
+          <div class="chat-settings__section-header">
+            <div>
+              <h2 class="chat-settings__section-title">دسترسی‌های Agent</h2>
+              <p class="chat-settings__section-desc">تعیین کنید Agent چه اقداماتی می‌تواند انجام دهد.</p>
+            </div>
+          </div>
 
           <div class="chat-settings__toggle-row">
             <div class="chat-settings__toggle-copy">
@@ -506,7 +513,7 @@ async function handleSave() {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--dtm-space-4) var(--dtm-space-4) var(--dtm-space-2);
+  padding: var(--dtm-space-4) var(--dtm-space-6) var(--dtm-space-2);
 }
 
 .chat-settings__section + .chat-settings__section {
@@ -555,8 +562,16 @@ async function handleSave() {
 .chat-settings__model-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+}
+
+.chat-settings__model-header .chat-settings__select {
+  flex: 1;
+}
+
+.chat-settings__field--no-gap {
+  gap: 0;
+  margin-bottom: var(--dtm-space-2);
 }
 
 .chat-settings__model-tools {
@@ -713,28 +728,163 @@ async function handleSave() {
   opacity: 0.92;
 }
 
-.chat-settings__key-status {
+/* ── Section header with step badge ── */
+.chat-settings__section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: var(--dtm-space-4);
+}
+
+.chat-settings__section-header .chat-settings__section-title {
+  margin-bottom: 2px;
+}
+
+.chat-settings__section-header .chat-settings__section-desc {
+  margin-bottom: 0;
+}
+
+.chat-settings__step-badge {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--dtm-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.chat-settings__step-badge--done {
+  background: rgba(80, 200, 121, 0.15);
+  border-color: rgba(80, 200, 121, 0.4);
+  color: var(--dtm-accent);
+}
+
+.chat-settings__step-badge--dim {
+  opacity: 0.35;
+}
+
+/* ── Locked section ── */
+.chat-settings__section--locked {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ── Key status row (has key) ── */
+.chat-settings__key-status-row {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: var(--dtm-space-4);
-  padding: 9px 12px;
-  border-radius: var(--dtm-radius-sm);
-  background: rgba(80, 200, 121, 0.08);
-  border: 1px solid rgba(80, 200, 121, 0.2);
+  margin-bottom: var(--dtm-space-3);
   font-size: 12px;
-  color: var(--dtm-accent);
+  color: var(--dtm-text-secondary);
 }
 
 .chat-settings__key-status-icon {
   flex-shrink: 0;
   color: var(--dtm-accent);
+  opacity: 0.7;
 }
 
+.chat-settings__key-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--dtm-space-3);
+}
+
+.chat-settings__key-replace-row .chat-settings__input--sm {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Budget strip ── */
+.chat-settings__budget-strip {
+  margin-top: var(--dtm-space-8);
+  margin-bottom: var(--dtm-space-5);
+
+}
+
+.chat-settings__budget-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.chat-settings__budget-expires {
+  font-size: 10px;
+  color: var(--dtm-text-muted);
+  font-family: monospace;
+  letter-spacing: 0.02em;
+}
+
+.chat-settings__budget-pct {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--dtm-accent);
+}
+
+.chat-settings__budget-pct--warn {
+  color: #f59e0b;
+}
+
+.chat-settings__info-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #f87171;
+}
+
+/* ── Icon-only buttons ── */
+.chat-settings__icon-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--dtm-radius-sm);
+  border: 1px solid var(--dtm-border-default);
+  background: transparent;
+  color: var(--dtm-text-muted);
+  transition: color var(--dtm-transition), border-color var(--dtm-transition), opacity var(--dtm-transition);
+}
+
+.chat-settings__icon-btn:hover:not(:disabled) {
+  color: var(--dtm-text-secondary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.chat-settings__icon-btn--confirm {
+  border-color: rgba(80, 200, 121, 0.35);
+  color: var(--dtm-accent);
+}
+
+.chat-settings__icon-btn--confirm:hover:not(:disabled) {
+  border-color: rgba(80, 200, 121, 0.6);
+  color: var(--dtm-accent);
+}
+
+.chat-settings__icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Key row & inputs ── */
 .chat-settings__key-masked {
   font-family: monospace;
+  font-size: 11px;
   letter-spacing: 0.04em;
-  opacity: 0.8;
+  opacity: 0.6;
+  flex: 1;
 }
 
 .chat-settings__key-row {
@@ -747,20 +897,22 @@ async function handleSave() {
   min-width: 0;
 }
 
+.chat-settings__input--sm {
+  font-size: 12px;
+  min-height: 32px;
+  padding: 6px 10px;
+}
+
 .chat-settings__activate-btn {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 0 14px;
+  width: 38px;
+  height: 38px;
   border-radius: var(--dtm-radius-sm);
   background: var(--dtm-accent);
   color: #04140a;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
   transition: opacity var(--dtm-transition);
 }
 
@@ -769,7 +921,7 @@ async function handleSave() {
 }
 
 .chat-settings__activate-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
@@ -822,62 +974,21 @@ async function handleSave() {
   opacity: 0.8;
 }
 
-/* ── Account usage ── */
+/* ── Account usage (inline in key card) ── */
 .chat-settings__usage-loading {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
   color: var(--dtm-text-muted);
-  padding: 4px 0;
-}
-
-.chat-settings__usage-empty {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  padding: 10px 12px;
-  border-radius: var(--dtm-radius-sm);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--dtm-border-subtle);
-  font-size: 12px;
-  color: var(--dtm-text-muted);
-  line-height: 1.5;
-}
-
-.chat-settings__usage-empty--error {
-  background: rgba(248, 113, 113, 0.06);
-  border-color: rgba(248, 113, 113, 0.2);
-  color: #f87171;
-}
-
-.chat-settings__budget-block {
-  margin-bottom: var(--dtm-space-4);
-}
-
-.chat-settings__budget-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.chat-settings__budget-pct {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--dtm-accent);
-}
-
-.chat-settings__budget-pct--warn {
-  color: #f59e0b;
+  padding: 2px 0;
 }
 
 .chat-settings__progress-track {
-  height: 7px;
+  height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  margin-bottom: 6px;
 }
 
 .chat-settings__progress-fill {
@@ -889,38 +1000,6 @@ async function handleSave() {
 
 .chat-settings__progress-fill--warn {
   background: #f59e0b;
-}
-
-.chat-settings__limits {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 1px solid var(--dtm-border-subtle);
-  border-radius: var(--dtm-radius-sm);
-  overflow: hidden;
-}
-
-.chat-settings__limit-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  font-size: 12px;
-}
-
-.chat-settings__limit-row + .chat-settings__limit-row {
-  border-top: 1px solid var(--dtm-border-subtle);
-}
-
-.chat-settings__limit-label {
-  color: var(--dtm-text-muted);
-}
-
-.chat-settings__limit-val {
-  font-family: monospace;
-  font-size: 11px;
-  color: var(--dtm-text-secondary);
-  letter-spacing: 0.02em;
 }
 
 .chat-settings__purchase-link {

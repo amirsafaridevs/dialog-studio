@@ -27,6 +27,16 @@ export function createElementTagNode(element) {
   chip.dataset.label = element.label;
   chip.title = element.domPath;
 
+  const meta = {};
+  if (element.elementId) meta.id = element.elementId;
+  if (element.classes?.length) meta.classes = element.classes;
+  if (element.attributes && Object.keys(element.attributes).length) meta.attributes = element.attributes;
+  if (element.textContent) meta.textContent = element.textContent;
+  if (element.snippet) meta.snippet = element.snippet;
+  if (Object.keys(meta).length) {
+    chip.dataset.meta = JSON.stringify(meta);
+  }
+
   const icon = document.createElement('span');
   icon.className = 'chat-element-tag__icon';
   icon.setAttribute('aria-hidden', 'true');

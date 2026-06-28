@@ -15,6 +15,11 @@ export function useElementPicker() {
       tagName: element.tagName,
       label: element.label,
       domPath: element.domPath,
+      elementId: element.id || null,
+      classes: element.classes || [],
+      attributes: element.attributes || {},
+      textContent: element.textContent || null,
+      snippet: element.snippet || null,
     };
     pickVersion.value += 1;
   }

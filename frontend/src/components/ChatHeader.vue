@@ -19,6 +19,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  isRunning: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -90,6 +94,7 @@ onUnmounted(() => {
           type="button"
           class="chat-header__btn"
           :class="{ 'chat-header__btn--active': isHistoryOpen }"
+          :disabled="isRunning"
           title="تاریخچه گفتگوها"
           @click.stop="toggleHistory"
         >
@@ -124,6 +129,7 @@ onUnmounted(() => {
       <button
         type="button"
         class="chat-header__btn"
+        :disabled="isRunning"
         title="گفتگوی جدید"
         @click="handleNewChatClick"
       >
@@ -133,6 +139,7 @@ onUnmounted(() => {
         v-if="!panelOpen"
         type="button"
         class="chat-header__btn"
+        :disabled="isRunning"
         title="پرامپت اختصاصی"
         @click="emit('toggle-prompt')"
       >
@@ -142,6 +149,7 @@ onUnmounted(() => {
         v-if="!panelOpen"
         type="button"
         class="chat-header__btn"
+        :disabled="isRunning"
         title="تنظیمات"
         @click="emit('toggle-settings')"
       >
@@ -191,10 +199,15 @@ onUnmounted(() => {
   transition: background var(--dtm-transition), color var(--dtm-transition);
 }
 
-.chat-header__btn:hover,
+.chat-header__btn:hover:not(:disabled),
 .chat-header__btn--active {
   background: var(--dtm-hover-bg);
   color: var(--dtm-text-primary);
+}
+
+.chat-header__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 
 .chat-header__dropdown {

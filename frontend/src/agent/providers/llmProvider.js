@@ -38,6 +38,32 @@ class WpagentifyApiError extends Error {
   }
 }
 
+let fetchPatched = false;
+
+function ensureFetchPatched() {
+  if (fetchPatched) return;
+  fetchPatched = true;
+
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (...args) => {
+    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url ?? '';
+    if (!url.includes('wpagentify')) {
+      return originalFetch(...args);
+    }
+    const response = await originalFetch(...args);
+    if (!response.ok) {
+      const cloned = response.clone();
+      let body = null;
+      try { body = await cloned.json(); } catch {}
+      const apiMessage = body?.error?.message || body?.message || null;
+      const userMessage = translateBudgetMessage(apiMessage) || apiMessage || `خطای سرور (${response.status})`;
+      console.error('[originalFetch] API error :', { status: response.status, body });
+      throw new WpagentifyApiError(userMessage, response.status);
+    }
+    return response;
+  };
+}
+
 function translateBudgetMessage(apiMessage) {
   if (!apiMessage) return null;
   const msg = apiMessage.toLowerCase();
@@ -95,21 +121,8 @@ export class LLMProvider {
       throw new Error('کلید API وارد نشده است. لطفاً از تنظیمات کلید API خود را وارد کنید.');
     }
 
+    ensureFetchPatched();
 
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = async (...args) => {
-      const response = await originalFetch(...args);
-      if (!response.ok) {
-        const cloned = response.clone();
-        let body = null;
-        try { body = await cloned.json(); } catch {}
-        const apiMessage = body?.error?.message || body?.message || null;
-        const userMessage = translateBudgetMessage(apiMessage) || apiMessage || `خطای سرور (${response.status})`;
-        console.error('[originalFetch] API error :', { status: response.status, body });
-        throw new WpagentifyApiError(userMessage, response.status);
-      }
-      return response;
-    };
     this.provider = new ChatOpenAI({
       modelName: model || DEFAULT_MODEL,
       openAIApiKey: apiKey,
