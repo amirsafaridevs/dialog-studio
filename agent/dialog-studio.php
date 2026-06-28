@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Dialog Theme Maker - Agent
- * Description: Agent runtime for Dialog Theme Maker — intercepts /DialogStudio/v1/* requests directly.
+ * Plugin Name: Dialog Studio - Agent
+ * Description: Agent runtime for Dialog Studio — intercepts /DialogStudio/v1/* requests directly.
  * Version: 1.0.0
  *
  * This file is auto-loaded as a must-use plugin.
@@ -106,6 +106,7 @@ final class DialogStudio_Agent {
 		$this->add_route( 'GET', self::API_PREFIX . '/settings/openrouter-models', 'handle_get_openrouter_models', [ 'public' => true ] );
 		$this->add_route( 'POST', self::API_PREFIX . '/settings/openrouter-models', 'handle_get_openrouter_models', [ 'public' => true ] );
 		$this->add_route( 'POST', self::API_PREFIX . '/settings', 'handle_save_settings', [ 'public' => true ] );
+		$this->add_route( 'POST', self::API_PREFIX . '/settings/activate-key', 'handle_activate_api_key', [ 'public' => true ] );
 
 		// File Operations (write restricted to Dialog-managed child theme)
 		$this->add_route( 'POST', self::API_PREFIX . '/file/read', 'handle_file_read' );
@@ -136,6 +137,7 @@ final class DialogStudio_Agent {
 		// Dialog Theme Management
 		$this->add_route( 'POST', self::API_PREFIX . '/theme/check', 'handle_theme_check' );
 		$this->add_route( 'GET', self::API_PREFIX . '/theme/index', 'handle_theme_index' );
+		$this->add_route( 'POST', self::API_PREFIX . '/theme/graph-query', 'handle_theme_graph_query' );
 		$this->add_route( 'POST', self::API_PREFIX . '/code/graph', 'handle_code_graph' );
 		$this->add_route( 'POST', self::API_PREFIX . '/code/validate', 'handle_code_validate' );
 
@@ -629,6 +631,182 @@ final class DialogStudio_Agent {
 	}
 
 	/**
+	 * POST /DialogStudio/v1/settings/activate-key
+	 *
+	 * Validates an API key with wpagentify.ir and saves it on success.
+	 * If the key was previously used, it only accepts it if the registered domain matches the current site.
+	 *
+	 * @return array{success: bool, data: array<string, mixed>|null, error: string|null}
+	 */
+	private function handle_activate_api_key(): array {
+		$this->require_chat_user();
+
+		$nonce = $_SERVER['HTTP_X_DTM_NONCE'] ?? '';
+		if ( ! is_string( $nonce ) || ! $this->verify_early_nonce( $nonce, 'dtm_settings' ) ) {
+			$this->json_response(
+				403,
+				[
+					'success' => false,
+					'data'    => null,
+					'error'   => 'Invalid or missing nonce',
+				]
+			);
+		}
+
+		$body    = $this->get_json_body();
+		$api_key = trim( sanitize_text_field( (string) ( $body['api_key'] ?? '' ) ) );
+
+		if ( $api_key === '' ) {
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => 'کلید API نمی‌تواند خالی باشد.',
+			];
+		}
+
+		$site_url    = $this->get_home_url( '/' );
+		$activate_url = 'https://www.wpagentify.ir/wp-json/litellm/v1/activate';
+
+		$result = $this->wpagentify_http_post(
+			$activate_url,
+			[
+				'api_key'  => $api_key,
+				'site_url' => $site_url,
+			]
+		);
+
+		if ( ! $result['connected'] ) {
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => 'اتصال به سرور wpagentify.ir برقرار نشد. مجدداً تلاش کنید.',
+			];
+		}
+
+		$body_data = $result['body'];
+		$key_data  = is_array( $body_data['data'] ?? null ) ? $body_data['data'] : [];
+
+		// If the API returned success:false, check whether it's because the key was already activated
+		// for this same domain — in that case we allow it through.
+		if ( empty( $body_data['success'] ) ) {
+			$already_activated = isset( $body_data['data']['site_url'] );
+
+			if ( $already_activated ) {
+				$registered_domain = $this->extract_domain_from_url( (string) ( $body_data['data']['site_url'] ?? '' ) );
+				$current_domain    = $this->extract_domain_from_url( $site_url );
+
+				if ( ! $registered_domain || ! $current_domain || ! $this->domains_match( $registered_domain, $current_domain ) ) {
+					return [
+						'success' => false,
+						'data'    => null,
+						'error'   => sprintf(
+							'کلید API قبلاً برای دامنه‌ی %s ثبت شده است. برای استفاده از این دامنه، کلید API جدیدی درخواست کنید.',
+							htmlspecialchars( $registered_domain ?: (string) ( $body_data['data']['site_url'] ?? '' ), ENT_QUOTES, 'UTF-8' )
+						),
+					];
+				}
+
+				// Same domain — fall through to save the key below.
+			} else {
+				$message = isset( $body_data['message'] ) && is_string( $body_data['message'] ) && $body_data['message'] !== ''
+					? $body_data['message']
+					: 'کلید API نامعتبر است یا فعال‌سازی ناموفق بود.';
+
+				return [
+					'success' => false,
+					'data'    => null,
+					'error'   => $message,
+				];
+			}
+		}
+
+		// Key is valid — persist it (keep existing model choice; just update the key)
+		$existing = $this->get_settings();
+		$existing['llm']['api_key'] = $api_key;
+
+		update_option( self::SETTINGS_OPTION, $existing, false );
+
+		return [
+			'success' => true,
+			'data'    => [
+				'message'      => isset( $body_data['message'] ) ? (string) $body_data['message'] : 'کلید API با موفقیت فعال شد.',
+				'activated_at' => isset( $key_data['activated_at'] ) ? (string) $key_data['activated_at'] : '',
+			],
+			'error'   => null,
+		];
+	}
+
+	/**
+	 * @param string               $url
+	 * @param array<string, mixed> $data
+	 *
+	 * @return array{connected: bool, body: array<string, mixed>}
+	 */
+	private function wpagentify_http_post( string $url, array $data ): array {
+		$json_body = (string) wp_json_encode( $data );
+		$headers   = [
+			'Content-Type: application/json',
+			'Accept: application/json',
+		];
+
+		if ( function_exists( 'curl_init' ) ) {
+			$ch = curl_init( $url );
+			if ( $ch === false ) {
+				return [ 'connected' => false, 'body' => [] ];
+			}
+
+			curl_setopt_array(
+				$ch,
+				[
+					CURLOPT_RETURNTRANSFER => true,
+					CURLOPT_TIMEOUT        => 15,
+					CURLOPT_POST           => true,
+					CURLOPT_POSTFIELDS     => $json_body,
+					CURLOPT_HTTPHEADER     => $headers,
+					CURLOPT_SSL_VERIFYPEER => false,
+					CURLOPT_SSL_VERIFYHOST => 0,
+				]
+			);
+
+			$raw  = curl_exec( $ch );
+			$err  = curl_error( $ch );
+			curl_close( $ch );
+
+			if ( $raw === false || $err !== '' ) {
+				return [ 'connected' => false, 'body' => [] ];
+			}
+
+			$body = json_decode( (string) $raw, true );
+			return [ 'connected' => true, 'body' => is_array( $body ) ? $body : [] ];
+		}
+
+		// Fallback: wp_remote_post (available after muplugins_loaded + WP core loaded)
+		if ( ! function_exists( 'wp_remote_post' ) ) {
+			return [ 'connected' => false, 'body' => [] ];
+		}
+
+		$response = wp_remote_post(
+			$url,
+			[
+				'timeout'   => 15,
+				'sslverify' => false,
+				'headers'   => [
+					'Content-Type' => 'application/json',
+					'Accept'       => 'application/json',
+				],
+				'body'      => $json_body,
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return [ 'connected' => false, 'body' => [] ];
+		}
+
+		$body = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+		return [ 'connected' => true, 'body' => is_array( $body ) ? $body : [] ];
+	}
+
+	/**
 	 * GET /DialogStudio/v1/settings/openrouter-models
 	 *
 	 * Proxies OpenRouter model catalog for the chat settings UI.
@@ -747,7 +925,7 @@ final class DialogStudio_Agent {
 		$headers = [
 			'Authorization: Bearer ' . $api_key,
 			'HTTP-Referer: ' . home_url( '/' ),
-			'X-OpenRouter-Title: Dialog Theme Maker',
+			'X-OpenRouter-Title: Dialog Studio',
 			'Accept: application/json',
 		];
 
@@ -767,6 +945,8 @@ final class DialogStudio_Agent {
 					CURLOPT_RETURNTRANSFER => true,
 					CURLOPT_TIMEOUT        => 30,
 					CURLOPT_HTTPHEADER     => $headers,
+					CURLOPT_SSL_VERIFYPEER => false,
+					CURLOPT_SSL_VERIFYHOST => 0,
 				]
 			);
 
@@ -806,11 +986,12 @@ final class DialogStudio_Agent {
 		$response = wp_remote_get(
 			$url,
 			[
-				'timeout' => 30,
-				'headers' => [
+				'timeout'   => 30,
+				'sslverify' => false,
+				'headers'   => [
 					'Authorization'      => 'Bearer ' . $api_key,
 					'HTTP-Referer'       => home_url( '/' ),
-					'X-OpenRouter-Title' => 'Dialog Theme Maker',
+					'X-OpenRouter-Title' => 'Dialog Studio',
 					'Accept'             => 'application/json',
 				],
 			]
@@ -852,12 +1033,8 @@ final class DialogStudio_Agent {
 	private function get_default_settings(): array {
 		return [
 			'llm'           => [
-				'provider'            => 'deepseek',
-				'model'               => 'deepseek-v4-flash',
-				'api_key'             => '',
-				'use_custom_endpoint' => false,
-				'custom_endpoint'     => '',
-				'custom_model'        => '',
+				'model'   => 'deepseek-v4-flash',
+				'api_key' => '',
 			],
 			'permissions'   => [
 				'read_files'   => true,
@@ -900,26 +1077,20 @@ final class DialogStudio_Agent {
 	 */
 	private function sanitize_settings_payload( array $payload, array $existing ): array {
 		$defaults  = $this->get_default_settings();
-		$providers = [ 'deepseek', 'openai', 'claude', 'gemini', 'qwen', 'openrouter' ];
-
 		$llm_input = is_array( $payload['llm'] ?? null ) ? $payload['llm'] : [];
-		$provider  = sanitize_key( (string) ( $llm_input['provider'] ?? $existing['llm']['provider'] ) );
-		if ( ! in_array( $provider, $providers, true ) ) {
-			$provider = $defaults['llm']['provider'];
-		}
 
-		$model = sanitize_text_field( (string) ( $llm_input['model'] ?? $existing['llm']['model'] ) );
+		// Model — accept any non-empty string (proxy decides validity)
+		$model = sanitize_text_field( (string) ( $llm_input['model'] ?? $existing['llm']['model'] ?? '' ) );
 		if ( $model === '' ) {
 			$model = (string) $defaults['llm']['model'];
 		}
 
+		// API key — keep existing when input is empty or masked
 		$api_key_input = (string) ( $llm_input['api_key'] ?? '' );
-		$api_key       = $existing['llm']['api_key'];
+		$api_key       = (string) ( $existing['llm']['api_key'] ?? '' );
 		if ( $api_key_input !== '' && ! $this->is_masked_api_key( $api_key_input ) ) {
 			$api_key = sanitize_text_field( $api_key_input );
 		}
-
-		$use_custom = ! empty( $llm_input['use_custom_endpoint'] );
 
 		$perm_input = is_array( $payload['permissions'] ?? null ) ? $payload['permissions'] : [];
 
@@ -930,12 +1101,8 @@ final class DialogStudio_Agent {
 
 		return [
 			'llm'           => [
-				'provider'            => $provider,
-				'model'               => $model,
-				'api_key'             => $api_key,
-				'use_custom_endpoint' => $use_custom,
-				'custom_endpoint'     => esc_url_raw( (string) ( $llm_input['custom_endpoint'] ?? '' ) ),
-				'custom_model'        => sanitize_text_field( (string) ( $llm_input['custom_model'] ?? '' ) ),
+				'model'   => $model,
+				'api_key' => $api_key,
 			],
 			'permissions'   => [
 				'read_files'  => array_key_exists( 'read_files', $perm_input )
@@ -981,6 +1148,29 @@ final class DialogStudio_Agent {
 
 	private function is_masked_api_key( string $value ): bool {
 		return (bool) preg_match( '/^[^*]*\*+[^*]*$/', $value ) && strpos( $value, '*' ) !== false;
+	}
+
+	/**
+	 * Extract domain from URL (e.g., "https://example.com/path" -> "example.com")
+	 */
+	private function extract_domain_from_url( string $url ): string {
+		$parsed = wp_parse_url( $url );
+		$host = isset( $parsed['host'] ) ? (string) $parsed['host'] : '';
+		return strtolower( trim( $host ) );
+	}
+
+	/**
+	 * Compare two domains, ignoring www prefix and case sensitivity.
+	 */
+	private function domains_match( string $domain1, string $domain2 ): bool {
+		$domain1 = strtolower( trim( $domain1 ) );
+		$domain2 = strtolower( trim( $domain2 ) );
+
+		// Remove www prefix if present
+		$domain1 = preg_replace( '/^www\./', '', $domain1 );
+		$domain2 = preg_replace( '/^www\./', '', $domain2 );
+
+		return $domain1 === $domain2;
 	}
 
 	private function require_chat_user(): void {
@@ -1179,7 +1369,7 @@ final class DialogStudio_Agent {
 
 		$plugins_url = defined( 'WP_PLUGIN_URL' ) ? WP_PLUGIN_URL : $this->get_home_url( 'wp-content/plugins' );
 
-		return rtrim( (string) $plugins_url, '/' ) . '/dialog-theme-maker/' . $relative_path;
+		return rtrim( (string) $plugins_url, '/' ) . '/dialog-studio/' . $relative_path;
 	}
 
 	// =============================================
@@ -3603,11 +3793,25 @@ final class DialogStudio_Agent {
 				'dialog'
 			);
 
+			// Knowledge graph (parent + child). Best-effort — never blocks chat.
+			$knowledge_graph = null;
+			try {
+				$knowledge_graph = $indexer->buildKnowledgeGraph();
+			} catch ( \Throwable $kg_error ) {
+				error_log(
+					sprintf(
+						'DialogStudio: knowledge graph build failed: %s',
+						$kg_error->getMessage()
+					)
+				);
+			}
+
 			return [
 				'success' => true,
 				'data'    => [
-					'available' => ! empty( $index['files'] ),
-					'index'     => $index,
+					'available'       => ! empty( $index['files'] ),
+					'index'           => $index,
+					'knowledge_graph' => $knowledge_graph,
 				],
 				'error'   => null,
 			];
@@ -3626,6 +3830,74 @@ final class DialogStudio_Agent {
 					'index'     => $empty_index,
 				],
 				'error'   => null,
+			];
+		} finally {
+			if ( false !== $previous_time_limit && '' !== $previous_time_limit ) {
+				@set_time_limit( (int) $previous_time_limit );
+			}
+		}
+	}
+
+	/**
+	 * POST /DialogStudio/v1/theme/graph-query
+	 *
+	 * Answer a focused question against the project knowledge graph (parent + child).
+	 * mode: "explain" (default) | "path".
+	 */
+	private function handle_theme_graph_query(): array {
+		$this->require_chat_user();
+
+		$body = $this->get_json_body();
+		$mode = sanitize_text_field( (string) ( $body['mode'] ?? 'explain' ) );
+
+		$args = [
+			'mode'     => $mode,
+			'target'   => sanitize_text_field( (string) ( $body['target'] ?? '' ) ),
+			'from'     => sanitize_text_field( (string) ( $body['from'] ?? '' ) ),
+			'to'       => sanitize_text_field( (string) ( $body['to'] ?? '' ) ),
+			'max_hops' => isset( $body['max_hops'] ) ? absint( $body['max_hops'] ) : 6,
+		];
+
+		$previous_time_limit = ini_get( 'max_execution_time' );
+
+		try {
+			if ( false !== $previous_time_limit ) {
+				@set_time_limit( self::THEME_INDEX_TIME_LIMIT );
+			}
+
+			$indexer = $this->resolve_theme_code_indexer();
+
+			if ( null === $indexer ) {
+				return [
+					'success' => true,
+					'data'    => [ 'available' => false, 'mode' => $mode, 'result' => null ],
+					'error'   => null,
+				];
+			}
+
+			$query = $indexer->queryKnowledgeGraph( $args );
+
+			return [
+				'success' => true,
+				'data'    => [
+					'available' => true,
+					'mode'      => $query['mode'],
+					'result'    => $query['result'],
+				],
+				'error'   => null,
+			];
+		} catch ( \Throwable $exception ) {
+			error_log(
+				sprintf(
+					'DialogStudio: graph query failed: %s',
+					$exception->getMessage()
+				)
+			);
+
+			return [
+				'success' => false,
+				'data'    => null,
+				'error'   => 'Graph query failed: ' . $exception->getMessage(),
 			];
 		} finally {
 			if ( false !== $previous_time_limit && '' !== $previous_time_limit ) {

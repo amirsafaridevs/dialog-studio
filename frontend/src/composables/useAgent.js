@@ -47,9 +47,8 @@ function sleep(ms, signal = null) {
 }
 
 function isRetryableAgentError(err) {
-  if (!err) {
-    return false;
-  }
+  if (!err) return false;
+  if (err.name === 'WpagentifyApiError') return false;
 
   const message = (err.message || '').toLowerCase();
   return (
@@ -61,7 +60,6 @@ function isRetryableAgentError(err) {
     || message.includes('socket')
     || message.includes('stream failed')
     || message.includes('api connection')
-    || message.includes('rate limit')
     || err.name === 'TypeError'
   );
 }
@@ -86,6 +84,7 @@ export function useAgent() {
   let toolExecutor = null;
   let themeContext = null;
   let themeCodeIndex = null;
+  let themeKnowledgeGraph = null;
   let abortController = null;
   let streamPersistTimer = null;
 
@@ -343,11 +342,7 @@ export function useAgent() {
       throw new Error('LLM settings not provided');
     }
 
-    const currentApiKey =
-      nextSettings.llm.api_key ||
-      previousSettings?.llm?.api_key ||
-      llmProvider?.config?.apiKey ||
-      '';
+    const currentApiKey = nextSettings.llm.api_key || '';
 
     return {
       ...nextSettings,
@@ -487,10 +482,13 @@ export function useAgent() {
           capturePartialTurnWithoutInterrupt();
           prepareMessagesForResume();
           persistImmediately();
-
           if (!isRetryableAgentError(err) || autoResumeAttempt >= MAX_AUTO_RESUME_ATTEMPTS) {
             isInterrupted.value = true;
-            setError(`Message execution failed: ${err.message}`);
+            const wpErr = err.name === 'WpagentifyApiError' ? err : (err.cause?.name === 'WpagentifyApiError' ? err.cause : null);
+            const errorMsg = wpErr
+              ? wpErr.message
+              : `Message execution failed: ${err.message}`;
+            setError(errorMsg);
             persistSession();
             throw err;
           }
@@ -542,7 +540,9 @@ export function useAgent() {
     prepareMessagesForResume();
 
     isInterrupted.value = false;
-    messages.value.push(new HumanMessage('ادامه بده'));
+    const resumeMsg = new HumanMessage({ content: 'ادامه بده' });
+    resumeMsg.additional_kwargs = { ...resumeMsg.additional_kwargs, _system_resume: true };
+    messages.value.push(resumeMsg);
     persistSession();
 
     await executeAgentLoop();
@@ -592,6 +592,7 @@ export function useAgent() {
     return {
       ...(themeContext || {}),
       ...(themeCodeIndex ? { code_index: themeCodeIndex } : {}),
+      ...(themeKnowledgeGraph ? { knowledge_graph: themeKnowledgeGraph } : {}),
     };
   }
 
@@ -617,6 +618,10 @@ export function useAgent() {
 
       if (response?.success && response.data?.index) {
         themeCodeIndex = response.data.index;
+
+        if (response.data.knowledge_graph) {
+          themeKnowledgeGraph = response.data.knowledge_graph;
+        }
 
         if (!response.data.available) {
           console.warn('[useAgent] Theme code index unavailable — agent continues without it.');

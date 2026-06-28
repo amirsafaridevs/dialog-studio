@@ -732,6 +732,60 @@ export function buildCodeIndexBlock(codeIndex) {
   return lines.join('\n');
 }
 
+/**
+ * Render the always-on project knowledge graph block: a high-level mental map of
+ * BOTH the writable child theme and its read-only parent. god nodes show where
+ * the codebase's gravity is, overrides show what the child has already replaced,
+ * and communities give a coarse table of contents. For anything deeper the agent
+ * calls graph_query (explain/path) instead of re-reading files.
+ */
+export function buildKnowledgeGraphBlock(knowledgeGraph) {
+  if (!knowledgeGraph || typeof knowledgeGraph !== 'object') {
+    return '';
+  }
+
+  const child = knowledgeGraph.child || {};
+  const parent = knowledgeGraph.parent || null;
+  const godNodes = Array.isArray(knowledgeGraph.god_nodes) ? knowledgeGraph.god_nodes : [];
+  const overrides = Array.isArray(knowledgeGraph.overrides) ? knowledgeGraph.overrides : [];
+  const communities = Array.isArray(knowledgeGraph.communities) ? knowledgeGraph.communities : [];
+
+  const lines = [
+    'Project knowledge graph (preloaded every message — your mental map of the WHOLE project):',
+    parent
+      ? `- Two themes: child \`${child.slug || '?'}\` (${child.file_count ?? 0} files, WRITABLE) is built on parent \`${parent.slug}\` (${parent.file_count ?? 0} files, READ-ONLY). To change parent behaviour you OVERRIDE it from the child — never edit the parent.`
+      : `- Standalone theme \`${child.slug || '?'}\` (${child.file_count ?? 0} files, WRITABLE). No parent.`,
+  ];
+
+  if (godNodes.length) {
+    lines.push('- Load-bearing symbols (most referenced — likely involved in most changes):');
+    for (const node of godNodes.slice(0, 12)) {
+      const where = node.file ? ` [${node.scope}:${node.file}]` : ` [${node.scope}]`;
+      lines.push(`    • ${node.symbol} (${node.type}, ${node.in_degree}×)${where}`);
+    }
+  }
+
+  if (overrides.length) {
+    const list = overrides.slice(0, 15).map((o) => o.path).join(', ');
+    const more = overrides.length > 15 ? ` (+${overrides.length - 15} more)` : '';
+    lines.push(`- Child ALREADY overrides these parent files (edit the child copy): ${list}${more}`);
+  }
+
+  if (communities.length) {
+    lines.push('- File communities (coarse map — read_file the relevant one, do not search blindly):');
+    for (const community of communities) {
+      if (!community.files?.length) continue;
+      const preview = community.files.slice(0, 6).join(', ');
+      const more = community.files.length > 6 ? ` …+${community.files.length - 6}` : '';
+      lines.push(`    • ${community.scope}/${community.name}: ${preview}${more}`);
+    }
+  }
+
+  lines.push('- Need relationships beyond this map? Call graph_query (mode:"explain" for what touches a symbol/file, mode:"path" between two). Do not grep for call sites the graph already knows.');
+
+  return lines.join('\n');
+}
+
 const ELEMENT_TAG_PATTERN =
   /<Dialog:element\s+tag="([^"]*)"\s+path="([^"]*)">([^<]*)<\/Dialog:element>/g;
 
@@ -809,6 +863,7 @@ export function buildThemeContextBlock(themeContext) {
   const activeName = themeContext.active_name || themeContext.active_theme?.name || activeSlug || 'unknown';
   const workspaceRelative = activeSlug ? `wp-content/themes/${activeSlug}` : '';
   const codeIndexBlock = buildCodeIndexBlock(themeContext.code_index);
+  const knowledgeGraphBlock = buildKnowledgeGraphBlock(themeContext.knowledge_graph);
 
   return [
     'Session workspace context (already loaded — do not call check_theme unless the user explicitly asks):',
@@ -832,6 +887,7 @@ export function buildThemeContextBlock(themeContext) {
     '- PHP extensions: inc/*.php files (auto-loaded like mini-plugins).',
     '- read_file returns line_count (editor-style; trailing newline is not an extra line). Use it for edit_file ranges.',
     '- search_files with no directory defaults to the workspace root. For plugins use directory: wp-content/plugins.',
+    knowledgeGraphBlock ? `\n${knowledgeGraphBlock}` : '',
     codeIndexBlock ? `\n${codeIndexBlock}` : '',
   ]
     .filter(Boolean)
@@ -846,6 +902,7 @@ export default {
   repairMessageSequence,
   guardSearchContent,
   buildCodeIndexBlock,
+  buildKnowledgeGraphBlock,
   buildThemeContextBlock,
   buildSelectedElementBlock,
   parseElementTags,
