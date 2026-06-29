@@ -25,6 +25,7 @@ import {
 export const TOOL_ICONS = {
   read_file: FileText,
   edit_file: PencilLine,
+  replace_in_file: PencilLine,
   write_file: FilePenLine,
   search_files: FolderSearch,
   search_content: Search,
@@ -50,6 +51,7 @@ export const TOOL_ICONS = {
 export const TOOL_ACTIVE_LABELS = {
   read_file: 'در حال خواندن فایل',
   edit_file: 'در حال ویرایش فایل',
+  replace_in_file: 'در حال ویرایش فایل',
   write_file: 'در حال نوشتن فایل',
   search_files: 'در حال جستجوی فایل',
   search_content: 'در حال جستجو در محتوا',
@@ -75,6 +77,7 @@ export const TOOL_ACTIVE_LABELS = {
 export const TOOL_DONE_LABELS = {
   read_file: 'خواندن فایل',
   edit_file: 'ویرایش فایل',
+  replace_in_file: 'ویرایش فایل',
   write_file: 'نوشتن فایل',
   search_files: 'جستجوی فایل',
   search_content: 'جستجو در محتوا',
@@ -230,6 +233,14 @@ export function formatToolContext(toolName, args = null) {
     return String(args.path);
   }
 
+  if (toolName === 'replace_in_file' && args.path) {
+    const context = formatFilePathContext(args.path, 'ویرایش');
+    if (args.validation) {
+      return `${context} — ${args.validation === 'ok' ? 'بدون خطا' : args.validation}`;
+    }
+    return context;
+  }
+
   if (toolName === 'search_files') {
     const keywords = formatKeywords(args.keywords);
     if (!keywords) {
@@ -375,6 +386,15 @@ export function extractToolArgsFromResult(toolName, parsed) {
       start_line: data.start_line,
       end_line: data.end_line,
     };
+    const validation = data.code_validation;
+    if (validation && validation.skipped !== true && validation.valid != null) {
+      args.validation = validation.valid ? 'ok' : `${validation.issue_count ?? 0} خطا`;
+    }
+    return args;
+  }
+
+  if (toolName === 'replace_in_file' && data.path) {
+    const args = { path: data.path };
     const validation = data.code_validation;
     if (validation && validation.skipped !== true && validation.valid != null) {
       args.validation = validation.valid ? 'ok' : `${validation.issue_count ?? 0} خطا`;

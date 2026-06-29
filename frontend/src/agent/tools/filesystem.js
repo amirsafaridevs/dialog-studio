@@ -33,7 +33,21 @@ export const fileSystemTools = [
     },
   },
   {
-    name: 'write_file', 
+    name: 'replace_in_file',
+    description: 'Replace an exact, unique snippet of text in an existing workspace file. Preferred over edit_file — anchors on the text itself, not line numbers.',
+    schema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'File path relative to workspace root' },
+        old_string: { type: 'string', description: 'Exact text to find (must be unique in the file unless replace_all is set)' },
+        new_string: { type: 'string', description: 'Replacement text' },
+        replace_all: { type: 'boolean', description: 'Replace every occurrence instead of requiring uniqueness', default: false },
+      },
+      required: ['path', 'old_string', 'new_string'],
+    },
+  },
+  {
+    name: 'write_file',
     description: 'Create or overwrite a file in the workspace (child theme).',
     schema: {
       type: 'object',
@@ -80,7 +94,7 @@ export class FileSystemToolExecutor {
   }
 
   supports(toolName) {
-    return ['read_file', 'edit_file', 'write_file', 'search_files', 'search_content', 'grep_content', 'grep'].includes(toolName);
+    return ['read_file', 'edit_file', 'replace_in_file', 'write_file', 'search_files', 'search_content', 'grep_content', 'grep'].includes(toolName);
   }
 
   async execute(toolName, args, options = {}) {
@@ -99,6 +113,14 @@ export class FileSystemToolExecutor {
             start_line: args.start_line,
             end_line: args.end_line,
             content: args.content ?? '',
+          }, options);
+
+        case 'replace_in_file':
+          return await this.apiClient.post('/file/replace', {
+            path: args.path,
+            old_string: args.old_string ?? '',
+            new_string: args.new_string ?? '',
+            replace_all: args.replace_all === true,
           }, options);
 
         case 'write_file':

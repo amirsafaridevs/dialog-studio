@@ -68,10 +68,10 @@ const FILE_READ_TOOLS = [
           },
           operator: {
             type: 'string',
-            enum: ['AND', 'OR'],
+            enum: ['AND', 'OR', 'AND_FILE'],
             default: 'OR',
             description:
-              'OR (default): match any keyword — use when batching hypotheses. AND: every keyword must appear on the same line.',
+              'OR (default): match any keyword — use when batching hypotheses. AND: every keyword must appear on the same line. AND_FILE: every keyword must appear somewhere in the same file (like grep with multiple -e patterns joined by &&) — use when you want files that contain ALL terms but not necessarily on the same line.',
           },
           context_lines: { type: 'number', default: 2 },
           max_results: { type: 'number', default: 15 },
@@ -154,9 +154,40 @@ const FILE_WRITE_TOOLS = [
   {
     type: 'function',
     function: {
+      name: 'replace_in_file',
+      description:
+        'PREFERRED way to change an existing workspace (child theme) file. Replaces an exact snippet (old_string) with new_string. old_string must be copied VERBATIM from the file — every space, tab, and newline identical — and must be UNIQUE: include enough surrounding lines (e.g. the CSS selector line above the property you are changing) that it matches exactly one place. This anchors on the text itself, so it never drifts when line numbers shift. Use this instead of edit_file. Path is relative to workspace root (e.g. assets/front/css/main.css, style.css, inc/shop.php).',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: {
+            type: 'string',
+            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
+          },
+          old_string: {
+            type: 'string',
+            description: 'Exact text to find, copied verbatim from the current file (including indentation). Must be unique unless replace_all is true.',
+          },
+          new_string: {
+            type: 'string',
+            description: 'Replacement text. Keep the same indentation style as the surrounding code.',
+          },
+          replace_all: {
+            type: 'boolean',
+            description: 'Replace every occurrence of old_string. Default false (requires old_string to be unique).',
+            default: false,
+          },
+        },
+        required: ['path', 'old_string', 'new_string'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'edit_file',
       description:
-        'Edit a specific line range in an existing workspace (child theme) file. Replaces lines start_line through end_line (1-indexed, inclusive) with new content. Path is relative to workspace root (e.g. assets/front/css/main.css, inc/shop.php).',
+        'FALLBACK editor — prefer replace_in_file. Use line ranges ONLY when there is no stable text to anchor on (e.g. deleting a known block by position). Replaces lines start_line through end_line (1-indexed, inclusive) with new content; the line numbers must come from a read_file you just made, because any prior edit shifts them. Path is relative to workspace root (e.g. assets/front/css/main.css, inc/shop.php).',
       parameters: {
         type: 'object',
         properties: {
@@ -250,82 +281,6 @@ const THEME_TOOLS = [
   },
 ];
 
-const TEMPLATE_WRITE_TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'create_template',
-      description:
-        'Create a Dialog template: writes the PHP file under wp-content/dialog/templates/ AND registers it in the database with type, display conditions, and canvas options (includes_header/includes_footer). Required for any new template — never use write_file in templates/.',
-      parameters: {
-        type: 'object',
-        properties: {
-          title: { type: 'string', description: 'Human-readable template name' },
-          slug: { type: 'string', description: 'Unique slug (e.g. main-header, shop-archive)' },
-          type: {
-            type: 'string',
-            enum: ['header', 'footer', 'singular', 'archive', 'canvas', 'front_page', 'search', '404', 'woocommerce', 'section'],
-            description: 'Template role — where and how it loads',
-          },
-          content: { type: 'string', description: 'PHP/HTML template body' },
-          includes_header: { type: 'boolean', default: true, description: 'For page/canvas templates: show site header HTML? (assets always load)' },
-          includes_footer: { type: 'boolean', default: true, description: 'For page/canvas templates: show site footer HTML? (assets always load)' },
-          priority: { type: 'integer', default: 10, description: 'Lower number = higher priority when multiple templates match' },
-          conditions: {
-            type: 'object',
-            description:
-              'Display rules (must use "rules" wrapper): { "rules": [{"page":"front_page"}, {"page":"singular","post_type":"page"}, {"page":"singular","post_type":"product"}, {"page":"archive","post_type":"post"}, {"page":"archive","taxonomy":"category"}, {"page":"woocommerce","endpoint":"cart"}, {"page":"search"}, {"page":"404"}] }. See system prompt for full examples.',
-          },
-          status: { type: 'string', enum: ['active', 'draft', 'inactive'], default: 'active' },
-          meta: { type: 'object', description: 'Optional extra metadata' },
-        },
-        required: ['title', 'type', 'content'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'update_template',
-      description:
-        'Update an existing Dialog template by id or slug. Edits database fields (title, type, conditions, status, priority, includes_header/footer, meta) and optionally the PHP file content. Only pass fields you want to change.',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'integer', description: 'Template database id' },
-          slug: { type: 'string', description: 'Template slug when id is unknown' },
-          title: { type: 'string' },
-          type: {
-            type: 'string',
-            enum: ['header', 'footer', 'singular', 'archive', 'canvas', 'front_page', 'search', '404', 'woocommerce', 'section'],
-          },
-          content: { type: 'string', description: 'New PHP/HTML body for the template file' },
-          includes_header: { type: 'boolean' },
-          includes_footer: { type: 'boolean' },
-          priority: { type: 'integer' },
-          conditions: { type: 'object', description: 'Display rules with "rules" wrapper: {"rules": [...]}. See create_template description for examples.' },
-          status: { type: 'string', enum: ['active', 'draft', 'inactive'] },
-          meta: { type: 'object' },
-        },
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'delete_template',
-      description:
-        'Permanently delete a Dialog template by id or slug. Removes both the PHP file under wp-content/dialog/templates/ and the database record.',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'integer', description: 'Template database id' },
-          slug: { type: 'string', description: 'Template slug when id is unknown' },
-        },
-      },
-    },
-  },
-];
 
 const PLUGIN_TOOLS = [
   {
@@ -550,6 +505,7 @@ export function buildToolDefinitions(permissions = {}) {
 export const TOOL_LABELS = {
   read_file: 'خواندن فایل',
   edit_file: 'ویرایش فایل',
+  replace_in_file: 'ویرایش فایل',
   write_file: 'نوشتن فایل',
   search_files: 'جستجوی فایل',
   search_content: 'جستجو در محتوا',
@@ -560,9 +516,6 @@ export const TOOL_LABELS = {
   read_debug_log: 'خواندن لاگ',
   clear_debug_log: 'پاک کردن لاگ',
   check_theme: 'بررسی workspace',
-  create_template: 'ایجاد قالب',
-  update_template: 'ویرایش قالب',
-  delete_template: 'حذف قالب',
   list_plugins: 'لیست پلاگین‌ها',
   create_page: 'ایجاد برگه',
   update_page: 'ویرایش برگه',

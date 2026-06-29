@@ -23,23 +23,41 @@ Data: WP_Query / get_posts with explicit args; always wp_reset_postdata() after 
 Anti-patterns that get rejected: editing parent-theme or plugin files (override instead), inline <script>/<style> in templates (enqueue instead), unprefixed global functions, querying the DB on every request without a transient, trusting $_GET/$_POST/$_REQUEST unsanitized.`;
 
 const CSS_DESIGN_SKILL = `## Design & CSS — how a pro implements it
-Start from intent: name what the page must make the visitor DO, then make that one action the most prominent thing on the screen (size, contrast, whitespace). Proximity groups related items; distance separates unrelated ones.
-Typography: exactly one display, one heading, one body, one label size; max two typefaces; decisive jumps (e.g. 16 / 20 / 32 / 56), never timid 2px steps.
-Color has jobs: background recedes, body text is legible (contrast ≥ 4.5:1), ONE primary owns the main action, accents are rare. Delete any color that is only "nice".
-Architecture: every repeated value → a :root custom property (--space-4, --color-primary). Single-class selectors, flat specificity, no deep descendant chains, NEVER !important to win a specificity fight (fix the selector instead). Reuse existing classes/tokens before inventing new ones — read the current CSS first.
-Mobile-first ALWAYS: write the 375px layout, then layer @media (min-width:768px) and (min-width:1200px). Tap targets ≥ 44px, body ≥ 16px.
-States: every interactive element needs :hover AND :focus-visible. Motion must justify "this helps the user by ___" or it's cut; default to stillness; respect prefers-reduced-motion.
-Avoid the default-AI look (dark + neon; off-white + serif + terracotta; dense editorial grid) unless asked — derive the direction from the site's real subject and audience.`;
 
-const TEMPLATE_SKILL = `## Dialog template system — the rules that make a template actually load
-Dialog templates are DB-registered PHP files under wp-content/dialog/templates/. A file written there with write_file will NEVER load — the registration is what wires it in.
-Workflow, every time:
-  1. create_template (new) or update_template (existing, by id/slug, only the fields you change) or delete_template.
-type = where it loads: header | footer | singular | archive | canvas | front_page | search | 404 | woocommerce | section.
-conditions MUST use the rules wrapper:
-  {"rules":[{"page":"front_page"},{"page":"singular","post_type":"page"},{"page":"singular","post_type":"product"},{"page":"archive","post_type":"post"},{"page":"archive","taxonomy":"category"},{"page":"woocommerce","endpoint":"cart"},{"page":"search"},{"page":"404"}]}
-canvas/page types: includes_header / includes_footer toggle the site chrome (assets still load regardless). Lower priority number wins when several templates match — use it deliberately to override a broad template with a narrow one.
-Inside the template body use core tags (get_header where appropriate, the loop, wp_nav_menu, dynamic_sidebar) — not hardcoded markup you could get from WordPress.`;
+### Before touching anything
+Answer: what must this page make its visitors DO, feel, or believe? A portfolio → trust. A restaurant → hungry + book. A service business → safe enough to call. If unclear, infer from context and state your assumption. Every spacing, type, color, motion decision either serves that goal or wastes attention.
+
+### Four steps, every request
+1. **Read what exists** — understand current styles, layout, and what's working before changing anything.
+2. **Name the job** — what is this element trying to make the visitor do? Hero = first impression + primary action. Features = trust. Testimonials = social proof. CTA = capture intent.
+3. **Decide and implement** — don't present options, don't ask about every detail. Make the best call, implement it, explain briefly. One focused question if genuinely ambiguous.
+4. **Check** — does hierarchy work? Does the most important element win? Cut anything that adds visual noise without meaning.
+
+### Design principles
+Hierarchy: every page has one thing that matters most — size, contrast, position, isolation make it win without effort.
+Spacing communicates relationships: close = related, distant = separate. Consistent scale (not arbitrary px) feels intentional. Generous spacing is the cheapest way to feel premium.
+Typography: exactly one display, one heading, one body, one label size; max two typefaces; decisive jumps (e.g. 16 / 20 / 32 / 56), never timid 2px steps.
+Color has jobs: background recedes, body text legible (contrast ≥ 4.5:1), ONE primary owns the main action, accents are rare. Delete any color that is only "nice".
+Motion must complete "this helps the user by ___" or it's cut; default to stillness; respect prefers-reduced-motion.
+Mobile is its own layout: design for 375px + one thumb first. Tap targets ≥ 44px, body ≥ 16px. Then expand for larger screens.
+
+### CSS architecture
+Every repeated value → :root custom property (--space-4, --color-primary). Single-class selectors, flat specificity, no deep descendant chains, NEVER !important to win a specificity fight (fix the selector instead). Reuse existing classes/tokens before inventing new ones — read the current CSS first.
+Mobile-first ALWAYS: write 375px base, layer @media (min-width:768px) and (min-width:1200px).
+Every interactive element needs :hover AND :focus-visible.
+
+### Avoid the default-AI look
+Dark + neon accent; warm off-white + serif + terracotta; dense editorial grid — these are defaults, not directions. When the user hasn't specified, derive the direction from the site's real subject, industry, and audience. Don't reach for these unless explicitly asked.
+
+### A good implementation
+- Single most-important element that wins the eye
+- Spacing from a token scale, not arbitrary values
+- Fully responsive to 375px
+- Hover + focus states on every interactive element
+- No decoration that serves no purpose
+- Looks like it belongs to THIS specific site
+- Works correctly on the live WordPress site`;
+
 
 const WOOCOMMERCE_SKILL = `## WooCommerce — extend, never fork
 First confirm WooCommerce is active (list_plugins) if the request depends on it.
@@ -101,14 +119,6 @@ export const SKILLS = [
     when: ({ editTarget, userText }) =>
       /\.(css|scss)$/i.test(editTarget)
       || /طراحی|دیزاین|design|رنگ|color|فاصله|spacing|چیدمان|layout|فونت|font|تایپوگرافی|hero|زیبا|ظاهر|استایل|style|responsive|موبایل|واکنش/i.test(userText),
-  },
-  {
-    id: 'template-system',
-    body: TEMPLATE_SKILL,
-    when: ({ editTarget, lastTool, userText }) =>
-      /templates\//i.test(editTarget)
-      || /template|قالب|هدر|header|فوتر|footer|archive|آرشیو|single|canvas/i.test(userText)
-      || ['create_template', 'update_template', 'delete_template'].includes(lastTool),
   },
   {
     id: 'woocommerce',

@@ -180,6 +180,17 @@ function parseClassifierOutput(raw) {
   return { route: 'code', reply: '' };
 }
 
+/** True when a live preview URL exists, so verification against it is possible. */
+function previewIsAvailable() {
+  const controller = getPreviewController();
+  if (!controller?.getCurrentUrl) return false;
+  try {
+    return Boolean(controller.getCurrentUrl());
+  } catch {
+    return false;
+  }
+}
+
 function buildPreviewStateBlock() {
   const controller = getPreviewController();
   if (!controller?.getCurrentUrl) return '';
@@ -262,6 +273,9 @@ export async function runAgentLoop({
   let lastEditTarget = '';
   let lastToolName = '';
   let hadError = false;
+  // Verification pass runs at most once per turn, and only when the turn changed files.
+  let madeEdits = false;
+  let verifiedOnce = false;
 
   /**
    * Compose the live system prompt for a turn: stable core first (cacheable),
@@ -377,8 +391,9 @@ export async function runAgentLoop({
 
       // ── Update skill-selection signals + working memory ───
       lastToolName = toolName;
-      if ((toolName === 'edit_file' || toolName === 'write_file') && toolArgs.path) {
+      if ((toolName === 'edit_file' || toolName === 'replace_in_file' || toolName === 'write_file') && toolArgs.path) {
         lastEditTarget = String(toolArgs.path);
+        if (result.success) madeEdits = true;
       }
       if (!result.success) hadError = true;
       recordToolFacts(scratchpad, toolName, toolArgs, result.payload);
@@ -393,7 +408,7 @@ export async function runAgentLoop({
       }
 
       const isDiscoveryTool = ['search_content', 'search_files', 'grep_content', 'grep', 'read_file', 'code_graph', 'graph_query', 'validate_code'].includes(toolName);
-      const isActionTool = ['edit_file', 'write_file'].includes(toolName);
+      const isActionTool = ['edit_file', 'replace_in_file', 'write_file'].includes(toolName);
 
       if (isDiscoveryTool && result.success) {
         consecutiveDiscoveryCalls += 1;
@@ -424,6 +439,41 @@ export async function runAgentLoop({
     }
 
     onToolStream?.({ phase: 'idle' });
+    return { messages: updatedMessages };
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Node: verify_node
+  // Runs once per turn, only after the turn changed files and a preview exists.
+  // Forces a real check of the live result before the turn is allowed to finish:
+  // the model inspects the preview and either confirms the user's goal is met or
+  // emits corrective tool calls (which route back through the tool/llm loop).
+  // ─────────────────────────────────────────────────────────
+  async function verifyNode(state) {
+    throwIfAborted(signal);
+    verifiedOnce = true;
+    onActivity?.('در حال بررسی نتیجه...');
+
+    const verifyInstruction = new SystemMessage([
+      'VERIFICATION STEP — do not skip.',
+      'You have just edited one or more files. Before this turn ends, confirm the user actually got what they asked for, against the LIVE preview — not against your edit.',
+      '1. Make sure the preview reflects the latest files (preview_reload, or preview_navigate to the right page if needed).',
+      '2. Inspect the real result: preview_get_element_styles for a style/color/spacing change, preview_get_html for markup/structure.',
+      '3. Compare what you see to what the user asked for.',
+      '- If it matches: reply with a short confirmation in the user\'s language and DO NOT call any more tools.',
+      '- If it does NOT match: the change did not take. Diagnose why (wrong selector, a more specific rule winning, wrong file, stale cache) and fix it now with read_file + replace_in_file, then it will be re-checked.',
+      'Never claim success without having looked at the preview this step.',
+    ].join('\n'));
+
+    const liveSystemPrompt = buildLiveSystemPrompt(state.messages);
+    const llmInput = [new SystemMessage(liveSystemPrompt), ...trimMessagesForLLM(state.messages), verifyInstruction];
+
+    const { message: aiMessage } = await streamAssistantTurn(
+      llmWithTools, llmInput, onStreamToken, onToolStream, signal,
+    );
+
+    const updatedMessages = [...state.messages, aiMessage];
+    onMessagesChange?.();
     return { messages: updatedMessages };
   }
 
@@ -467,12 +517,27 @@ export async function runAgentLoop({
     const toolCalls = lastMessage?.tool_calls || [];
 
     if (toolCalls.length === 0) {
+      // The model wants to finish. If it changed files this turn and we have a
+      // live preview, force one verification pass before letting it finish.
+      if (madeEdits && !verifiedOnce && previewIsAvailable()) {
+        return 'verify';
+      }
       onToolStream?.({ phase: 'idle' });
       onStreamToken?.('', '');
       return 'end';
     }
 
     return 'tools';
+  }
+
+  // After verify_node: corrective tool calls → tool loop; otherwise finish.
+  function routeAfterVerify(state) {
+    const lastMessage = state.messages[state.messages.length - 1];
+    const toolCalls = lastMessage?.tool_calls || [];
+    if (toolCalls.length > 0) return 'tools';
+    onToolStream?.({ phase: 'idle' });
+    onStreamToken?.('', '');
+    return 'end';
   }
 
   // ─────────────────────────────────────────────────────────
@@ -498,6 +563,7 @@ export async function runAgentLoop({
     .addNode('classify_node', classifyNode)
     .addNode('llm_node', llmNode)
     .addNode('tool_node', toolNode)
+    .addNode('verify_node', verifyNode)
     .addNode('finalize_node', finalizeNode)
     .addEdge(START, 'classify_node')
     .addConditionalEdges('classify_node', routeAfterClassify, {
@@ -505,7 +571,15 @@ export async function runAgentLoop({
       clarify: 'finalize_node',
       code: 'llm_node',
     })
-    .addConditionalEdges('llm_node', shouldContinue, { tools: 'tool_node', end: 'finalize_node' })
+    .addConditionalEdges('llm_node', shouldContinue, {
+      tools: 'tool_node',
+      verify: 'verify_node',
+      end: 'finalize_node',
+    })
+    .addConditionalEdges('verify_node', routeAfterVerify, {
+      tools: 'tool_node',
+      end: 'finalize_node',
+    })
     .addEdge('tool_node', 'llm_node')
     .addEdge('finalize_node', END)
     .compile();
@@ -641,6 +715,12 @@ function summarizePartialToolCalls(partialToolCalls) {
 }
 
 function buildToolPreview(toolName, args = {}, rawArgsText = '') {
+  if (toolName === 'replace_in_file') {
+    const content = typeof args.new_string === 'string'
+      ? args.new_string
+      : extractStreamingField(rawArgsText, 'new_string');
+    return content || '';
+  }
   if (toolName === 'write_file' || toolName === 'edit_file') {
     const content = typeof args.content === 'string'
       ? args.content
@@ -797,9 +877,7 @@ function isToolPermitted(toolName, permissions = {}) {
   const writeFiles = permissions.write_files !== false;
 
   const readTools = ['read_file', 'search_files', 'search_content', 'code_graph', 'graph_query', 'validate_code'];
-  const writeTools = ['write_file', 'edit_file'];
-  const templateReadTools = [];
-  const templateWriteTools = ['create_template', 'update_template', 'delete_template'];
+  const writeTools = ['write_file', 'edit_file', 'replace_in_file'];
   const debugTools = ['toggle_debug', 'read_debug_log', 'clear_debug_log'];
   const themeTools = ['check_theme'];
   const pluginTools = ['list_plugins'];
@@ -807,8 +885,6 @@ function isToolPermitted(toolName, permissions = {}) {
 
   if (readTools.includes(toolName)) return readFiles;
   if (writeTools.includes(toolName)) return writeFiles;
-  if (templateReadTools.includes(toolName)) return readFiles;
-  if (templateWriteTools.includes(toolName)) return writeFiles;
   if (debugTools.includes(toolName)) return Boolean(permissions.debugger);
   if (themeTools.includes(toolName)) return true;
   if (pluginTools.includes(toolName)) return true;

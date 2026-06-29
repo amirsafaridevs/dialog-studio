@@ -60,6 +60,7 @@ export function recordToolFacts(scratchpad, toolName, toolArgs = {}, payload = {
     }
 
     case 'edit_file':
+    case 'replace_in_file':
     case 'write_file': {
       const path = toolArgs.path;
       if (path) scratchpad.add(`edited:${path}`, `Edited ${path}`);
@@ -74,14 +75,6 @@ export function recordToolFacts(scratchpad, toolName, toolArgs = {}, payload = {
       if (keywords && paths.length) {
         scratchpad.add(`search:${keywords}`, `"${keywords}" found in: ${paths.join(', ')}`);
       }
-      break;
-    }
-
-    case 'create_template':
-    case 'update_template': {
-      const label = firstString(data.slug, toolArgs.slug, data.title, toolArgs.title);
-      const id = data.id ?? toolArgs.id;
-      if (label) scratchpad.add(`template:${label}`, `Template "${label}"${id != null ? ` (id ${id})` : ''}`);
       break;
     }
 
