@@ -2,6 +2,11 @@
 import { ArrowRight, FileText, History, Plus, Settings } from 'lucide-vue-next';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 
+function cleanTitle(title) {
+  if (!title) return title;
+  return title.replace(/<Dialog:element\b[\s\S]*?<\/Dialog:element>/g, '').trim();
+}
+
 const props = defineProps({
   history: {
     type: Array,
@@ -116,7 +121,7 @@ onUnmounted(() => {
                     :class="{ 'chat-header__dropdown-indicator--active': item.id === activeChatId }"
                     aria-hidden="true"
                   />
-                  <span class="chat-header__dropdown-item-title">{{ item.title }}</span>
+                  <span class="chat-header__dropdown-item-title">{{ cleanTitle(item.title) }}</span>
                   <span class="chat-header__dropdown-item-time">{{ item.updatedAt }}</span>
                 </button>
               </li>

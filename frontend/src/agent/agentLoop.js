@@ -153,13 +153,15 @@ function parseClassifierOutput(raw) {
   const candidate = (fenced?.[1] || text).trim();
   const braceMatch = candidate.match(/\{[\s\S]*\}/);
 
+  const REPLY_ROUTES = ['answer', 'clarify', 'audit', 'onboarding'];
+
   if (braceMatch) {
     try {
       const parsed = JSON.parse(braceMatch[0]);
       const type = String(parsed.type || '').toLowerCase();
-      if (type === 'answer' || type === 'clarify') {
+      if (REPLY_ROUTES.includes(type)) {
         const reply = String(parsed.reply || '').trim();
-        // An answer/clarify with no text is useless — let the main loop respond instead.
+        // A reply route with no text is useless — let the main loop respond instead.
         return reply ? { route: type, reply } : { route: 'code', reply: '' };
       }
       if (type === 'code') return { route: 'code', reply: '' };
@@ -168,7 +170,7 @@ function parseClassifierOutput(raw) {
     }
   }
 
-  const typeMatch = candidate.match(/"type"\s*:\s*"(answer|clarify|code)"/i);
+  const typeMatch = candidate.match(/"type"\s*:\s*"(answer|clarify|audit|onboarding|code)"/i);
   if (typeMatch) {
     const type = typeMatch[1].toLowerCase();
     if (type === 'code') return { route: 'code', reply: '' };
@@ -281,9 +283,9 @@ export async function runAgentLoop({
    * Compose the live system prompt for a turn: stable core first (cacheable),
    * then only the skills relevant right now, then live session state.
    */
-  function buildLiveSystemPrompt(stateMessages) {
+  function buildLiveSystemPrompt(stateMessages, route = '') {
     const userText = getLatestUserText(stateMessages);
-    const skills = selectSkills({ userText, editTarget: lastEditTarget, lastTool: lastToolName, hadError });
+    const skills = selectSkills({ userText, editTarget: lastEditTarget, lastTool: lastToolName, hadError, route });
 
     return [
       corePrompt,
@@ -332,7 +334,7 @@ export async function runAgentLoop({
     throwIfAborted(signal);
     onActivity?.('در حال فکر کردن...');
 
-    const liveSystemPrompt = buildLiveSystemPrompt(state.messages);
+    const liveSystemPrompt = buildLiveSystemPrompt(state.messages, state.route || '');
     const llmInput = [new SystemMessage(liveSystemPrompt), ...trimMessagesForLLM(state.messages)];
 
     const { message: aiMessage } = await streamAssistantTurn(
@@ -454,18 +456,46 @@ export async function runAgentLoop({
     verifiedOnce = true;
     onActivity?.('در حال بررسی نتیجه...');
 
+    const debuggerEnabled = Boolean(permissions.debugger);
     const verifyInstruction = new SystemMessage([
-      'VERIFICATION STEP — do not skip.',
-      'You have just edited one or more files. Before this turn ends, confirm the user actually got what they asked for, against the LIVE preview — not against your edit.',
-      '1. Make sure the preview reflects the latest files (preview_reload, or preview_navigate to the right page if needed).',
-      '2. Inspect the real result: preview_get_element_styles for a style/color/spacing change, preview_get_html for markup/structure.',
-      '3. Compare what you see to what the user asked for.',
-      '- If it matches: reply with a short confirmation in the user\'s language and DO NOT call any more tools.',
-      '- If it does NOT match: the change did not take. Diagnose why (wrong selector, a more specific rule winning, wrong file, stale cache) and fix it now with read_file + replace_in_file, then it will be re-checked.',
-      'Never claim success without having looked at the preview this step.',
+      'VERIFICATION STEP — execute every numbered step in order, do not skip any.',
+      'You have just edited one or more files. Before this turn ends you must confirm the user got what they asked for AND that the site has no PHP errors.',
+      '',
+      ...(debuggerEnabled ? [
+        '── Debug preparation (do this FIRST, before touching the preview) ──',
+        '1. clear_debug_log — wipe any pre-existing entries so only errors from THIS verification are captured.',
+        '2. toggle_debug(debug: true, debug_log: true, debug_display: false) — errors go to the log file, not the screen.',
+        '',
+      ] : []),
+      '── Preview inspection ──',
+      `${debuggerEnabled ? '3' : '1'}. Make sure the preview reflects the latest saved files: call preview_reload (or preview_navigate if a different page is needed).`,
+      `${debuggerEnabled ? '4' : '2'}. Inspect the real result:`,
+      '   - For a style/color/spacing/layout change → preview_get_element_styles with the relevant selector.',
+      '   - For markup/structure changes → preview_get_html with the relevant selector.',
+      `${debuggerEnabled ? '5' : '3'}. Compare what you see to what the user asked for.`,
+      '',
+      ...(debuggerEnabled ? [
+        '── Error check ──',
+        '6. read_debug_log — read the log you just cleared. Look for any PHP Fatal, Warning, Notice, or Deprecated entries.',
+        '   - If the log is empty or has no new entries → the site is clean.',
+        '   - If there ARE errors → fix the root cause now (read_file → replace_in_file), then re-run the full verification from step 1.',
+        '',
+      ] : []),
+      '── Finish ──',
+      ...(debuggerEnabled ? [
+        `${debuggerEnabled ? '7' : '4'}. ONLY if both the visual check AND the error check passed:`,
+        '   a. clear_debug_log — leave the log clean for next time.',
+        '   b. toggle_debug(debug: false) — turn debug mode off.',
+        '   c. Reply to the user with a short confirmation in their language.',
+      ] : [
+        '4. If it matches: reply with a short confirmation in the user\'s language.',
+      ]),
+      '   If anything did NOT match or had errors: do not claim success — fix it first.',
+      '',
+      'Never claim success without having inspected the live preview AND (if debug is available) confirmed the log is clean.',
     ].join('\n'));
 
-    const liveSystemPrompt = buildLiveSystemPrompt(state.messages);
+    const liveSystemPrompt = buildLiveSystemPrompt(state.messages, state.route || '');
     const llmInput = [new SystemMessage(liveSystemPrompt), ...trimMessagesForLLM(state.messages), verifyInstruction];
 
     const { message: aiMessage } = await streamAssistantTurn(
@@ -502,25 +532,31 @@ export async function runAgentLoop({
   }
 
   // ─────────────────────────────────────────────────────────
-  // Router after classify: answer | clarify → finalize, code → llm loop.
+  // Router after classify: answer | clarify | audit | onboarding → finalize, code → llm loop.
   // ─────────────────────────────────────────────────────────
   function routeAfterClassify(state) {
-    return state.route === 'answer' || state.route === 'clarify' ? state.route : 'code';
+    const directRoutes = ['answer', 'clarify', 'audit', 'onboarding'];
+    return directRoutes.includes(state.route) ? state.route : 'code';
   }
 
   // ─────────────────────────────────────────────────────────
   // Router: should_continue
-  // Runs after llm_node. Returns 'tools' or 'end' (→ finalize).
+  // Runs after llm_node. Returns 'tools', 'verify', or 'end' (→ finalize).
   // ─────────────────────────────────────────────────────────
   function shouldContinue(state) {
     const lastMessage = state.messages[state.messages.length - 1];
     const toolCalls = lastMessage?.tool_calls || [];
 
     if (toolCalls.length === 0) {
-      // The model wants to finish. If it changed files this turn and we have a
-      // live preview, force one verification pass before letting it finish.
-      if (madeEdits && !verifiedOnce && previewIsAvailable()) {
-        return 'verify';
+      if (madeEdits && !verifiedOnce) {
+        // If a live preview is available, always verify against it.
+        if (previewIsAvailable()) return 'verify';
+
+        // No live preview — but for CSS/PHP changes we still run a verify pass
+        // so the model can call preview_reload/preview_navigate to open the preview
+        // and inspect the result, rather than claiming success blindly.
+        const isVisualOrLogicEdit = /\.(css|scss|php)$/i.test(lastEditTarget);
+        if (isVisualOrLogicEdit) return 'verify';
       }
       onToolStream?.({ phase: 'idle' });
       onStreamToken?.('', '');
@@ -569,6 +605,8 @@ export async function runAgentLoop({
     .addConditionalEdges('classify_node', routeAfterClassify, {
       answer: 'finalize_node',
       clarify: 'finalize_node',
+      audit: 'finalize_node',
+      onboarding: 'finalize_node',
       code: 'llm_node',
     })
     .addConditionalEdges('llm_node', shouldContinue, {

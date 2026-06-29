@@ -95,6 +95,24 @@ const PERFORMANCE_SKILL = `## Performance discipline
 - Prefer specific core lookups (get_post_meta, get_option) over broad scans. Avoid loading whole post objects when you only need IDs ('fields' => 'ids').
 - Don't enqueue libraries WordPress already bundles (jQuery) — declare them as dependencies instead of shipping a copy.`;
 
+const AUDIT_SKILL = `## Design audit — diagnose before prescribing
+The user has no specific request; they want the site to look and feel better overall. Your job is to look first, then propose a focused set of improvements, then wait for the user to pick one before touching any file.
+
+Audit workflow:
+1. Call preview_get_html (no selector — full page) to read the live DOM.
+2. Call preview_get_loaded_assets() to see which CSS/JS files are active.
+3. Look for the 5 most impactful improvements from this checklist:
+   - Typography: inconsistent font sizes, no visual hierarchy, unreadable line length (> 75ch), no contrast between headings and body.
+   - Spacing: cramped sections, inconsistent gaps, text too close to edges on mobile.
+   - Color: too many colors with no clear primary, low contrast body text (< 4.5:1), backgrounds competing with content.
+   - Header/navigation: hard to find, not sticky on mobile, logo too small or misaligned.
+   - Call-to-action: no clear primary button, CTA buried below the fold, weak label ("click here" vs "Get started free").
+   - Mobile layout: broken at 375px, tap targets < 44px, font < 16px.
+   - Visual noise: decorative elements that dilute focus, inconsistent border-radius or shadow styles.
+4. Present findings as a short bullet list in plain language (no CSS jargon). For each item: what the problem is, what it looks like, and what you will do to fix it.
+5. Ask the user: "Which of these would you like me to start with?" — then wait.
+Never start editing files during an audit turn. The audit IS the output.`;
+
 const ACCESSIBILITY_SKILL = `## Accessibility (ships with every UI change)
 - Semantic HTML first: header/nav/main/footer/article/button. A clickable thing is a <button> or <a>, never a <div> with a click handler.
 - Every <img> gets meaningful alt (empty alt="" only for purely decorative images). Icons that convey meaning get an aria-label.
@@ -104,9 +122,16 @@ const ACCESSIBILITY_SKILL = `## Accessibility (ships with every UI change)
 - Respect prefers-reduced-motion for any animation.`;
 
 /**
- * Skill definitions. `when` receives { userText, editTarget, lastTool, hadError }.
+ * Skill definitions. `when` receives { userText, editTarget, lastTool, hadError, route }.
  */
 export const SKILLS = [
+  {
+    id: 'audit',
+    body: AUDIT_SKILL,
+    when: ({ userText, route }) =>
+      route === 'audit'
+      || /بهتر\s?کن|بهترش\s?کن|قشنگ.?تر|زیباتر|بهبود|پیشنهاد\s?بده|نمی.?دون|چی\s?بخوام|هرکاری\s?که\s?صلاح|هر\s?کاری\s?میدونی|improve|make it better|make it look|suggestion|i don.t know what|do whatever|anything you/i.test(userText),
+  },
   {
     id: 'wordpress-php',
     body: PHP_SKILL,
@@ -164,7 +189,7 @@ export const SKILLS = [
 
 /**
  * Return the skill bodies relevant to the current turn.
- * @param {{ userText?: string, editTarget?: string, lastTool?: string, hadError?: boolean }} context
+ * @param {{ userText?: string, editTarget?: string, lastTool?: string, hadError?: boolean, route?: string }} context
  * @returns {Array<{ id: string, body: string }>}
  */
 export function selectSkills(context = {}) {
@@ -173,6 +198,7 @@ export function selectSkills(context = {}) {
     editTarget: context.editTarget || '',
     lastTool: context.lastTool || '',
     hadError: Boolean(context.hadError),
+    route: context.route || '',
   };
 
   return SKILLS.filter((skill) => {

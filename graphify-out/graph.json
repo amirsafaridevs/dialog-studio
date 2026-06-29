@@ -1,0 +1,1343 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "dialog_studio_agent_tool_suite",
+        "label": "Dialog Studio Agent Live-Edit Tool Suite",
+        "nodes": [
+          "chat_dump_preview_get_element_styles",
+          "chat_dump_read_file",
+          "chat_dump_edit_file",
+          "chat_dump_preview_reload",
+          "chat_dump_search_content"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.85,
+        "source_file": "chat_dump.txt"
+      },
+      {
+        "id": "graphify_navigation_pattern",
+        "label": "Graphify Query/Path/Explain Navigation Pattern",
+        "nodes": [
+          "github_copilot_instructions_graphify_usage",
+          "claude_md_graphify_usage",
+          "claude_md_graphify_knowledge_graph"
+        ],
+        "relation": "implement",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "CLAUDE.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "repairInterruptedToolCalls",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/agentLoop.js",
+      "source_location": "L76",
+      "_origin": "ast",
+      "id": "frontend_src_agent_agentloop_repairinterruptedtoolcalls",
+      "community": 4,
+      "norm_label": "repairinterruptedtoolcalls"
+    },
+    {
+      "label": "runAgentLoop",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/agentLoop.js",
+      "source_location": "L248",
+      "_origin": "ast",
+      "id": "frontend_src_agent_agentloop_runagentloop",
+      "community": 5,
+      "norm_label": "runagentloop"
+    },
+    {
+      "label": "compactToolPayload",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L118",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_compacttoolpayload",
+      "community": 10,
+      "norm_label": "compacttoolpayload"
+    },
+    {
+      "label": "formatToolResultForLLM",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L283",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_formattoolresultforllm",
+      "community": 11,
+      "norm_label": "formattoolresultforllm"
+    },
+    {
+      "label": "sanitizeIncompleteToolChains",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L419",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_sanitizeincompletetoolchains",
+      "community": 15,
+      "norm_label": "sanitizeincompletetoolchains"
+    },
+    {
+      "label": "repairMessageSequence",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L453",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_repairmessagesequence",
+      "community": 14,
+      "norm_label": "repairmessagesequence"
+    },
+    {
+      "label": "trimMessagesForLLM",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L477",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_trimmessagesforllm",
+      "community": 16,
+      "norm_label": "trimmessagesforllm"
+    },
+    {
+      "label": "guardSearchContent",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L657",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_guardsearchcontent",
+      "community": 12,
+      "norm_label": "guardsearchcontent"
+    },
+    {
+      "label": "buildCodeIndexBlock",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L714",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_buildcodeindexblock",
+      "community": 6,
+      "norm_label": "buildcodeindexblock"
+    },
+    {
+      "label": "buildKnowledgeGraphBlock",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L767",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_buildknowledgegraphblock",
+      "community": 7,
+      "norm_label": "buildknowledgegraphblock"
+    },
+    {
+      "label": "parseElementTags",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L824",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_parseelementtags",
+      "community": 13,
+      "norm_label": "parseelementtags"
+    },
+    {
+      "label": "buildSelectedElementBlock",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L855",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_buildselectedelementblock",
+      "community": 8,
+      "norm_label": "buildselectedelementblock"
+    },
+    {
+      "label": "buildThemeContextBlock",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/contextManager.js",
+      "source_location": "L915",
+      "_origin": "ast",
+      "id": "frontend_src_agent_contextmanager_buildthemecontextblock",
+      "community": 9,
+      "norm_label": "buildthemecontextblock"
+    },
+    {
+      "label": "translateErrorMessage",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/providers/llmProvider.js",
+      "source_location": "L76",
+      "_origin": "ast",
+      "id": "frontend_src_agent_providers_llmprovider_translateerrormessage",
+      "community": 20,
+      "norm_label": "translateerrormessage"
+    },
+    {
+      "label": "extractReasoningFromRawResponse",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/providers/llmProvider.js",
+      "source_location": "L84",
+      "_origin": "ast",
+      "id": "frontend_src_agent_providers_llmprovider_extractreasoningfromrawresponse",
+      "community": 18,
+      "norm_label": "extractreasoningfromrawresponse"
+    },
+    {
+      "label": "LLMProvider",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/providers/llmProvider.js",
+      "source_location": "L110",
+      "_origin": "ast",
+      "id": "frontend_src_agent_providers_llmprovider_llmprovider",
+      "community": 19,
+      "norm_label": "llmprovider"
+    },
+    {
+      "label": "createLLMProvider",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/providers/llmProvider.js",
+      "source_location": "L246",
+      "_origin": "ast",
+      "id": "frontend_src_agent_providers_llmprovider_createllmprovider",
+      "community": 17,
+      "norm_label": "createllmprovider"
+    },
+    {
+      "label": "createScratchpad",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/scratchpad.js",
+      "source_location": "L14",
+      "_origin": "ast",
+      "id": "frontend_src_agent_scratchpad_createscratchpad",
+      "community": 21,
+      "norm_label": "createscratchpad"
+    },
+    {
+      "label": "recordToolFacts",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/scratchpad.js",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "frontend_src_agent_scratchpad_recordtoolfacts",
+      "community": 22,
+      "norm_label": "recordtoolfacts"
+    },
+    {
+      "label": "selectSkills",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/skills/registry.js",
+      "source_location": "L195",
+      "_origin": "ast",
+      "id": "frontend_src_agent_skills_registry_selectskills",
+      "community": 23,
+      "norm_label": "selectskills"
+    },
+    {
+      "label": "buildCorePrompt",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/system/core.js",
+      "source_location": "L30",
+      "_origin": "ast",
+      "id": "frontend_src_agent_system_core_buildcoreprompt",
+      "community": 25,
+      "norm_label": "buildcoreprompt"
+    },
+    {
+      "label": "buildClassifierPrompt",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/system/core.js",
+      "source_location": "L39",
+      "_origin": "ast",
+      "id": "frontend_src_agent_system_core_buildclassifierprompt",
+      "community": 24,
+      "norm_label": "buildclassifierprompt"
+    },
+    {
+      "label": "resolveCustomPrompt",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/system/defaultCustomPrompt.js",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "frontend_src_agent_system_defaultcustomprompt_resolvecustomprompt",
+      "community": 26,
+      "norm_label": "resolvecustomprompt"
+    },
+    {
+      "label": "BrowserToolExecutor",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/tools/browser.js",
+      "source_location": "L17",
+      "_origin": "ast",
+      "id": "frontend_src_agent_tools_browser_browsertoolexecutor",
+      "community": 27,
+      "norm_label": "browsertoolexecutor"
+    },
+    {
+      "label": "buildToolDefinitions",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/tools/definitions.js",
+      "source_location": "L481",
+      "_origin": "ast",
+      "id": "frontend_src_agent_tools_definitions_buildtooldefinitions",
+      "community": 28,
+      "norm_label": "buildtooldefinitions"
+    },
+    {
+      "label": "FileSystemToolExecutor",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/tools/filesystem.js",
+      "source_location": "L91",
+      "_origin": "ast",
+      "id": "frontend_src_agent_tools_filesystem_filesystemtoolexecutor",
+      "community": 29,
+      "norm_label": "filesystemtoolexecutor"
+    },
+    {
+      "label": "ToolExecutor",
+      "file_type": "code",
+      "source_file": "frontend/src/agent/tools/index.js",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "frontend_src_agent_tools_index_toolexecutor",
+      "community": 30,
+      "norm_label": "toolexecutor"
+    },
+    {
+      "label": "useAgent",
+      "file_type": "code",
+      "source_file": "frontend/src/composables/useAgent.js",
+      "source_location": "L67",
+      "_origin": "ast",
+      "id": "frontend_src_composables_useagent_useagent",
+      "community": 31,
+      "norm_label": "useagent"
+    },
+    {
+      "label": "useConnectionMonitor",
+      "file_type": "code",
+      "source_file": "frontend/src/composables/useConnectionMonitor.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "frontend_src_composables_useconnectionmonitor_useconnectionmonitor",
+      "community": 32,
+      "norm_label": "useconnectionmonitor"
+    },
+    {
+      "label": "useElementPicker",
+      "file_type": "code",
+      "source_file": "frontend/src/composables/useElementPicker.js",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "frontend_src_composables_useelementpicker_useelementpicker",
+      "community": 33,
+      "norm_label": "useelementpicker"
+    },
+    {
+      "label": "usePreviewDevTools",
+      "file_type": "code",
+      "source_file": "frontend/src/composables/usePreviewDevTools.js",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "frontend_src_composables_usepreviewdevtools_usepreviewdevtools",
+      "community": 34,
+      "norm_label": "usepreviewdevtools"
+    },
+    {
+      "label": "AsyncLocalStorage",
+      "file_type": "code",
+      "source_file": "frontend/src/polyfills/async_hooks.js",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "frontend_src_polyfills_async_hooks_asynclocalstorage",
+      "community": 35,
+      "norm_label": "asynclocalstorage"
+    },
+    {
+      "label": "AsyncResource",
+      "file_type": "code",
+      "source_file": "frontend/src/polyfills/async_hooks.js",
+      "source_location": "L34",
+      "_origin": "ast",
+      "id": "frontend_src_polyfills_async_hooks_asyncresource",
+      "community": 36,
+      "norm_label": "asyncresource"
+    },
+    {
+      "label": "Tiktoken",
+      "file_type": "code",
+      "source_file": "frontend/src/polyfills/tiktoken.js",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "frontend_src_polyfills_tiktoken_tiktoken",
+      "community": 40,
+      "norm_label": "tiktoken"
+    },
+    {
+      "label": "getEncodingNameForModel",
+      "file_type": "code",
+      "source_file": "frontend/src/polyfills/tiktoken.js",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "frontend_src_polyfills_tiktoken_getencodingnameformodel",
+      "community": 39,
+      "norm_label": "getencodingnameformodel"
+    },
+    {
+      "label": "getEncoding",
+      "file_type": "code",
+      "source_file": "frontend/src/polyfills/tiktoken.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "frontend_src_polyfills_tiktoken_getencoding",
+      "community": 38,
+      "norm_label": "getencoding"
+    },
+    {
+      "label": "encodingForModel",
+      "file_type": "code",
+      "source_file": "frontend/src/polyfills/tiktoken.js",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "frontend_src_polyfills_tiktoken_encodingformodel",
+      "community": 37,
+      "norm_label": "encodingformodel"
+    },
+    {
+      "label": "createAgentAbortError",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/abortSignal.js",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "frontend_src_utils_abortsignal_createagentaborterror",
+      "community": 41,
+      "norm_label": "createagentaborterror"
+    },
+    {
+      "label": "throwIfAborted",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/abortSignal.js",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "frontend_src_utils_abortsignal_throwifaborted",
+      "community": 43,
+      "norm_label": "throwifaborted"
+    },
+    {
+      "label": "isAbortError",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/abortSignal.js",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "frontend_src_utils_abortsignal_isaborterror",
+      "community": 42,
+      "norm_label": "isaborterror"
+    },
+    {
+      "label": "ApiClient",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/apiClient.js",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "frontend_src_utils_apiclient_apiclient",
+      "community": 44,
+      "norm_label": "apiclient"
+    },
+    {
+      "label": "buildChatExportPayload",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatExport.js",
+      "source_location": "L65",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatexport_buildchatexportpayload",
+      "community": 45,
+      "norm_label": "buildchatexportpayload"
+    },
+    {
+      "label": "downloadChatExport",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatExport.js",
+      "source_location": "L103",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatexport_downloadchatexport",
+      "community": 46,
+      "norm_label": "downloadchatexport"
+    },
+    {
+      "label": "exportChatSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatExport.js",
+      "source_location": "L117",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatexport_exportchatsession",
+      "community": 47,
+      "norm_label": "exportchatsession"
+    },
+    {
+      "label": "serializeAgentMessages",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L47",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_serializeagentmessages",
+      "community": 62,
+      "norm_label": "serializeagentmessages"
+    },
+    {
+      "label": "deserializeAgentMessages",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L78",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_deserializeagentmessages",
+      "community": 52,
+      "norm_label": "deserializeagentmessages"
+    },
+    {
+      "label": "deriveSessionTitle",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L121",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_derivesessiontitle",
+      "community": 51,
+      "norm_label": "derivesessiontitle"
+    },
+    {
+      "label": "formatSessionTime",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L144",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_formatsessiontime",
+      "community": 53,
+      "norm_label": "formatsessiontime"
+    },
+    {
+      "label": "loadChatHistoryStore",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L217",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_loadchathistorystore",
+      "community": 56,
+      "norm_label": "loadchathistorystore"
+    },
+    {
+      "label": "saveChatHistoryStore",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L251",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_savechathistorystore",
+      "community": 60,
+      "norm_label": "savechathistorystore"
+    },
+    {
+      "label": "prepareStoreForNewSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L273",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_preparestorefornewsession",
+      "community": 58,
+      "norm_label": "preparestorefornewsession"
+    },
+    {
+      "label": "listHistoryItems",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L290",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_listhistoryitems",
+      "community": 55,
+      "norm_label": "listhistoryitems"
+    },
+    {
+      "label": "getStoredSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L298",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_getstoredsession",
+      "community": 54,
+      "norm_label": "getstoredsession"
+    },
+    {
+      "label": "upsertStoredSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L302",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_upsertstoredsession",
+      "community": 63,
+      "norm_label": "upsertstoredsession"
+    },
+    {
+      "label": "removeStoredSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L319",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_removestoredsession",
+      "community": 59,
+      "norm_label": "removestoredsession"
+    },
+    {
+      "label": "createEmptySession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L328",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_createemptysession",
+      "community": 50,
+      "norm_label": "createemptysession"
+    },
+    {
+      "label": "buildStoredSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L340",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_buildstoredsession",
+      "community": 48,
+      "norm_label": "buildstoredsession"
+    },
+    {
+      "label": "loadChatSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L364",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_loadchatsession",
+      "community": 57,
+      "norm_label": "loadchatsession"
+    },
+    {
+      "label": "saveChatSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L374",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_savechatsession",
+      "community": 61,
+      "norm_label": "savechatsession"
+    },
+    {
+      "label": "clearChatSession",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/chatStorage.js",
+      "source_location": "L385",
+      "_origin": "ast",
+      "id": "frontend_src_utils_chatstorage_clearchatsession",
+      "community": 49,
+      "norm_label": "clearchatsession"
+    },
+    {
+      "label": "getDomPath",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/domPath.js",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "frontend_src_utils_dompath_getdompath",
+      "community": 64,
+      "norm_label": "getdompath"
+    },
+    {
+      "label": "getElementLabel",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/domPath.js",
+      "source_location": "L49",
+      "_origin": "ast",
+      "id": "frontend_src_utils_dompath_getelementlabel",
+      "community": 65,
+      "norm_label": "getelementlabel"
+    },
+    {
+      "label": "getDtmConfig",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/dtmConfig.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "frontend_src_utils_dtmconfig_getdtmconfig",
+      "community": 66,
+      "norm_label": "getdtmconfig"
+    },
+    {
+      "label": "buildElementTagHtml",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/elementTag.js",
+      "source_location": "L15",
+      "_origin": "ast",
+      "id": "frontend_src_utils_elementtag_buildelementtaghtml",
+      "community": 67,
+      "norm_label": "buildelementtaghtml"
+    },
+    {
+      "label": "createElementTagNode",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/elementTag.js",
+      "source_location": "L21",
+      "_origin": "ast",
+      "id": "frontend_src_utils_elementtag_createelementtagnode",
+      "community": 68,
+      "norm_label": "createelementtagnode"
+    },
+    {
+      "label": "renderUserMessage",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/elementTag.js",
+      "source_location": "L53",
+      "_origin": "ast",
+      "id": "frontend_src_utils_elementtag_renderusermessage",
+      "community": 69,
+      "norm_label": "renderusermessage"
+    },
+    {
+      "label": "setupIframeElementPicker",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/iframeElementPicker.js",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "frontend_src_utils_iframeelementpicker_setupiframeelementpicker",
+      "community": 70,
+      "norm_label": "setupiframeelementpicker"
+    },
+    {
+      "label": "isDynamicModelProvider",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/llmProviders.js",
+      "source_location": "L78",
+      "_origin": "ast",
+      "id": "frontend_src_utils_llmproviders_isdynamicmodelprovider",
+      "community": 73,
+      "norm_label": "isdynamicmodelprovider"
+    },
+    {
+      "label": "getProviderModels",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/llmProviders.js",
+      "source_location": "L82",
+      "_origin": "ast",
+      "id": "frontend_src_utils_llmproviders_getprovidermodels",
+      "community": 72,
+      "norm_label": "getprovidermodels"
+    },
+    {
+      "label": "getDefaultModelForProvider",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/llmProviders.js",
+      "source_location": "L90",
+      "_origin": "ast",
+      "id": "frontend_src_utils_llmproviders_getdefaultmodelforprovider",
+      "community": 71,
+      "norm_label": "getdefaultmodelforprovider"
+    },
+    {
+      "label": "normalizeModelForProvider",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/llmProviders.js",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "frontend_src_utils_llmproviders_normalizemodelforprovider",
+      "community": 74,
+      "norm_label": "normalizemodelforprovider"
+    },
+    {
+      "label": "appendPreviewParam",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewBridge.js",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewbridge_appendpreviewparam",
+      "community": 75,
+      "norm_label": "appendpreviewparam"
+    },
+    {
+      "label": "stripPreviewParam",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewBridge.js",
+      "source_location": "L19",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewbridge_strippreviewparam",
+      "community": 77,
+      "norm_label": "strippreviewparam"
+    },
+    {
+      "label": "createPreviewBridge",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewBridge.js",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewbridge_createpreviewbridge",
+      "community": 76,
+      "norm_label": "createpreviewbridge"
+    },
+    {
+      "label": "registerPreviewController",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewController.js",
+      "source_location": "L8",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewcontroller_registerpreviewcontroller",
+      "community": 80,
+      "norm_label": "registerpreviewcontroller"
+    },
+    {
+      "label": "unregisterPreviewController",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewController.js",
+      "source_location": "L12",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewcontroller_unregisterpreviewcontroller",
+      "community": 81,
+      "norm_label": "unregisterpreviewcontroller"
+    },
+    {
+      "label": "getPreviewController",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewController.js",
+      "source_location": "L16",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewcontroller_getpreviewcontroller",
+      "community": 78,
+      "norm_label": "getpreviewcontroller"
+    },
+    {
+      "label": "isPreviewControllerReady",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewController.js",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewcontroller_ispreviewcontrollerready",
+      "community": 79,
+      "norm_label": "ispreviewcontrollerready"
+    },
+    {
+      "label": "PreviewLoadError",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewLoadError.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewloaderror_previewloaderror",
+      "community": 83,
+      "norm_label": "previewloaderror"
+    },
+    {
+      "label": "isPreviewLoadError",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/previewLoadError.js",
+      "source_location": "L9",
+      "_origin": "ast",
+      "id": "frontend_src_utils_previewloaderror_ispreviewloaderror",
+      "community": 82,
+      "norm_label": "ispreviewloaderror"
+    },
+    {
+      "label": "renderMarkdown",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/renderMarkdown.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "frontend_src_utils_rendermarkdown_rendermarkdown",
+      "community": 84,
+      "norm_label": "rendermarkdown"
+    },
+    {
+      "label": "fetchSettings",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L13",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_fetchsettings",
+      "community": 88,
+      "norm_label": "fetchsettings"
+    },
+    {
+      "label": "fetchAgentSettings",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_fetchagentsettings",
+      "community": 86,
+      "norm_label": "fetchagentsettings"
+    },
+    {
+      "label": "fetchOpenRouterModels",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_fetchopenroutermodels",
+      "community": 87,
+      "norm_label": "fetchopenroutermodels"
+    },
+    {
+      "label": "fetchWpagentifyKeyInfo",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L88",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_fetchwpagentifykeyinfo",
+      "community": 89,
+      "norm_label": "fetchwpagentifykeyinfo"
+    },
+    {
+      "label": "fetchWpagentifyModels",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L115",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_fetchwpagentifymodels",
+      "community": 90,
+      "norm_label": "fetchwpagentifymodels"
+    },
+    {
+      "label": "activateApiKey",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L156",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_activateapikey",
+      "community": 85,
+      "norm_label": "activateapikey"
+    },
+    {
+      "label": "saveSettings",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/settingsApi.js",
+      "source_location": "L173",
+      "_origin": "ast",
+      "id": "frontend_src_utils_settingsapi_savesettings",
+      "community": 91,
+      "norm_label": "savesettings"
+    },
+    {
+      "label": "getToolIcon",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/toolDisplay.js",
+      "source_location": "L103",
+      "_origin": "ast",
+      "id": "frontend_src_utils_tooldisplay_gettoolicon",
+      "community": 95,
+      "norm_label": "gettoolicon"
+    },
+    {
+      "label": "formatToolContext",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/toolDisplay.js",
+      "source_location": "L192",
+      "_origin": "ast",
+      "id": "frontend_src_utils_tooldisplay_formattoolcontext",
+      "community": 93,
+      "norm_label": "formattoolcontext"
+    },
+    {
+      "label": "extractToolArgsFromResult",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/toolDisplay.js",
+      "source_location": "L352",
+      "_origin": "ast",
+      "id": "frontend_src_utils_tooldisplay_extracttoolargsfromresult",
+      "community": 92,
+      "norm_label": "extracttoolargsfromresult"
+    },
+    {
+      "label": "getToolTitle",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/toolDisplay.js",
+      "source_location": "L531",
+      "_origin": "ast",
+      "id": "frontend_src_utils_tooldisplay_gettooltitle",
+      "community": 96,
+      "norm_label": "gettooltitle"
+    },
+    {
+      "label": "getLastLines",
+      "file_type": "code",
+      "source_file": "frontend/src/utils/toolDisplay.js",
+      "source_location": "L553",
+      "_origin": "ast",
+      "id": "frontend_src_utils_tooldisplay_getlastlines",
+      "community": 94,
+      "norm_label": "getlastlines"
+    },
+    {
+      "label": "Graphify Usage Instructions (Copilot)",
+      "file_type": "document",
+      "source_file": ".github/copilot-instructions.md",
+      "source_location": "line 1-18",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "github_copilot_instructions_graphify_usage",
+      "community": 2,
+      "norm_label": "graphify usage instructions (copilot)"
+    },
+    {
+      "label": "Graphify Usage Instructions (CLAUDE.md)",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": "line 1-10",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_md_graphify_usage",
+      "community": 2,
+      "norm_label": "graphify usage instructions (claude.md)"
+    },
+    {
+      "label": "Graphify Knowledge Graph (graphify-out/)",
+      "file_type": "concept",
+      "source_file": "CLAUDE.md",
+      "source_location": "line 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "claude_md_graphify_knowledge_graph",
+      "community": 2,
+      "norm_label": "graphify knowledge graph (graphify-out/)"
+    },
+    {
+      "label": "Dialog Studio AI Agent (chat_dump)",
+      "file_type": "document",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_dialog_studio_agent",
+      "community": 0,
+      "norm_label": "dialog studio ai agent (chat_dump)"
+    },
+    {
+      "label": "preview_get_element_styles Tool",
+      "file_type": "concept",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 3,16",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_preview_get_element_styles",
+      "community": 1,
+      "norm_label": "preview_get_element_styles tool"
+    },
+    {
+      "label": "read_file Tool",
+      "file_type": "concept",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 3",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_read_file",
+      "community": 0,
+      "norm_label": "read_file tool"
+    },
+    {
+      "label": "edit_file Tool",
+      "file_type": "concept",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 10",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_edit_file",
+      "community": 0,
+      "norm_label": "edit_file tool"
+    },
+    {
+      "label": "preview_reload Tool",
+      "file_type": "concept",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 22",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_preview_reload",
+      "community": 1,
+      "norm_label": "preview_reload tool"
+    },
+    {
+      "label": "search_content Tool",
+      "file_type": "concept",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_search_content",
+      "community": 0,
+      "norm_label": "search_content tool"
+    },
+    {
+      "label": "hello-elementor Child Theme style.css",
+      "file_type": "document",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_style_css",
+      "community": 0,
+      "norm_label": "hello-elementor child theme style.css"
+    },
+    {
+      "label": "footer-contact-icon CSS Class",
+      "file_type": "concept",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_footer_contact_icon",
+      "community": 0,
+      "norm_label": "footer-contact-icon css class"
+    },
+    {
+      "label": "Dialog Studio Admin Menu Icon SVG",
+      "file_type": "image",
+      "source_file": "assets/admin/menu-icon.svg",
+      "source_location": "line 1-12",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "assets_admin_menu_icon_svg",
+      "community": 3,
+      "norm_label": "dialog studio admin menu icon svg"
+    },
+    {
+      "label": "Dialog Studio Final Menu Icon SVG",
+      "file_type": "image",
+      "source_file": "final/dialog-studio/assets/admin/menu-icon.svg",
+      "source_location": "line 1-12",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "dialog_studio_menu_icon_svg",
+      "community": 3,
+      "norm_label": "dialog studio final menu icon svg"
+    },
+    {
+      "label": "Iterative CSS Edit-Reload-Verify Pattern",
+      "file_type": "rationale",
+      "source_file": "chat_dump.txt",
+      "source_location": "line 9-44",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "chat_dump_css_edit_pattern",
+      "community": 1,
+      "norm_label": "iterative css edit-reload-verify pattern"
+    }
+  ],
+  "links": [
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": ".github/copilot-instructions.md",
+      "source_location": "line 3",
+      "weight": 1.0,
+      "source": "github_copilot_instructions_graphify_usage",
+      "target": "claude_md_graphify_knowledge_graph"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": ".github/copilot-instructions.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "github_copilot_instructions_graphify_usage",
+      "target": "claude_md_graphify_usage"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "line 3",
+      "weight": 1.0,
+      "source": "claude_md_graphify_usage",
+      "target": "claude_md_graphify_knowledge_graph"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 10",
+      "weight": 1.0,
+      "source": "chat_dump_dialog_studio_agent",
+      "target": "chat_dump_edit_file"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 3",
+      "weight": 1.0,
+      "source": "chat_dump_dialog_studio_agent",
+      "target": "chat_dump_preview_get_element_styles"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 22",
+      "weight": 1.0,
+      "source": "chat_dump_dialog_studio_agent",
+      "target": "chat_dump_preview_reload"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 3",
+      "weight": 1.0,
+      "source": "chat_dump_dialog_studio_agent",
+      "target": "chat_dump_read_file"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 6",
+      "weight": 1.0,
+      "source": "chat_dump_dialog_studio_agent",
+      "target": "chat_dump_search_content"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 5",
+      "weight": 1.0,
+      "source": "chat_dump_dialog_studio_agent",
+      "target": "chat_dump_style_css"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chat_dump.txt",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "chat_dump_css_edit_pattern",
+      "target": "chat_dump_preview_get_element_styles"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 8",
+      "weight": 1.0,
+      "source": "chat_dump_read_file",
+      "target": "chat_dump_style_css"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chat_dump.txt",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "chat_dump_css_edit_pattern",
+      "target": "chat_dump_edit_file"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 10",
+      "weight": 1.0,
+      "source": "chat_dump_edit_file",
+      "target": "chat_dump_style_css"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chat_dump.txt",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "chat_dump_css_edit_pattern",
+      "target": "chat_dump_preview_reload"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "chat_dump.txt",
+      "source_location": "line 7",
+      "weight": 1.0,
+      "source": "chat_dump_style_css",
+      "target": "chat_dump_footer_contact_icon"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "assets/admin/menu-icon.svg",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "assets_admin_menu_icon_svg",
+      "target": "dialog_studio_menu_icon_svg"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "dialog_studio_agent_tool_suite",
+      "label": "Dialog Studio Agent Live-Edit Tool Suite",
+      "nodes": [
+        "chat_dump_preview_get_element_styles",
+        "chat_dump_read_file",
+        "chat_dump_edit_file",
+        "chat_dump_preview_reload",
+        "chat_dump_search_content"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "chat_dump.txt"
+    },
+    {
+      "id": "graphify_navigation_pattern",
+      "label": "Graphify Query/Path/Explain Navigation Pattern",
+      "nodes": [
+        "github_copilot_instructions_graphify_usage",
+        "claude_md_graphify_usage",
+        "claude_md_graphify_knowledge_graph"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md"
+    }
+  ],
+  "built_at_commit": "55436cf2b58f60aa7cb23726793d2fa61dfdb37a"
+}

@@ -114,6 +114,10 @@ export function deserializeAgentMessages(data = []) {
   });
 }
 
+function stripElementTags(content) {
+  return content.replace(/<Dialog:element\b[\s\S]*?<\/Dialog:element>/g, '').trim();
+}
+
 export function deriveSessionTitle(messages = []) {
   for (const message of messages) {
     const type = message?.getType?.() || message?._getType?.() || message?.type;
@@ -128,7 +132,7 @@ export function deriveSessionTitle(messages = []) {
         ? message.content.map((part) => part?.text || part?.content || '').join('')
         : String(message?.content || '');
 
-    const trimmed = content.trim();
+    const trimmed = stripElementTags(content).trim();
     if (trimmed) {
       return trimmed.length > 48 ? `${trimmed.slice(0, 48)}…` : trimmed;
     }
