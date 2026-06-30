@@ -23,6 +23,12 @@ if ( ! defined( 'DialogStudio_PLUGIN_FILE' ) ) {
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+$updateChecker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+	'https://wpagentify.ir/plugins/dialogstudio/update.json',
+	__FILE__,
+	'dialog-studio'
+);
+
 \DialogStudio\App\App::get();
 
 register_activation_hook(

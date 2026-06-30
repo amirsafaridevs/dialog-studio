@@ -3,6 +3,24 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import BrowserPanel from './components/BrowserPanel.vue';
 import ChatSidebar from './components/ChatSidebar.vue';
 import ResizeHandle from './components/ResizeHandle.vue';
+import ApiKeyModal from './components/ApiKeyModal.vue';
+
+const showApiKeyModal = ref(false);
+const chatSidebarRef = ref(null);
+const isAgentRunning = ref(false);
+
+function handleNeedApiKey() {
+  showApiKeyModal.value = true;
+}
+
+function handleRunningChange(running) {
+  isAgentRunning.value = running;
+}
+
+async function handleApiKeyActivated(payload) {
+  showApiKeyModal.value = false;
+  await chatSidebarRef.value?.handleApiKeyActivated(payload);
+}
 
 const browserWidth = ref(80);
 const isResizing = ref(false);
@@ -44,23 +62,30 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <ApiKeyModal
+    v-if="showApiKeyModal"
+    @activated="handleApiKeyActivated"
+  />
   <div
     ref="layoutRef"
     class="dtm-layout"
-    :class="{ 'dtm-layout--resizing': isResizing }"
+    :class="{ 'dtm-layout--resizing': isResizing, 'dtm-layout--blurred': showApiKeyModal }"
   >
-    <BrowserPanel
-      class="dtm-layout__browser"
-      :style="{ flex: `0 0 ${browserWidth}%` }"
-    />
+    <div class="dtm-layout__browser-wrap" :style="{ flex: `0 0 ${browserWidth}%` }">
+      <BrowserPanel class="dtm-layout__browser" />
+      <div v-if="isAgentRunning" class="dtm-layout__browser-lock" aria-hidden="true" />
+    </div>
     <ResizeHandle
       @start="onResizeStart"
       @resize="onResize"
       @end="onResizeEnd"
     />
     <ChatSidebar
+      ref="chatSidebarRef"
       class="dtm-layout__chat"
       :style="{ flex: `0 0 ${100 - browserWidth}%` }"
+      @need-api-key="handleNeedApiKey"
+      @running-change="handleRunningChange"
     />
   </div>
 </template>
@@ -80,8 +105,30 @@ onUnmounted(() => {
   cursor: col-resize;
 }
 
-.dtm-layout__browser {
+.dtm-layout--blurred {
+  filter: blur(4px);
+  pointer-events: none;
+  user-select: none;
+}
+
+.dtm-layout__browser-wrap {
+  position: relative;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dtm-layout__browser {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dtm-layout__browser-lock {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: not-allowed;
 }
 
 .dtm-layout__chat {

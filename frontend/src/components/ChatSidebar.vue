@@ -2,6 +2,8 @@
 
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
+const emit = defineEmits(['need-api-key', 'api-key-activated', 'running-change']);
+
 import ChatHeader from './ChatHeader.vue';
 
 import ChatMessages from './ChatMessages.vue';
@@ -13,6 +15,7 @@ import ChatThemeBanner from './ChatThemeBanner.vue';
 
 import ChatSettings from './ChatSettings.vue';
 import ChatCustomPrompt from './ChatCustomPrompt.vue';
+import ApiKeyModal from './ApiKeyModal.vue';
 
 import ChatActivityStatus from './ChatActivityStatus.vue';
 
@@ -22,7 +25,7 @@ import { useAgent } from '../composables/useAgent.js';
 
 import { useConnectionMonitor } from '../composables/useConnectionMonitor.js';
 
-import { fetchAgentSettings } from '../utils/settingsApi.js';
+import { fetchAgentSettings, fetchSettings } from '../utils/settingsApi.js';
 
 import { TOOL_LABELS } from '../agent/tools/definitions.js';
 import { getToolTitle, extractToolArgsFromResult } from '../utils/toolDisplay.js';
@@ -1092,6 +1095,8 @@ watch(
 
 watch(isRunning, (running, wasRunning) => {
 
+  emit('running-change', running);
+
   if (wasRunning && !running) {
 
     refreshChatHistory();
@@ -1109,6 +1114,18 @@ onMounted(async () => {
 
 
   try {
+
+    const settingsData = await fetchSettings().catch(() => null);
+
+    if (!settingsData?.llm?.has_api_key) {
+
+      isChatLoading.value = false;
+
+      emit('need-api-key');
+
+      return;
+
+    }
 
     await bootstrapAgent();
 
@@ -1131,6 +1148,16 @@ onMounted(async () => {
   }
 
 });
+
+
+
+async function handleApiKeyActivated(payload) {
+
+  await handleSettingsSaved(payload);
+
+}
+
+defineExpose({ handleApiKeyActivated });
 
 
 
@@ -1490,6 +1517,8 @@ async function handleCustomPromptSaved(payload) {
 
       :prompt-open="showCustomPrompt"
 
+      :is-running="isRunning"
+
       @new-chat="handleNewChat"
 
       @select-chat="handleSelectChat"
@@ -1611,6 +1640,7 @@ async function handleCustomPromptSaved(payload) {
   flex-direction: column;
 
 }
+
 
 </style>
 

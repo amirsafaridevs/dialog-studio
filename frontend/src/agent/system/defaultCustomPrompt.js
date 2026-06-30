@@ -1,15 +1,15 @@
-import uiPromptMd from './ui.md?raw';
-
-/** Default design instructions when the user has not set a custom prompt. */
-export const DEFAULT_CUSTOM_PROMPT = uiPromptMd.trim();
-
 /**
- * Return the user's custom prompt, or the default from ui.md when empty.
+ * Return the user's custom prompt text, or empty string when none is set.
+ * Design expertise is injected automatically via skills (css-design, accessibility)
+ * in registry.js — no static default is needed here.
  *
  * @param {string} [customPrompt]
  * @returns {string}
  */
+export const DEFAULT_CUSTOM_PROMPT = '';
+
 export function resolveCustomPrompt(customPrompt) {
-  const text = (customPrompt || '').trim();
-  return text || DEFAULT_CUSTOM_PROMPT;
+  return (customPrompt || '').trim();
 }
+
+export default resolveCustomPrompt;

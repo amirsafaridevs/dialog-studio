@@ -18,8 +18,8 @@ onMounted(async () => {
 
   try {
     const data = await fetchSettings();
-    const savedPrompt = (data?.custom_prompt ?? '').trim();
-    customPrompt.value = savedPrompt || DEFAULT_CUSTOM_PROMPT;
+    const savedPrompt = data?.custom_prompt ?? '';
+    customPrompt.value = savedPrompt !== '' ? savedPrompt : DEFAULT_CUSTOM_PROMPT;
   } catch (error) {
     saveError.value = error.message || 'بارگذاری پرامپت ناموفق بود.';
   } finally {

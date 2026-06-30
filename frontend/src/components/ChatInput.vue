@@ -178,7 +178,8 @@ function serializeEditorContent() {
     }
 
     if (node.classList.contains('chat-input__inline-tag')) {
-      result += `<Dialog:element tag="${node.dataset.tag}" path="${node.dataset.path}">${node.dataset.label}</Dialog:element>`;
+      const metaAttr = node.dataset.meta ? ` meta="${node.dataset.meta.replace(/"/g, '&quot;')}"` : '';
+      result += `<Dialog:element tag="${node.dataset.tag}" path="${node.dataset.path}"${metaAttr}>${node.dataset.label}</Dialog:element>`;
       return;
     }
 
@@ -313,8 +314,8 @@ defineExpose({ setDraft, focus });
       <div
         ref="editorRef"
         class="chat-input__editor"
-        :class="{ 'chat-input__editor--empty': isEmpty }"
-        contenteditable="true"
+        :class="{ 'chat-input__editor--empty': isEmpty, 'chat-input__editor--locked': isRunning }"
+        :contenteditable="isRunning ? 'false' : 'true'"
         role="textbox"
         aria-multiline="true"
         data-placeholder="پیام خود را بنویسید..."
@@ -424,6 +425,11 @@ defineExpose({ setDraft, focus });
   content: attr(data-placeholder);
   color: var(--dtm-text-muted);
   pointer-events: none;
+}
+
+.chat-input__editor--locked {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .chat-input__editor :deep(.chat-element-tag) {

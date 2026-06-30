@@ -25,6 +25,7 @@ import {
 export const TOOL_ICONS = {
   read_file: FileText,
   edit_file: PencilLine,
+  replace_in_file: PencilLine,
   write_file: FilePenLine,
   search_files: FolderSearch,
   search_content: Search,
@@ -36,7 +37,6 @@ export const TOOL_ICONS = {
   check_theme: Palette,
   create_template: LayoutTemplate,
   update_template: FilePenLine,
-  list_templates: List,
   delete_template: Trash2,
   create_theme: FolderPlus,
   list_plugins: Package,
@@ -51,6 +51,7 @@ export const TOOL_ICONS = {
 export const TOOL_ACTIVE_LABELS = {
   read_file: 'در حال خواندن فایل',
   edit_file: 'در حال ویرایش فایل',
+  replace_in_file: 'در حال ویرایش فایل',
   write_file: 'در حال نوشتن فایل',
   search_files: 'در حال جستجوی فایل',
   search_content: 'در حال جستجو در محتوا',
@@ -62,7 +63,6 @@ export const TOOL_ACTIVE_LABELS = {
   check_theme: 'در حال بررسی تم',
   create_template: 'در حال ایجاد قالب',
   update_template: 'در حال ویرایش قالب',
-  list_templates: 'در حال دریافت لیست قالب‌ها',
   delete_template: 'در حال حذف قالب',
   create_theme: 'در حال ایجاد تم',
   list_plugins: 'در حال دریافت لیست پلاگین‌ها',
@@ -77,6 +77,7 @@ export const TOOL_ACTIVE_LABELS = {
 export const TOOL_DONE_LABELS = {
   read_file: 'خواندن فایل',
   edit_file: 'ویرایش فایل',
+  replace_in_file: 'ویرایش فایل',
   write_file: 'نوشتن فایل',
   search_files: 'جستجوی فایل',
   search_content: 'جستجو در محتوا',
@@ -88,7 +89,6 @@ export const TOOL_DONE_LABELS = {
   check_theme: 'بررسی تم',
   create_template: 'ایجاد قالب',
   update_template: 'ویرایش قالب',
-  list_templates: 'لیست قالب‌ها',
   delete_template: 'حذف قالب',
   create_theme: 'ایجاد تم',
   list_plugins: 'لیست پلاگین‌ها',
@@ -233,6 +233,14 @@ export function formatToolContext(toolName, args = null) {
     return String(args.path);
   }
 
+  if (toolName === 'replace_in_file' && args.path) {
+    const context = formatFilePathContext(args.path, 'ویرایش');
+    if (args.validation) {
+      return `${context} — ${args.validation === 'ok' ? 'بدون خطا' : args.validation}`;
+    }
+    return context;
+  }
+
   if (toolName === 'search_files') {
     const keywords = formatKeywords(args.keywords);
     if (!keywords) {
@@ -289,13 +297,6 @@ export function formatToolContext(toolName, args = null) {
     if (args.title) return String(args.title);
     if (args.slug) return String(args.slug);
     if (args.id) return `#${args.id}`;
-  }
-
-  if (toolName === 'list_templates') {
-    if (args.total != null) {
-      return `${args.total} قالب`;
-    }
-    return 'همه قالب‌ها';
   }
 
   if (toolName === 'delete_template') {
@@ -392,6 +393,15 @@ export function extractToolArgsFromResult(toolName, parsed) {
     return args;
   }
 
+  if (toolName === 'replace_in_file' && data.path) {
+    const args = { path: data.path };
+    const validation = data.code_validation;
+    if (validation && validation.skipped !== true && validation.valid != null) {
+      args.validation = validation.valid ? 'ok' : `${validation.issue_count ?? 0} خطا`;
+    }
+    return args;
+  }
+
   if (toolName === 'write_file' && data.path) {
     const args = { path: data.path, mode: data.mode };
     const validation = data.code_validation;
@@ -466,10 +476,6 @@ export function extractToolArgsFromResult(toolName, parsed) {
       title: data.title,
       slug: data.slug,
     };
-  }
-
-  if (toolName === 'list_templates' && Array.isArray(data)) {
-    return { total: data.length };
   }
 
   if (toolName === 'delete_template') {

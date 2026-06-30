@@ -126,9 +126,16 @@ export function compactToolPayload(toolName, payload) {
     const data = { ...compact.data };
 
     if (toolName === 'read_file' && typeof data.content === 'string') {
-      const originalLength = data.content.length;
-      data.content = truncateText(data.content, 6_000);
+      // Show the model the line-numbered view (so it never miscounts), and drop
+      // the duplicate raw `content` to avoid sending the file twice.
+      const source = typeof data.numbered_content === 'string' && data.numbered_content
+        ? data.numbered_content
+        : data.content;
+      const originalLength = source.length;
+      data.content = truncateText(source, 6_000);
+      delete data.numbered_content;
       data.content_truncated = originalLength > data.content.length;
+      data.note_format = 'Each line is prefixed with "N│" where N is its real line number — the │ and number are NOT part of the file. When using replace_in_file, copy only the text AFTER the │.';
       if (data.content_truncated && data.line_count) {
         data.hint = 'File was truncated. Re-read with start_line/end_line in ~100-line chunks (increment start_line until you find the section). Do not use search_content — the index already named this file.';
       }
@@ -161,7 +168,7 @@ export function compactToolPayload(toolName, payload) {
       }
     }
 
-    if ((toolName === 'edit_file' || toolName === 'write_file') && data.code_validation) {
+    if ((toolName === 'edit_file' || toolName === 'replace_in_file' || toolName === 'write_file') && data.code_validation) {
       const validation = { ...data.code_validation };
       if (Array.isArray(validation.issues)) {
         const originalCount = validation.issues.length;
@@ -173,9 +180,27 @@ export function compactToolPayload(toolName, payload) {
       data.code_validation = validation;
 
       if (validation.valid === false) {
-        data.hint = 'Syntax errors were found after save. Fix them with another edit_file call before continuing or finishing the task.';
+        data.hint = 'Syntax errors were found after save. Fix them with another replace_in_file call before continuing or finishing the task.';
       } else if (validation.valid === true && !validation.skipped) {
         data.hint = 'Post-save syntax check passed for this file.';
+      }
+    }
+
+    if (toolName === 'read_file' && data.code_validation) {
+      const validation = { ...data.code_validation };
+      if (Array.isArray(validation.issues)) {
+        const originalCount = validation.issues.length;
+        validation.issues = validation.issues.slice(0, 20);
+        if (originalCount > validation.issues.length) {
+          validation.issues_truncated = originalCount - validation.issues.length;
+        }
+      }
+      data.code_validation = validation;
+
+      if (validation.valid === false) {
+        data.hint = `This file has ${validation.issue_count} syntax error(s). Fix them before making further changes.`;
+      } else if (validation.valid === true && !validation.skipped) {
+        data.hint = 'File syntax is valid.';
       }
     }
 
@@ -787,13 +812,13 @@ export function buildKnowledgeGraphBlock(knowledgeGraph) {
 }
 
 const ELEMENT_TAG_PATTERN =
-  /<Dialog:element\s+tag="([^"]*)"\s+path="([^"]*)">([^<]*)<\/Dialog:element>/g;
+  /<Dialog:element\s+tag="([^"]*)"\s+path="([^"]*)"(?:\s+meta="([^"]*)")?>\s*([^<]*)\s*<\/Dialog:element>/g;
 
 const ELEMENT_TEMPLATE_HINTS = {
-  footer: 'Dialog footer template (list_templates → update_template) or assets/front/css/',
-  header: 'Dialog header template (list_templates → update_template) or assets/front/css/',
-  nav: 'Dialog header template or assets/front/css/',
-  main: 'Dialog page/canvas template (create_template) or assets/front/css/',
+  footer: 'assets/front/css/',
+  header: 'assets/front/css/',
+  nav: 'assets/front/css/',
+  main: 'assets/front/css/',
 };
 
 export function parseElementTags(content) {
@@ -806,11 +831,21 @@ export function parseElementTags(content) {
   let match = pattern.exec(content);
 
   while (match) {
-    tags.push({
+    const entry = {
       tag: match[1],
       path: match[2],
-      label: match[3],
-    });
+      label: match[4],
+    };
+
+    if (match[3]) {
+      try {
+        entry.meta = JSON.parse(match[3].replace(/&quot;/g, '"'));
+      } catch {
+        // ignore malformed meta
+      }
+    }
+
+    tags.push(entry);
     match = pattern.exec(content);
   }
 
@@ -845,9 +880,32 @@ export function buildSelectedElementBlock(messages = []) {
       const tag = element.tag?.toLowerCase() || '';
       const hint = ELEMENT_TEMPLATE_HINTS[tag] || 'check index for matching template/CSS file';
       lines.push(`- <${element.tag}> at \`${element.path}\` → likely ${hint}`);
+
+      const meta = element.meta;
+      if (meta) {
+        if (meta.id) {
+          lines.push(`  id: "${meta.id}"`);
+        }
+        if (meta.classes?.length) {
+          lines.push(`  classes: ${meta.classes.join(' ')}`);
+        }
+        if (meta.attributes && Object.keys(meta.attributes).length) {
+          const attrParts = Object.entries(meta.attributes)
+            .slice(0, 10)
+            .map(([k, v]) => `${k}="${v}"`)
+            .join(' ');
+          lines.push(`  attributes: ${attrParts}`);
+        }
+        if (meta.textContent) {
+          lines.push(`  text: "${meta.textContent}"`);
+        }
+        if (meta.snippet) {
+          lines.push(`  html snippet: ${meta.snippet}`);
+        }
+      }
     }
 
-    lines.push('- Call preview_get_html with the selector above, then list_templates/read_file the Dialog template or CSS, and update_template/edit_file the fix.');
+    lines.push('- Call preview_get_html with the selector above, then read_file the CSS, and replace_in_file the fix.');
     return lines.join('\n');
   }
 
@@ -861,17 +919,32 @@ export function buildThemeContextBlock(themeContext) {
 
   const activeSlug = themeContext.active_slug || themeContext.active_theme?.slug || '';
   const activeName = themeContext.active_name || themeContext.active_theme?.name || activeSlug || 'unknown';
+  const isChild = Boolean(themeContext.is_child_theme);
+  const parentSlug = themeContext.parent_slug || '';
+  const parentName = themeContext.parent_name || parentSlug || '';
   const workspaceRelative = activeSlug ? `wp-content/themes/${activeSlug}` : '';
+  const parentRelative = parentSlug ? `wp-content/themes/${parentSlug}` : '';
   const codeIndexBlock = buildCodeIndexBlock(themeContext.code_index);
   const knowledgeGraphBlock = buildKnowledgeGraphBlock(themeContext.knowledge_graph);
 
+  const themeLines = isChild
+    ? [
+        `- Workspace (active child theme): ${workspaceRelative || '(unknown)'}`,
+        `- Parent theme (READ-ONLY — never edit parent files directly): ${parentName} at ${parentRelative || '(unknown)'}`,
+        `- Active theme: ${activeName} (${activeSlug || 'n/a'}) — this is a child of ${parentName}`,
+        '- To override parent behaviour, copy the parent file into the child theme at the same relative path and modify the copy.',
+      ]
+    : [
+        workspaceRelative
+          ? `- Workspace (active theme, no parent): ${workspaceRelative}`
+          : '- Workspace: active theme (call check_theme to find path)',
+        `- Active theme: ${activeName} (${activeSlug || 'n/a'})`,
+      ];
+
   return [
     'Session workspace context (already loaded — do not call check_theme unless the user explicitly asks):',
-    workspaceRelative
-      ? `- Workspace (child theme): ${workspaceRelative}`
-      : '- Workspace: child theme (call check_theme to find path)',
+    ...themeLines,
     `- Workspace ready: ${themeContext.ready ? 'yes' : 'no'}`,
-    `- Active WordPress theme: ${activeName} (${activeSlug || 'n/a'})`,
     '',
     'Path rules (critical):',
     '- NEVER use absolute filesystem paths (no C:/ or /var/...).',
@@ -881,11 +954,11 @@ export function buildThemeContextBlock(themeContext) {
       ? `- Examples: plugins/my-plugin/main.php, ${workspaceRelative}/assets/front/css/main.css, wp-includes/formatting.php`
       : '- Examples: plugins/my-plugin/main.php, wp-content/themes/{slug}/style.css, wp-includes/formatting.php',
     workspaceRelative
-      ? `- write_file/edit_file paths are relative to the workspace root (e.g. assets/front/css/main.css, inc/my-module.php).`
-      : '- write_file/edit_file paths are relative to the workspace root.',
+      ? `- write_file/replace_in_file paths are relative to the workspace root (e.g. assets/front/css/main.css, inc/my-module.php).`
+      : '- write_file/replace_in_file paths are relative to the workspace root.',
     '- Assets: assets/admin/{css,js,img} and assets/front/{css,js,img} (auto-enqueued on site).',
     '- PHP extensions: inc/*.php files (auto-loaded like mini-plugins).',
-    '- read_file returns line_count (editor-style; trailing newline is not an extra line). Use it for edit_file ranges.',
+    '- To change existing files use replace_in_file (anchor on exact text). read_file shows each line as "N│..." — the N is the real line number for your reference; never include it in old_string.',
     '- search_files with no directory defaults to the workspace root. For plugins use directory: wp-content/plugins.',
     knowledgeGraphBlock ? `\n${knowledgeGraphBlock}` : '',
     codeIndexBlock ? `\n${codeIndexBlock}` : '',

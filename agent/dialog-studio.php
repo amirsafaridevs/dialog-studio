@@ -112,6 +112,7 @@ final class DialogStudio_Agent {
 		$this->add_route( 'POST', self::API_PREFIX . '/file/read', 'handle_file_read' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/write', 'handle_file_write' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/edit', 'handle_file_edit' );
+		$this->add_route( 'POST', self::API_PREFIX . '/file/replace', 'handle_file_replace' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/append', 'handle_file_append' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/delete', 'handle_file_delete' );
 		$this->add_route( 'POST', self::API_PREFIX . '/file/list', 'handle_file_list' );
@@ -679,7 +680,7 @@ final class DialogStudio_Agent {
 			return [
 				'success' => false,
 				'data'    => null,
-				'error'   => 'اتصال به سرور wpagentify.ir برقرار نشد. مجدداً تلاش کنید.',
+				'error'   => 'اتصال به سرور wpagentify.ir برقرار نشد. مجدداً تلاش کنید. در صورتی که VPN متصل است، آن را غیرفعال کنید.',
 			];
 		}
 
@@ -1893,16 +1894,20 @@ final class DialogStudio_Agent {
 			$content  = implode( "\n", $slice );
 		}
 
+		$display_start = $range_requested ? $start_line : 1;
+
 		return [
 			'success' => true,
 			'data' => [
 				'path' => $path,
 				'content' => $content,
+				'numbered_content' => $this->number_content_lines( $content, $display_start ),
 				'line_count' => $total_lines,
 				'start_line' => $range_requested ? $start_line : null,
 				'end_line' => $range_requested ? $end_line : null,
 				'size' => $file_size,
 				'modified' => filemtime( $file_path ),
+				'code_validation' => $this->validate_saved_file( $file_path, $path ),
 			],
 			'error' => null,
 		];
@@ -2135,6 +2140,173 @@ final class DialogStudio_Agent {
 			),
 			'error' => null,
 		];
+	}
+
+	/**
+	 * POST /DialogStudio/v1/file/replace
+	 *
+	 * Replace an exact substring (old_string) with new_string inside a workspace
+	 * file. old_string must match EXACTLY (whitespace included) and be UNIQUE in
+	 * the file — string-anchored editing, immune to line-number drift. This is the
+	 * preferred edit primitive; handle_file_edit (line ranges) remains for callers
+	 * that genuinely need positional edits.
+	 */
+	private function handle_file_replace(): array {
+		$this->require_chat_user();
+
+		$settings = $this->get_settings();
+		if ( empty( $settings['permissions']['write_files'] ) ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'File write permission denied',
+			];
+		}
+
+		$body          = $this->get_json_body();
+		$path          = sanitize_text_field( (string) ( $body['path'] ?? '' ) );
+		$old_string    = (string) ( $body['old_string'] ?? '' );
+		$new_string    = (string) ( $body['new_string'] ?? '' );
+		$replace_all   = ! empty( $body['replace_all'] );
+
+		if ( $old_string === '' ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'old_string must not be empty. To create or fully overwrite a file use write_file.',
+			];
+		}
+
+		if ( $old_string === $new_string ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'old_string and new_string are identical — nothing to change.',
+			];
+		}
+
+		$theme_error = $this->get_dialog_workspace_write_error();
+		if ( $theme_error !== null ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => $theme_error,
+			];
+		}
+
+		$validation = $this->validate_file_path( $path, 'write' );
+		if ( ! $validation['valid'] ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => $validation['error'],
+			];
+		}
+
+		$file_path = $validation['normalized_path'];
+
+		if ( ! is_file( $file_path ) || ! is_readable( $file_path ) ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'File does not exist or is not readable: ' . basename( $file_path ),
+			];
+		}
+
+		$original_content = file_get_contents( $file_path );
+		if ( $original_content === false ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'Failed to read file: ' . basename( $file_path ),
+			];
+		}
+
+		$occurrences = substr_count( $original_content, $old_string );
+
+		// LLMs sometimes emit C-style escape sequences (\t, \n, \r) literally inside
+		// the JSON arguments string instead of the real whitespace characters.
+		// When exact match fails, try a decoded version before giving up.
+		if ( $occurrences === 0 ) {
+			$decoded = str_replace( [ '\\t', '\\n', '\\r' ], [ "\t", "\n", "\r" ], $old_string );
+			if ( $decoded !== $old_string && substr_count( $original_content, $decoded ) > 0 ) {
+				$old_string  = $decoded;
+				$new_string  = str_replace( [ '\\t', '\\n', '\\r' ], [ "\t", "\n", "\r" ], $new_string );
+				$occurrences = substr_count( $original_content, $old_string );
+			}
+		}
+
+		if ( $occurrences === 0 ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'old_string was not found in the file. It must match the current file contents EXACTLY, including indentation and whitespace. Re-read the file and copy the exact text.',
+			];
+		}
+
+		if ( $occurrences > 1 && ! $replace_all ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => sprintf(
+					'old_string matches %d places in the file — it is not unique. Include more surrounding context so it matches exactly one place, or pass replace_all:true to replace every occurrence.',
+					$occurrences
+				),
+			];
+		}
+
+		$updated_content = $replace_all
+			? str_replace( $old_string, $new_string, $original_content )
+			: $this->str_replace_first( $old_string, $new_string, $original_content );
+
+		if ( ! mb_check_encoding( $updated_content, 'UTF-8' ) ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'Edit would produce invalid UTF-8 in: ' . basename( $file_path ),
+			];
+		}
+
+		$bytes_written = file_put_contents( $file_path, $updated_content );
+		if ( $bytes_written === false ) {
+			return [
+				'success' => false,
+				'data' => null,
+				'error' => 'Failed to write file: ' . basename( $file_path ),
+			];
+		}
+
+		[ $updated_lines ] = $this->split_content_lines( $updated_content );
+
+		return [
+			'success' => true,
+			'data' => array_merge(
+				[
+					'path' => $path,
+					'replacements' => $replace_all ? $occurrences : 1,
+					'total_lines' => count( $updated_lines ),
+					'bytes_written' => $bytes_written,
+					'size' => filesize( $file_path ),
+					'modified' => filemtime( $file_path ),
+				],
+				[
+					'code_validation' => $this->validate_saved_file( $file_path, $path ),
+				]
+			),
+			'error' => null,
+		];
+	}
+
+	/**
+	 * Replace only the first occurrence of $search in $subject.
+	 */
+	private function str_replace_first( string $search, string $replace, string $subject ): string {
+		$position = strpos( $subject, $search );
+		if ( $position === false ) {
+			return $subject;
+		}
+
+		return substr_replace( $subject, $replace, $position, strlen( $search ) );
 	}
 
 	/**
@@ -2946,6 +3118,50 @@ final class DialogStudio_Agent {
 		$matches = [];
 
 		$search_keywords = $case_sensitive ? $keywords : array_map( 'strtolower', $keywords );
+
+		// AND_FILE: all keywords must appear somewhere in the file (not necessarily same line).
+		// Return every line that matches at least one keyword, but only when ALL keywords are present.
+		if ( $operator === 'AND_FILE' ) {
+			$full_content = $case_sensitive ? $content : strtolower( $content );
+			foreach ( $search_keywords as $keyword ) {
+				if ( strpos( $full_content, $keyword ) === false ) {
+					return []; // At least one keyword missing — no match.
+				}
+			}
+			// All keywords exist somewhere — collect lines matching any of them.
+			foreach ( $lines as $line_number => $line ) {
+				if ( count( $matches ) >= $max_matches_per_file ) {
+					break;
+				}
+				$search_line = $case_sensitive ? $line : strtolower( $line );
+				$found_keywords = [];
+				foreach ( $search_keywords as $keyword ) {
+					if ( strpos( $search_line, $keyword ) !== false ) {
+						$found_keywords[] = $keyword;
+					}
+				}
+				if ( empty( $found_keywords ) ) {
+					continue;
+				}
+				$start = max( 0, $line_number - $context_lines );
+				$end   = min( count( $lines ) - 1, $line_number + $context_lines );
+				$context = [];
+				for ( $i = $start; $i <= $end; $i++ ) {
+					$context[] = [
+						'line_number' => $i + 1,
+						'content'     => $lines[ $i ],
+						'is_match'    => $i === $line_number,
+					];
+				}
+				$matches[] = [
+					'line_number'    => $line_number + 1,
+					'line_content'   => $line,
+					'context'        => $context,
+					'keywords_found' => $this->get_keyword_matches( $search_line, $search_keywords ),
+				];
+			}
+			return $matches;
+		}
 
 		foreach ( $lines as $line_number => $line ) {
 			if ( count( $matches ) >= $max_matches_per_file ) {
@@ -4205,6 +4421,24 @@ final class DialogStudio_Agent {
 		}
 
 		return $updated_content;
+	}
+
+	/**
+	 * Prefix each line with its 1-indexed line number (editor-style), starting at
+	 * $start. Purely for the model's reading — it is shown the real line numbers so
+	 * it never has to count by hand. The raw `content` field stays unnumbered.
+	 */
+	private function number_content_lines( string $content, int $start = 1 ): string {
+		$lines    = $this->split_lines( $content );
+		$end      = $start + count( $lines ) - 1;
+		$width    = strlen( (string) $end );
+		$numbered = [];
+
+		foreach ( $lines as $offset => $line ) {
+			$numbered[] = str_pad( (string) ( $start + $offset ), $width, ' ', STR_PAD_LEFT ) . '│' . $line;
+		}
+
+		return implode( "\n", $numbered );
 	}
 
 	/**

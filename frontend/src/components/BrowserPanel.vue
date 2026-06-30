@@ -304,6 +304,51 @@ async function getPreviewHtml(args = {}, options = {}) {
   };
 }
 
+async function getLoadedAssets(options = {}) {
+  const timeoutMs = options.timeout ?? PREVIEW_LOAD_TIMEOUT_MS;
+
+  await waitForPreviewLoad(timeoutMs, options.signal);
+
+  if (!previewBridge.isBridgeReady()) {
+    throw buildPreviewFailureReason('Preview bridge is not ready');
+  }
+
+  const result = await previewBridge.request(
+    'get-loaded-assets',
+    {},
+    { timeout: timeoutMs, signal: options.signal },
+  );
+
+  return {
+    success: true,
+    data: result,
+  };
+}
+
+async function getElementStyles(args = {}, options = {}) {
+  const timeoutMs = options.timeout ?? PREVIEW_LOAD_TIMEOUT_MS;
+
+  await waitForPreviewLoad(timeoutMs, options.signal);
+
+  if (!previewBridge.isBridgeReady()) {
+    throw buildPreviewFailureReason('Preview bridge is not ready');
+  }
+
+  const result = await previewBridge.request(
+    'get-element-styles',
+    {
+      selector: args.selector,
+      dom_path: args.dom_path,
+    },
+    { timeout: timeoutMs, signal: options.signal },
+  );
+
+  return {
+    success: true,
+    data: result,
+  };
+}
+
 const previewBridge = createPreviewBridge(iframeRef, {
   onBridgeReady() {
     isLoading.value = false;
@@ -321,6 +366,11 @@ const previewBridge = createPreviewBridge(iframeRef, {
       tagName: payload.tagName,
       label: payload.label,
       domPath: payload.domPath,
+      id: payload.id || null,
+      classes: payload.classes || [],
+      attributes: payload.attributes || {},
+      textContent: payload.textContent || null,
+      snippet: payload.snippet || null,
     });
   },
   onConsoleEntry(payload) {
@@ -438,6 +488,8 @@ onMounted(() => {
     navigate: navigatePreviewAndWait,
     reload: reloadPreview,
     getHtml: getPreviewHtml,
+    getLoadedAssets: getLoadedAssets,
+    getElementStyles: getElementStyles,
     getCurrentUrl: () => previewUrl.value,
     isBridgeReady: () => previewBridge.isBridgeReady(),
   });

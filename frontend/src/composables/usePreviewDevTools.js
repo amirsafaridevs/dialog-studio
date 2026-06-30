@@ -1,5 +1,8 @@
 import { computed, ref } from 'vue';
 
+const MAX_CONSOLE_ENTRIES = 200;
+const MAX_NETWORK_ENTRIES = 300;
+
 export function usePreviewDevTools() {
   const consoleEntries = ref([]);
   const networkMap = ref(new Map());
@@ -43,6 +46,10 @@ export function usePreviewDevTools() {
       timestamp: payload.timestamp || Date.now(),
     });
 
+    if (consoleEntries.value.length > MAX_CONSOLE_ENTRIES) {
+      consoleEntries.value.splice(0, consoleEntries.value.length - MAX_CONSOLE_ENTRIES);
+    }
+
     if (payload.level === 'error' && !devtoolsOpen.value) {
       devtoolsOpen.value = true;
       activeTab.value = 'console';
@@ -72,6 +79,11 @@ export function usePreviewDevTools() {
     }
 
     networkMap.value.set(payload.id, merged);
+
+    if (networkMap.value.size > MAX_NETWORK_ENTRIES) {
+      const oldest = [...networkMap.value.keys()].slice(0, networkMap.value.size - MAX_NETWORK_ENTRIES);
+      oldest.forEach((key) => networkMap.value.delete(key));
+    }
 
     if (
       !devtoolsOpen.value &&

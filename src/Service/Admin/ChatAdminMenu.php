@@ -26,7 +26,7 @@ class ChatAdminMenu extends AbstractService
     {
         add_menu_page(
             __( 'Dialog Studio', 'DialogStudio' ),
-            __( 'Dialog', 'DialogStudio' ),
+            __( 'استدیو دیالوگ', 'DialogStudio' ),
             'manage_options',
             self::MENU_SLUG,
             [ $this, 'renderMenuPage' ],

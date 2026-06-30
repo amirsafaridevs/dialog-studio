@@ -10,6 +10,8 @@ export const browserTools = [
   'preview_navigate',
   'preview_reload',
   'preview_get_html',
+  'preview_get_loaded_assets',
+  'preview_get_element_styles',
 ];
 
 export class BrowserToolExecutor {
@@ -37,6 +39,10 @@ export class BrowserToolExecutor {
           return await controller.reload(options);
         case 'preview_get_html':
           return await controller.getHtml(args, options);
+        case 'preview_get_loaded_assets':
+          return await controller.getLoadedAssets(options);
+        case 'preview_get_element_styles':
+          return await controller.getElementStyles(args, options);
         default:
           throw new Error(`Unknown browser tool: ${toolName}`);
       }
