@@ -1,6 +1,6 @@
 {
   ".claude/settings.json": {
-    "mtime": 1782647439.368822,
+    "mtime": 1782888029.8257709,
     "ast_hash": "7bf81dca0376bde3a32244b82bc7cbc0",
     "semantic_hash": "7bf81dca0376bde3a32244b82bc7cbc0"
   },
@@ -10,424 +10,104 @@
     "semantic_hash": "ebc6b28fced52d82bb608f2483a4bec7"
   },
   "agent/dialog-studio.php": {
-    "mtime": 1782732055.6309035,
+    "mtime": 1782888029.841724,
     "ast_hash": "ce18cb8b29774da12bc51622667c48d9",
     "semantic_hash": "ce18cb8b29774da12bc51622667c48d9"
   },
   "assets/chat/chat.js": {
-    "mtime": 1782744329.728401,
-    "ast_hash": "12663e64aa7255f5a4d82d5521172a2c",
-    "semantic_hash": "12663e64aa7255f5a4d82d5521172a2c"
+    "mtime": 1782928469.7718098,
+    "ast_hash": "24e463d9406f8202cb74543c101bc257",
+    "semantic_hash": ""
   },
   "assets/preview/preview-bridge.js": {
-    "mtime": 1782657148.8462057,
+    "mtime": 1782888029.8639736,
     "ast_hash": "055d94ce06a31e9b6faeb79a8301d9ae",
     "semantic_hash": "055d94ce06a31e9b6faeb79a8301d9ae"
   },
   "build-release.sh": {
-    "mtime": 1782647439.393824,
+    "mtime": 1782888029.8659785,
     "ast_hash": "75bb1ad5f383dbd9c1d7a5e94ee8ba47",
     "semantic_hash": "75bb1ad5f383dbd9c1d7a5e94ee8ba47"
   },
   "composer.json": {
-    "mtime": 1782740925.4636164,
+    "mtime": 1782888029.8679717,
     "ast_hash": "7c571bff6613050529873c046a9a56a4",
     "semantic_hash": "7c571bff6613050529873c046a9a56a4"
   },
   "dialog-studio.php": {
-    "mtime": 1782740940.2032342,
-    "ast_hash": "b5c3dbfa5715fea1b189fe8bf9c96262",
-    "semantic_hash": "b5c3dbfa5715fea1b189fe8bf9c96262"
+    "mtime": 1782888029.8699777,
+    "ast_hash": "8a434c52558168a7fcd2da56d7cceb38",
+    "semantic_hash": ""
   },
   "dtm-chat-da1649fe-2026-06-29.json": {
-    "mtime": 1782730721.2999072,
-    "ast_hash": "e1a460e7c7eeaff297fb893295333215",
-    "semantic_hash": "e1a460e7c7eeaff297fb893295333215"
-  },
-  "final/dialog-studio/agent/dialog-studio.php": {
-    "mtime": 1782732055.6309035,
-    "ast_hash": "ce18cb8b29774da12bc51622667c48d9",
-    "semantic_hash": "ce18cb8b29774da12bc51622667c48d9"
-  },
-  "final/dialog-studio/assets/chat/chat.js": {
-    "mtime": 1782741793.9983735,
-    "ast_hash": "8873253e983632e0e475cd9793ce137f",
-    "semantic_hash": "8873253e983632e0e475cd9793ce137f"
-  },
-  "final/dialog-studio/assets/preview/preview-bridge.js": {
-    "mtime": 1782657148.8462057,
-    "ast_hash": "055d94ce06a31e9b6faeb79a8301d9ae",
-    "semantic_hash": "055d94ce06a31e9b6faeb79a8301d9ae"
-  },
-  "final/dialog-studio/dialog-studio.php": {
-    "mtime": 1782740940.2032342,
-    "ast_hash": "b5c3dbfa5715fea1b189fe8bf9c96262",
-    "semantic_hash": "b5c3dbfa5715fea1b189fe8bf9c96262"
-  },
-  "final/dialog-studio/src/App/App.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "23c1bcca6ec262f52adb96d610ee9b38",
-    "semantic_hash": "23c1bcca6ec262f52adb96d610ee9b38"
-  },
-  "final/dialog-studio/src/Contract/Abstract/AbstractMigration.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "98b36d8fd1842d3507b5f3e3c532f126",
-    "semantic_hash": "98b36d8fd1842d3507b5f3e3c532f126"
-  },
-  "final/dialog-studio/src/Contract/Abstract/AbstractModel.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "214f74e4a12645aad2c99716b9cbf649",
-    "semantic_hash": "214f74e4a12645aad2c99716b9cbf649"
-  },
-  "final/dialog-studio/src/Contract/Abstract/AbstractRepository.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "0d75cae37f06b2fb913935c3abbbc491",
-    "semantic_hash": "0d75cae37f06b2fb913935c3abbbc491"
-  },
-  "final/dialog-studio/src/Contract/Abstract/AbstractService.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "7deacee9558242151762d8d5f1a5bccb",
-    "semantic_hash": "7deacee9558242151762d8d5f1a5bccb"
-  },
-  "final/dialog-studio/src/Contract/Abstract/AbstractServiceProvider.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "aa58c1f0eccc2c05733de829693325c1",
-    "semantic_hash": "aa58c1f0eccc2c05733de829693325c1"
-  },
-  "final/dialog-studio/src/Contract/Abstract/AbstractSingleton.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "deafd999fe74991d735ae3c78156249c",
-    "semantic_hash": "deafd999fe74991d735ae3c78156249c"
-  },
-  "final/dialog-studio/src/Contract/Interface/ApplicationInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "3024d86e12843c4371343d83c6bb7562",
-    "semantic_hash": "3024d86e12843c4371343d83c6bb7562"
-  },
-  "final/dialog-studio/src/Contract/Interface/ContainerInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "33982f4d354f83d7a1b9e06a23488395",
-    "semantic_hash": "33982f4d354f83d7a1b9e06a23488395"
-  },
-  "final/dialog-studio/src/Contract/Interface/MiddlewareInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "ae2758105d2d680bcbe2a16e38851502",
-    "semantic_hash": "ae2758105d2d680bcbe2a16e38851502"
-  },
-  "final/dialog-studio/src/Contract/Interface/MigrationInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "05e7215a138c7bc276a75ed478d98dbd",
-    "semantic_hash": "05e7215a138c7bc276a75ed478d98dbd"
-  },
-  "final/dialog-studio/src/Contract/Interface/ModelInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "655dee7260beea1f2b1888b9fa16d625",
-    "semantic_hash": "655dee7260beea1f2b1888b9fa16d625"
-  },
-  "final/dialog-studio/src/Contract/Interface/RepositoryInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "4c6f9a01fb3fd09eef898c399b589b9e",
-    "semantic_hash": "4c6f9a01fb3fd09eef898c399b589b9e"
-  },
-  "final/dialog-studio/src/Contract/Interface/ServiceInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "507d215d5d55afd396a6fe2231155c4b",
-    "semantic_hash": "507d215d5d55afd396a6fe2231155c4b"
-  },
-  "final/dialog-studio/src/Contract/Interface/ServiceProviderInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "88922a852f5d230b4a70bbd4fa242af4",
-    "semantic_hash": "88922a852f5d230b4a70bbd4fa242af4"
-  },
-  "final/dialog-studio/src/Contract/Interface/ServiceRegistryInterface.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "bbea4daefafafcd99b6acae46f97aa38",
-    "semantic_hash": "bbea4daefafafcd99b6acae46f97aa38"
-  },
-  "final/dialog-studio/src/Core/Application.php": {
-    "mtime": 1782054458.160103,
-    "ast_hash": "d1e65289a6453732d10ebba30c58d1f8",
-    "semantic_hash": "d1e65289a6453732d10ebba30c58d1f8"
-  },
-  "final/dialog-studio/src/Core/Container.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "a7ebdb775805c640e359c5467fa6e3a5",
-    "semantic_hash": "a7ebdb775805c640e359c5467fa6e3a5"
-  },
-  "final/dialog-studio/src/Core/DB.php": {
-    "mtime": 1782054458.160103,
-    "ast_hash": "b47d732ba2a9fba58d73b343d95a0a36",
-    "semantic_hash": "b47d732ba2a9fba58d73b343d95a0a36"
-  },
-  "final/dialog-studio/src/Core/Database/Blueprint.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "fc99b19c2cf8d123179a9c024b658941",
-    "semantic_hash": "fc99b19c2cf8d123179a9c024b658941"
-  },
-  "final/dialog-studio/src/Core/Database/ModelQueryBuilder.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "683e272ea43db0799c6d331c6aaadc9c",
-    "semantic_hash": "683e272ea43db0799c6d331c6aaadc9c"
-  },
-  "final/dialog-studio/src/Core/Database/Paginator.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "b83c79b6b376926313832872581d003b",
-    "semantic_hash": "b83c79b6b376926313832872581d003b"
-  },
-  "final/dialog-studio/src/Core/Database/QueryBuilder.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "7543cce08c201e31473036dd35bd73da",
-    "semantic_hash": "7543cce08c201e31473036dd35bd73da"
-  },
-  "final/dialog-studio/src/Core/Database/RepositoryQueryBuilder.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "962cada170eb4fae6ea4f73487a628b2",
-    "semantic_hash": "962cada170eb4fae6ea4f73487a628b2"
-  },
-  "final/dialog-studio/src/Core/Database/SchemaBuilder.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "8e2602583a6ddda0113bf27846b89d29",
-    "semantic_hash": "8e2602583a6ddda0113bf27846b89d29"
-  },
-  "final/dialog-studio/src/Core/ServiceRegistry.php": {
-    "mtime": 1782054458.160103,
-    "ast_hash": "d8fdfbf8670dbb520c53c22786551afd",
-    "semantic_hash": "d8fdfbf8670dbb520c53c22786551afd"
-  },
-  "final/dialog-studio/src/Exception/ThemeIndexingException.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "e77caee822762c6a13fbdf7715075a8e",
-    "semantic_hash": "e77caee822762c6a13fbdf7715075a8e"
-  },
-  "final/dialog-studio/src/Helper/RecordBuffer.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "f4f7056dfc784aa43ea432a0388896d5",
-    "semantic_hash": "f4f7056dfc784aa43ea432a0388896d5"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000001_create_migrations_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "eafef32f95f63ce002f8655e7b83e293",
-    "semantic_hash": "eafef32f95f63ce002f8655e7b83e293"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000002_create_chats_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "15d70580639bc2e5f4598fab7456843e",
-    "semantic_hash": "15d70580639bc2e5f4598fab7456843e"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000003_create_messages_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "a9fa5691c71e41e1eed6374c08315133",
-    "semantic_hash": "a9fa5691c71e41e1eed6374c08315133"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000004_create_checkpoints_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "33bcc57d23fa482a571ee47f7ab37fc2",
-    "semantic_hash": "33bcc57d23fa482a571ee47f7ab37fc2"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000005_create_memory_entries_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "e16c6c190ef1b7767c000086ea94af04",
-    "semantic_hash": "e16c6c190ef1b7767c000086ea94af04"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000006_create_logs_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "7f76a69c24dd2f85cb818703d2190996",
-    "semantic_hash": "7f76a69c24dd2f85cb818703d2190996"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000007_create_api_requests_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "839f8fd35b0138a8577348f9d58c9b46",
-    "semantic_hash": "839f8fd35b0138a8577348f9d58c9b46"
-  },
-  "final/dialog-studio/src/Migration/2026_06_14_000008_create_changes_table.php": {
-    "mtime": 1782054458.162102,
-    "ast_hash": "c804cf388ef224dabd7010c3b05ed3dc",
-    "semantic_hash": "c804cf388ef224dabd7010c3b05ed3dc"
-  },
-  "final/dialog-studio/src/Provider/AdminServiceProvider.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "7a7e9dc518f5c02cecea02ad0211741d",
-    "semantic_hash": "7a7e9dc518f5c02cecea02ad0211741d"
-  },
-  "final/dialog-studio/src/Provider/DialogServiceProvider.php": {
-    "mtime": 1782646945.624225,
-    "ast_hash": "6502b82e1c1ea8aeba23f1a082b8f3fa",
-    "semantic_hash": "6502b82e1c1ea8aeba23f1a082b8f3fa"
-  },
-  "final/dialog-studio/src/Provider/FrontendServiceProvider.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "13309bdb1e8b45017d61627efcba4f35",
-    "semantic_hash": "13309bdb1e8b45017d61627efcba4f35"
-  },
-  "final/dialog-studio/src/Provider/RuntimeServiceProvider.php": {
-    "mtime": 1782054458.1611018,
-    "ast_hash": "e12228e1e7ef6c6ea400f6ad67f9613e",
-    "semantic_hash": "e12228e1e7ef6c6ea400f6ad67f9613e"
-  },
-  "final/dialog-studio/src/Service/Admin/ChatAdminMenu.php": {
-    "mtime": 1782650817.7439759,
-    "ast_hash": "710086f596676851cc09c4193fa2f0cc",
-    "semantic_hash": "710086f596676851cc09c4193fa2f0cc"
-  },
-  "final/dialog-studio/src/Service/Admin/PageApiService.php": {
-    "mtime": 1782054458.160103,
-    "ast_hash": "6c4cab543b4bd327210cf93a7b616b33",
-    "semantic_hash": "6c4cab543b4bd327210cf93a7b616b33"
-  },
-  "final/dialog-studio/src/Service/Dialog/DialogAssetLoader.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "5194caa63d19ad13076b541413845f93",
-    "semantic_hash": "5194caa63d19ad13076b541413845f93"
-  },
-  "final/dialog-studio/src/Service/Dialog/DialogChildThemeService.php": {
-    "mtime": 1782646945.624225,
-    "ast_hash": "6d074dfc8c75456679e7948409070ea8",
-    "semantic_hash": "6d074dfc8c75456679e7948409070ea8"
-  },
-  "final/dialog-studio/src/Service/Dialog/DialogModuleLoader.php": {
-    "mtime": 1782054458.160103,
-    "ast_hash": "aad890c72195542e12f7d622fcc98c2f",
-    "semantic_hash": "aad890c72195542e12f7d622fcc98c2f"
-  },
-  "final/dialog-studio/src/Service/Dialog/DialogPath.php": {
-    "mtime": 1782646945.624225,
-    "ast_hash": "57955964c2e85e00a6254fe8d02ceb63",
-    "semantic_hash": "57955964c2e85e00a6254fe8d02ceb63"
-  },
-  "final/dialog-studio/src/Service/Dialog/DialogRuntimeService.php": {
-    "mtime": 1782646945.624225,
-    "ast_hash": "a6c4464423e7c7632d24598ec6888f13",
-    "semantic_hash": "a6c4464423e7c7632d24598ec6888f13"
-  },
-  "final/dialog-studio/src/Service/Dialog/DialogWorkspaceService.php": {
-    "mtime": 1782646945.6392264,
-    "ast_hash": "2809b1cd0c9717605457ded1c8a37160",
-    "semantic_hash": "2809b1cd0c9717605457ded1c8a37160"
-  },
-  "final/dialog-studio/src/Service/Frontend/PreviewBridgeService.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "274d5c877851c9b3e738a5a9df3e47a0",
-    "semantic_hash": "274d5c877851c9b3e738a5a9df3e47a0"
-  },
-  "final/dialog-studio/src/Service/Indexing/CodeGraph.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "38bf3bf8bf74108b4a6fe2007d0c944b",
-    "semantic_hash": "38bf3bf8bf74108b4a6fe2007d0c944b"
-  },
-  "final/dialog-studio/src/Service/Indexing/CssSymbolExtractor.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "ce84830d0ae0a32f893f9e8bacab1a9a",
-    "semantic_hash": "ce84830d0ae0a32f893f9e8bacab1a9a"
-  },
-  "final/dialog-studio/src/Service/Indexing/JsSymbolExtractor.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "be886d9db1f96d9cf72a1bc77d634dd9",
-    "semantic_hash": "be886d9db1f96d9cf72a1bc77d634dd9"
-  },
-  "final/dialog-studio/src/Service/Indexing/SymbolNameResolver.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "5e36114046f0ef7ba6dd241844040ed3",
-    "semantic_hash": "5e36114046f0ef7ba6dd241844040ed3"
-  },
-  "final/dialog-studio/src/Service/Indexing/SymbolRegistry.php": {
-    "mtime": 1782054458.159102,
-    "ast_hash": "c23e6c3fc84f9e7971ca8e10b245d4e8",
-    "semantic_hash": "c23e6c3fc84f9e7971ca8e10b245d4e8"
-  },
-  "final/dialog-studio/src/Service/Indexing/ThemeAstVisitor.php": {
-    "mtime": 1782054458.158103,
-    "ast_hash": "02111f761f8629b188975bf5e1e1c53f",
-    "semantic_hash": "02111f761f8629b188975bf5e1e1c53f"
-  },
-  "final/dialog-studio/src/Service/Indexing/ThemeCodeIndexer.php": {
-    "mtime": 1782647439.4358163,
-    "ast_hash": "6974a4196be953c5610db0265f012726",
-    "semantic_hash": "6974a4196be953c5610db0265f012726"
-  },
-  "final/dialog-studio/src/Service/Indexing/ThemeFileScanner.php": {
-    "mtime": 1782647439.436818,
-    "ast_hash": "456ff8f21a95650686e899b822b230ce",
-    "semantic_hash": "456ff8f21a95650686e899b822b230ce"
-  },
-  "final/dialog-studio/src/Service/Runtime/MuPluginService.php": {
-    "mtime": 1782054978.8347435,
-    "ast_hash": "af9a92dbd31d0d5215b19552f3de3971",
-    "semantic_hash": "af9a92dbd31d0d5215b19552f3de3971"
-  },
-  "final/dialog-studio/src/Service/Validation/CodeValidator.php": {
-    "mtime": 1782054458.158103,
-    "ast_hash": "6adffa5dc43f5f8d8d8519c43be8674c",
-    "semantic_hash": "6adffa5dc43f5f8d8d8519c43be8674c"
-  },
-  "final/dialog-studio/view/ChatPage/chat.php": {
-    "mtime": 1782647439.4378192,
-    "ast_hash": "8484c6acab4046af5f91ac522ba4beb0",
-    "semantic_hash": "8484c6acab4046af5f91ac522ba4beb0"
+    "mtime": 1782925239.610502,
+    "ast_hash": "88bf834413315e8cabeadbab5b6c1191",
+    "semantic_hash": ""
   },
   "frontend/src/App.vue": {
-    "mtime": 1782656486.1241293,
+    "mtime": 1782888029.8805077,
     "ast_hash": "42e9c314311cb05bfecf7d0d5daac83d",
     "semantic_hash": "42e9c314311cb05bfecf7d0d5daac83d"
   },
   "frontend/src/agent/agentLoop.js": {
-    "mtime": 1782733855.1535754,
-    "ast_hash": "d63331c997a04c75d3b39c0ec87823f5",
-    "semantic_hash": "d63331c997a04c75d3b39c0ec87823f5"
+    "mtime": 1782928414.2914171,
+    "ast_hash": "77b68b32bc9810150d183db03666b8ab",
+    "semantic_hash": ""
   },
   "frontend/src/agent/contextManager.js": {
-    "mtime": 1782729455.509303,
+    "mtime": 1782888029.8980713,
     "ast_hash": "44add2b5e7e9753295e28c3fcd3f4b6e",
     "semantic_hash": "44add2b5e7e9753295e28c3fcd3f4b6e"
   },
   "frontend/src/agent/providers/llmProvider.js": {
-    "mtime": 1782655858.3713975,
+    "mtime": 1782888029.8990674,
     "ast_hash": "2fdb136c4bf119d415f1b2c185657c96",
     "semantic_hash": "2fdb136c4bf119d415f1b2c185657c96"
   },
   "frontend/src/agent/scratchpad.js": {
-    "mtime": 1782728838.626494,
+    "mtime": 1782888029.900064,
     "ast_hash": "bdb52a159864f2c3f165cd3a8f0f937b",
     "semantic_hash": "bdb52a159864f2c3f165cd3a8f0f937b"
   },
   "frontend/src/agent/skills/registry.js": {
-    "mtime": 1782733529.981922,
+    "mtime": 1782888029.9019883,
     "ast_hash": "a83d9b0b26c082a76ec75783fa553a5e",
     "semantic_hash": "a83d9b0b26c082a76ec75783fa553a5e"
   },
   "frontend/src/agent/system/core.js": {
-    "mtime": 1782733402.0377264,
+    "mtime": 1782888029.9019883,
     "ast_hash": "55aeb1dfd2f597658e3a4ea3a2ec31e8",
     "semantic_hash": "55aeb1dfd2f597658e3a4ea3a2ec31e8"
   },
   "frontend/src/agent/system/defaultCustomPrompt.js": {
-    "mtime": 1782729135.1935384,
-    "ast_hash": "b4d7468f63dbbf803fa7b05aa7af628d",
-    "semantic_hash": "b4d7468f63dbbf803fa7b05aa7af628d"
+    "mtime": 1782888029.904006,
+    "ast_hash": "9bc621c8f9e56ea4c377e27739532e61",
+    "semantic_hash": ""
   },
   "frontend/src/agent/tools/browser.js": {
-    "mtime": 1782657213.4581,
-    "ast_hash": "420b817d15ea67112271bf81e1764923",
-    "semantic_hash": "420b817d15ea67112271bf81e1764923"
+    "mtime": 1782888029.9050105,
+    "ast_hash": "ef38d2e450e47e804ba23f4831a2d52d",
+    "semantic_hash": ""
   },
   "frontend/src/agent/tools/definitions.js": {
-    "mtime": 1782732111.9632857,
+    "mtime": 1782888029.9060156,
     "ast_hash": "d80c40d543150ce17b205c46c30e3077",
     "semantic_hash": "d80c40d543150ce17b205c46c30e3077"
   },
   "frontend/src/agent/tools/filesystem.js": {
-    "mtime": 1782726196.9136455,
+    "mtime": 1782888029.908007,
     "ast_hash": "11531dff6e989c11b3ba23822cfa4013",
     "semantic_hash": "11531dff6e989c11b3ba23822cfa4013"
   },
   "frontend/src/agent/tools/index.js": {
-    "mtime": 1782728831.733044,
+    "mtime": 1782888029.9090343,
     "ast_hash": "1ef60271c8b20657789d90f1279ddc11",
     "semantic_hash": "1ef60271c8b20657789d90f1279ddc11"
   },
   "frontend/src/components/ApiKeyModal.vue": {
-    "mtime": 1782744288.175044,
-    "ast_hash": "45967f3f6e71c0350ba07254dced5522",
-    "semantic_hash": "45967f3f6e71c0350ba07254dced5522"
+    "mtime": 1782888029.9100149,
+    "ast_hash": "3ad92ba76c582e49591d93e611bdea61",
+    "semantic_hash": ""
   },
   "frontend/src/components/BrowserDevTools.vue": {
     "mtime": 1781426483.072257,
@@ -435,7 +115,7 @@
     "semantic_hash": "2b71c262d142e8b0228d2b1601b7db6a"
   },
   "frontend/src/components/BrowserPanel.vue": {
-    "mtime": 1782657398.6890912,
+    "mtime": 1782888029.9119987,
     "ast_hash": "f1cfbba5639ec9171aea4bdb309c9666",
     "semantic_hash": "f1cfbba5639ec9171aea4bdb309c9666"
   },
@@ -445,14 +125,14 @@
     "semantic_hash": "a0568771d54a0fde0ccc58204561dd82"
   },
   "frontend/src/components/ChatContinueBanner.vue": {
-    "mtime": 1782647439.4178193,
+    "mtime": 1782888029.9129987,
     "ast_hash": "9b9879c7f48232c90a85ec6e53614fda",
     "semantic_hash": "9b9879c7f48232c90a85ec6e53614fda"
   },
   "frontend/src/components/ChatCustomPrompt.vue": {
-    "mtime": 1782648134.9331963,
-    "ast_hash": "e006467fb84d9462dc15a232d3457ff6",
-    "semantic_hash": "e006467fb84d9462dc15a232d3457ff6"
+    "mtime": 1782888029.9150093,
+    "ast_hash": "cd1490d5543273c2d30f3c724bd39fee",
+    "semantic_hash": ""
   },
   "frontend/src/components/ChatEmptyState.vue": {
     "mtime": 1781420471.5313451,
@@ -460,12 +140,12 @@
     "semantic_hash": "2b0443fcee0f50233ea4a8c4f1245598"
   },
   "frontend/src/components/ChatHeader.vue": {
-    "mtime": 1782740119.7885928,
+    "mtime": 1782888029.9159975,
     "ast_hash": "719e821751adfb7abe83adef7bb343d8",
     "semantic_hash": "719e821751adfb7abe83adef7bb343d8"
   },
   "frontend/src/components/ChatInput.vue": {
-    "mtime": 1782656438.2134354,
+    "mtime": 1782888029.917006,
     "ast_hash": "0264868a1a1fdc21ca4f0e344497fe02",
     "semantic_hash": "0264868a1a1fdc21ca4f0e344497fe02"
   },
@@ -480,12 +160,12 @@
     "semantic_hash": "68bf21d5de3db854b44d39fb17e5b975"
   },
   "frontend/src/components/ChatSettings.vue": {
-    "mtime": 1782650376.0302398,
+    "mtime": 1782888029.9189994,
     "ast_hash": "2ae53b9aa32e35f5aa8a1f910aa36990",
     "semantic_hash": "2ae53b9aa32e35f5aa8a1f910aa36990"
   },
   "frontend/src/components/ChatSidebar.vue": {
-    "mtime": 1782656457.0630646,
+    "mtime": 1782888029.9200048,
     "ast_hash": "50f405c4c981693479905307e66e77de",
     "semantic_hash": "50f405c4c981693479905307e66e77de"
   },
@@ -515,9 +195,9 @@
     "semantic_hash": "decb55e89710ce7b6b80dd51b2f89d1b"
   },
   "frontend/src/composables/useAgent.js": {
-    "mtime": 1782647439.422818,
-    "ast_hash": "1095222927bcd222dd353c7a97b3c0d1",
-    "semantic_hash": "1095222927bcd222dd353c7a97b3c0d1"
+    "mtime": 1782926487.400018,
+    "ast_hash": "d7b2440672e72f1197f84b4c3bd6fd3c",
+    "semantic_hash": ""
   },
   "frontend/src/composables/useConnectionMonitor.js": {
     "mtime": 1781539681.1872513,
@@ -525,14 +205,14 @@
     "semantic_hash": "8cbee98ce7dfdde64403044082cbd9a7"
   },
   "frontend/src/composables/useElementPicker.js": {
-    "mtime": 1782656361.3722198,
-    "ast_hash": "a25895f3761a4caaffe10e145fb70fcf",
-    "semantic_hash": "a25895f3761a4caaffe10e145fb70fcf"
+    "mtime": 1782888029.923006,
+    "ast_hash": "28a2d4f72843b611d8e5d241ca9f65f0",
+    "semantic_hash": ""
   },
   "frontend/src/composables/usePreviewDevTools.js": {
-    "mtime": 1782656012.9921784,
-    "ast_hash": "ed8511e4fb8f2a7891503ccdd4d468ee",
-    "semantic_hash": "ed8511e4fb8f2a7891503ccdd4d468ee"
+    "mtime": 1782888029.9240038,
+    "ast_hash": "aa3709b31b69d484c800322f2da44e71",
+    "semantic_hash": ""
   },
   "frontend/src/main.js": {
     "mtime": 1781416235.510043,
@@ -540,14 +220,14 @@
     "semantic_hash": "8aa1e66d59db5c464ed3880e541d65d5"
   },
   "frontend/src/polyfills/async_hooks.js": {
-    "mtime": 1782647439.4248164,
+    "mtime": 1782888029.9249985,
     "ast_hash": "a26b2aa9b74c7e9e8172e4d7721e474d",
     "semantic_hash": "a26b2aa9b74c7e9e8172e4d7721e474d"
   },
   "frontend/src/polyfills/tiktoken.js": {
-    "mtime": 1782654742.8947382,
-    "ast_hash": "7173587f330838a4ec3d14e5d0c4efb7",
-    "semantic_hash": "7173587f330838a4ec3d14e5d0c4efb7"
+    "mtime": 1782888029.9259987,
+    "ast_hash": "947e57aa203d9848deacd9d61d07f96a",
+    "semantic_hash": ""
   },
   "frontend/src/utils/abortSignal.js": {
     "mtime": 1781773332.832906,
@@ -555,7 +235,7 @@
     "semantic_hash": "6f2369ffcb0e46acb4fc6f0eeb926917"
   },
   "frontend/src/utils/apiClient.js": {
-    "mtime": 1782647439.4258165,
+    "mtime": 1782888029.9280062,
     "ast_hash": "fadb63621f5898a0652b578efb11248b",
     "semantic_hash": "fadb63621f5898a0652b578efb11248b"
   },
@@ -565,7 +245,7 @@
     "semantic_hash": "fc9cc268fcf12f56ad620b101366e670"
   },
   "frontend/src/utils/chatStorage.js": {
-    "mtime": 1782740126.1082647,
+    "mtime": 1782888029.9289975,
     "ast_hash": "a397b6b6a5755ba4e66a2a3f2bd35f66",
     "semantic_hash": "a397b6b6a5755ba4e66a2a3f2bd35f66"
   },
@@ -575,12 +255,12 @@
     "semantic_hash": "fdd5d246224fdf40273ccf6758ad9c50"
   },
   "frontend/src/utils/dtmConfig.js": {
-    "mtime": 1782646945.624225,
+    "mtime": 1782888029.9300685,
     "ast_hash": "a9409db8caecf4ec85361dfd6168227d",
     "semantic_hash": "a9409db8caecf4ec85361dfd6168227d"
   },
   "frontend/src/utils/elementTag.js": {
-    "mtime": 1782740266.7103488,
+    "mtime": 1782888029.9300685,
     "ast_hash": "054b82cafc2abb1872eb6b321ec60486",
     "semantic_hash": "054b82cafc2abb1872eb6b321ec60486"
   },
@@ -590,7 +270,7 @@
     "semantic_hash": "49104e3c700ed24ea751698223311a0d"
   },
   "frontend/src/utils/llmProviders.js": {
-    "mtime": 1782647439.4278173,
+    "mtime": 1782888029.9300685,
     "ast_hash": "22efb3bbce432c07b6782075e8bb1da9",
     "semantic_hash": "22efb3bbce432c07b6782075e8bb1da9"
   },
@@ -615,19 +295,19 @@
     "semantic_hash": "46820696d56ad94be2bf0de09c764cdb"
   },
   "frontend/src/utils/settingsApi.js": {
-    "mtime": 1782647439.428816,
+    "mtime": 1782888029.9300685,
     "ast_hash": "6843a52763c95dd6508ba99356523a99",
     "semantic_hash": "6843a52763c95dd6508ba99356523a99"
   },
   "frontend/src/utils/toolDisplay.js": {
-    "mtime": 1782726347.8680434,
+    "mtime": 1782888029.9300685,
     "ast_hash": "7faee0625daa5f4a99972222e6c134a1",
     "semantic_hash": "7faee0625daa5f4a99972222e6c134a1"
   },
   "package.json": {
-    "mtime": 1782647439.4328177,
-    "ast_hash": "3eceedd8778476c77a922003e443eed4",
-    "semantic_hash": "3eceedd8778476c77a922003e443eed4"
+    "mtime": 1782928028.6606944,
+    "ast_hash": "4574d11590e5734746becc100d57a4c3",
+    "semantic_hash": ""
   },
   "src/App/App.php": {
     "mtime": 1782054458.1611018,
@@ -815,7 +495,7 @@
     "semantic_hash": "7a7e9dc518f5c02cecea02ad0211741d"
   },
   "src/Provider/DialogServiceProvider.php": {
-    "mtime": 1782646945.624225,
+    "mtime": 1782888029.945096,
     "ast_hash": "6502b82e1c1ea8aeba23f1a082b8f3fa",
     "semantic_hash": "6502b82e1c1ea8aeba23f1a082b8f3fa"
   },
@@ -830,7 +510,7 @@
     "semantic_hash": "e12228e1e7ef6c6ea400f6ad67f9613e"
   },
   "src/Service/Admin/ChatAdminMenu.php": {
-    "mtime": 1782650817.7439759,
+    "mtime": 1782888029.945096,
     "ast_hash": "710086f596676851cc09c4193fa2f0cc",
     "semantic_hash": "710086f596676851cc09c4193fa2f0cc"
   },
@@ -845,7 +525,7 @@
     "semantic_hash": "5194caa63d19ad13076b541413845f93"
   },
   "src/Service/Dialog/DialogChildThemeService.php": {
-    "mtime": 1782646945.624225,
+    "mtime": 1782888029.960068,
     "ast_hash": "6d074dfc8c75456679e7948409070ea8",
     "semantic_hash": "6d074dfc8c75456679e7948409070ea8"
   },
@@ -855,17 +535,17 @@
     "semantic_hash": "aad890c72195542e12f7d622fcc98c2f"
   },
   "src/Service/Dialog/DialogPath.php": {
-    "mtime": 1782646945.624225,
+    "mtime": 1782888029.960068,
     "ast_hash": "57955964c2e85e00a6254fe8d02ceb63",
     "semantic_hash": "57955964c2e85e00a6254fe8d02ceb63"
   },
   "src/Service/Dialog/DialogRuntimeService.php": {
-    "mtime": 1782646945.624225,
+    "mtime": 1782888029.960068,
     "ast_hash": "a6c4464423e7c7632d24598ec6888f13",
     "semantic_hash": "a6c4464423e7c7632d24598ec6888f13"
   },
   "src/Service/Dialog/DialogWorkspaceService.php": {
-    "mtime": 1782646945.6392264,
+    "mtime": 1782888029.960068,
     "ast_hash": "2809b1cd0c9717605457ded1c8a37160",
     "semantic_hash": "2809b1cd0c9717605457ded1c8a37160"
   },
@@ -905,12 +585,12 @@
     "semantic_hash": "02111f761f8629b188975bf5e1e1c53f"
   },
   "src/Service/Indexing/ThemeCodeIndexer.php": {
-    "mtime": 1782647439.4358163,
+    "mtime": 1782888029.960068,
     "ast_hash": "6974a4196be953c5610db0265f012726",
     "semantic_hash": "6974a4196be953c5610db0265f012726"
   },
   "src/Service/Indexing/ThemeFileScanner.php": {
-    "mtime": 1782647439.436818,
+    "mtime": 1782888029.960068,
     "ast_hash": "456ff8f21a95650686e899b822b230ce",
     "semantic_hash": "456ff8f21a95650686e899b822b230ce"
   },
@@ -930,32 +610,32 @@
     "semantic_hash": "848e9155ade758fd7ec5c3fbe977297b"
   },
   "stubs/page-shell.php": {
-    "mtime": 1782646945.6413202,
+    "mtime": 1782888029.960068,
     "ast_hash": "418656d283127d0ed9598bcf1f843a35",
     "semantic_hash": "418656d283127d0ed9598bcf1f843a35"
   },
   "view/ChatPage/chat.php": {
-    "mtime": 1782647439.4378192,
+    "mtime": 1782888029.960068,
     "ast_hash": "8484c6acab4046af5f91ac522ba4beb0",
     "semantic_hash": "8484c6acab4046af5f91ac522ba4beb0"
   },
   "vite.config.js": {
-    "mtime": 1782724989.6734958,
-    "ast_hash": "ef87307d9e2b5bb3239d8c6749f09a8d",
-    "semantic_hash": "ef87307d9e2b5bb3239d8c6749f09a8d"
+    "mtime": 1782888029.960068,
+    "ast_hash": "c613e326f80bb8d912a514e1f2b3e6df",
+    "semantic_hash": ""
   },
   ".github/copilot-instructions.md": {
-    "mtime": 1782647439.3708231,
+    "mtime": 1782888029.8257709,
     "ast_hash": "2b23503628bf2ec71d067a85ca8948ab",
     "semantic_hash": "2b23503628bf2ec71d067a85ca8948ab"
   },
   "CLAUDE.md": {
-    "mtime": 1782647439.3718235,
+    "mtime": 1782888029.8257709,
     "ast_hash": "8a6643a420fdad6bfb583523bc6cef16",
     "semantic_hash": "8a6643a420fdad6bfb583523bc6cef16"
   },
   "chat_dump.txt": {
-    "mtime": 1782725835.6183927,
+    "mtime": 1782925239.604481,
     "ast_hash": "3f6af110887b4897d12f54643f58f072",
     "semantic_hash": "3f6af110887b4897d12f54643f58f072"
   },
@@ -964,9 +644,29 @@
     "ast_hash": "cd736a5cee2f7c6190cac5ded01f9285",
     "semantic_hash": "cd736a5cee2f7c6190cac5ded01f9285"
   },
-  "final/dialog-studio/assets/admin/menu-icon.svg": {
-    "mtime": 1781709558.7629504,
-    "ast_hash": "cd736a5cee2f7c6190cac5ded01f9285",
-    "semantic_hash": "cd736a5cee2f7c6190cac5ded01f9285"
+  "assets/chat/assets/agent-CitMgb1d.js": {
+    "mtime": 1782928469.7718098,
+    "ast_hash": "ecc0d5a1384b4c91c6decfa2124bdf78",
+    "semantic_hash": ""
+  },
+  "frontend/src/agent/agentLoop copy.js": {
+    "mtime": 1782925239.6124797,
+    "ast_hash": "d63331c997a04c75d3b39c0ec87823f5",
+    "semantic_hash": ""
+  },
+  "frontend/src/agent/nodes/planner.js": {
+    "mtime": 1782928440.3804252,
+    "ast_hash": "cf8f8960ed1a4d14e00178831e7a4bc7",
+    "semantic_hash": ""
+  },
+  "frontend/src/agent/nodes/quickAnalyze.js": {
+    "mtime": 1782927032.1002717,
+    "ast_hash": "aee3032b0e57a739823c537d5c3e5eb6",
+    "semantic_hash": ""
+  },
+  "frontend/src/agent/providers/agentsRuntime.js": {
+    "mtime": 1782928075.8318107,
+    "ast_hash": "555207ab9abe9c35ca79f3bb0b71a5c1",
+    "semantic_hash": ""
   }
 }

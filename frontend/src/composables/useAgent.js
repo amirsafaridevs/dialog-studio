@@ -4,7 +4,7 @@
 
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { AIMessage, HumanMessage } from '@langchain/core/messages';
-import runAgentLoop, { repairInterruptedToolCalls } from '../agent/agentLoop.js';
+import runAgentLoop from '../agent/agentLoop.js';
 import {
   repairMessageSequence,
   sanitizeIncompleteToolChains,
@@ -196,7 +196,9 @@ export function useAgent() {
   }
 
   function prepareMessagesForResume() {
-    repairInterruptedToolCalls(messages.value);
+    // TODO(agent-rewrite): re-add repairInterruptedToolCalls() here once the
+    // tool/resume nodes are rebuilt. It was removed while rewriting agentLoop.js
+    // step by step (only quick_analyze exists so far) so the build stays green.
     const cleaned = repairMessageSequence(
       sanitizeIncompleteToolChains(messages.value),
     );
