@@ -1,12 +1,12 @@
 # Graph Report - dialog-studio  (2026-07-01)
 
 ## Corpus Check
-- 132 files · ~197,770 words
+- 132 files · ~198,113 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4814 nodes · 13701 edges · 246 communities (189 shown, 57 thin omitted)
-- Extraction: 84% EXTRACTED · 16% INFERRED · 0% AMBIGUOUS · INFERRED: 2210 edges (avg confidence: 0.8)
+- 4816 nodes · 13854 edges · 240 communities (195 shown, 45 thin omitted)
+- Extraction: 83% EXTRACTED · 17% INFERRED · 0% AMBIGUOUS · INFERRED: 2289 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -46,7 +46,6 @@
 - [[_COMMUNITY_Chat Sidebar|Chat Sidebar]]
 - [[_COMMUNITY_Stream Block|Stream Block]]
 - [[_COMMUNITY_Theme Banner|Theme Banner]]
-- [[_COMMUNITY_Panel Loading|Panel Loading]]
 - [[_COMMUNITY_Resize Handle|Resize Handle]]
 - [[_COMMUNITY_Task Plan|Task Plan]]
 - [[_COMMUNITY_Agent Composable|Agent Composable]]
@@ -202,15 +201,10 @@
 - [[_COMMUNITY_Community 192|Community 192]]
 - [[_COMMUNITY_Community 193|Community 193]]
 - [[_COMMUNITY_Community 194|Community 194]]
-- [[_COMMUNITY_Community 195|Community 195]]
-- [[_COMMUNITY_Community 196|Community 196]]
-- [[_COMMUNITY_Community 198|Community 198]]
 - [[_COMMUNITY_Community 199|Community 199]]
-- [[_COMMUNITY_Community 200|Community 200]]
 - [[_COMMUNITY_Community 201|Community 201]]
 - [[_COMMUNITY_Community 202|Community 202]]
 - [[_COMMUNITY_Community 204|Community 204]]
-- [[_COMMUNITY_Community 205|Community 205]]
 - [[_COMMUNITY_Community 206|Community 206]]
 - [[_COMMUNITY_Community 207|Community 207]]
 - [[_COMMUNITY_Community 208|Community 208]]
@@ -227,16 +221,16 @@
 - [[_COMMUNITY_Community 225|Community 225]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `_()` - 2249 edges
-2. `call()` - 255 edges
+1. `_()` - 2250 edges
+2. `call()` - 256 edges
 3. `Qi` - 169 edges
-4. `join()` - 147 edges
+4. `join()` - 156 edges
 5. `DialogStudio_Agent` - 123 edges
 6. `Je()` - 122 edges
-7. `has()` - 116 edges
-8. `includes()` - 107 edges
-9. `add()` - 102 edges
-10. `Oe` - 83 edges
+7. `has()` - 117 edges
+8. `includes()` - 114 edges
+9. `add()` - 103 edges
+10. `trim()` - 84 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Graphify Usage Instructions (Copilot)` --semantically_similar_to--> `Graphify Usage Instructions (CLAUDE.md)`  [INFERRED] [semantically similar]
@@ -257,7 +251,7 @@
 - **Dialog Studio Agent Live-Edit Tool Suite** — chat_dump_preview_get_element_styles, chat_dump_read_file, chat_dump_edit_file, chat_dump_preview_reload, chat_dump_search_content [INFERRED 0.85]
 - **Graphify Query/Path/Explain Navigation Pattern** — github_copilot_instructions_graphify_usage, claude_md_graphify_usage, claude_md_graphify_knowledge_graph [EXTRACTED 1.00]
 
-## Communities (246 total, 57 thin omitted)
+## Communities (240 total, 45 thin omitted)
 
 ### Community 0 - "Dialog Studio Agent Session"
 Cohesion: 0.33
@@ -265,403 +259,399 @@ Nodes (9): Iterative CSS Edit-Reload-Verify Pattern, Dialog Studio AI Agent (cha
 
 ### Community 1 - "Graphify Knowledge Graph"
 Cohesion: 0.01
-Nodes (189): _(), _1e, _4, _7, a1e, a7, afe, Ale() (+181 more)
+Nodes (189): _(), _4, _7, a1e, a7, afe, ahe(), Aue (+181 more)
 
 ### Community 2 - "Admin Menu Icon Assets"
 Cohesion: 1.00
 Nodes (3): Graphify Knowledge Graph (graphify-out/), Graphify Usage Instructions (CLAUDE.md), Graphify Usage Instructions (Copilot)
 
 ### Community 4 - "Vue App Entry"
-Cohesion: 0.04
-Nodes (66): ahe(), bce(), bge(), Bs(), bZ, _c, _convertCompletionsMessageToBaseMessage(), default() (+58 more)
+Cohesion: 0.09
+Nodes (33): Bs(), bZ, fU(), _getEstimatedTokenCountFromPrompt(), getExtendedChannelSchemas(), getNumTokens(), getNumTokensFromMessages(), _getResponseFormat() (+25 more)
 
 ### Community 5 - "Agent Loop Core"
-Cohesion: 0.04
-Nodes (18): Al, bH, Bl, create(), cS, Fh, fromMethods(), gh (+10 more)
+Cohesion: 0.03
+Nodes (20): bH, Bl, Cc, Ch(), create(), cS, deleteAll(), delta() (+12 more)
 
 ### Community 6 - "Context Manager"
-Cohesion: 0.04
-Nodes (30): aie, cancel(), content(), createAndPoll(), die, e0, fie, h_() (+22 more)
+Cohesion: 0.03
+Nodes (47): and(), array(), aV(), cancel(), content(), createAndPoll(), e0, e8() (+39 more)
 
 ### Community 7 - "LLM Provider"
-Cohesion: 0.05
-Nodes (20): c3(), deleteAll(), delta(), dL(), exe(), LL, Oe, pte() (+12 more)
+Cohesion: 0.03
+Nodes (25): B(), c3(), deleteQueue(), dL(), kL, li(), LL, nL() (+17 more)
 
 ### Community 8 - "Scratchpad"
 Cohesion: 0.08
 Nodes (19): Arg, Array_, Use, Class_, Expr, FuncCall, SymbolNameResolver, ThemeAstVisitor (+11 more)
 
 ### Community 9 - "Skills Registry"
-Cohesion: 0.05
-Nodes (51): assign(), aye(), Cce(), cX(), cye(), dhe(), dye(), fromCheckpoint() (+43 more)
+Cohesion: 0.06
+Nodes (43): aX(), aye(), bb(), cie, cX(), cye(), dhe(), _diff() (+35 more)
 
 ### Community 10 - "System Core"
 Cohesion: 0.07
 Nodes (8): Blueprint, bind(), getContainer(), instance(), registerProvider(), registerProviders(), singleton(), self
 
 ### Community 11 - "Default Custom Prompt"
-Cohesion: 0.05
-Nodes (16): call(), close(), ere(), h4(), hZ, iJ, jce(), lP() (+8 more)
+Cohesion: 0.04
+Nodes (22): call(), close(), ere(), fail(), h4(), hZ, iJ, jce() (+14 more)
 
 ### Community 12 - "Browser Tools"
-Cohesion: 0.08
-Nodes (41): _0e(), _6, a0e(), a6(), Aae(), b0e(), bR, c0e() (+33 more)
+Cohesion: 0.06
+Nodes (26): _0e(), e9(), gD(), gm(), go(), Gw(), hK, iK() (+18 more)
 
 ### Community 13 - "Tool Definitions"
 Cohesion: 0.06
-Nodes (31): base64(), base64url(), cidr(), cuid(), cuid2(), date(), datetime(), duration() (+23 more)
+Nodes (32): base64(), base64url(), cidr(), cuid(), cuid2(), date(), datetime(), duration() (+24 more)
 
 ### Community 14 - "Filesystem Tools"
-Cohesion: 0.07
-Nodes (44): V(), addConditionalEdges(), addEdge(), addNode(), addSequence(), cI(), Er(), et() (+36 more)
+Cohesion: 0.24
+Nodes (13): V(), addNode(), cI(), et(), getGraph(), getGraphAsync(), getName(), GL() (+5 more)
 
 ### Community 15 - "Tool Index"
-Cohesion: 0.06
-Nodes (16): b3, b9(), dZ, fZ, getRun(), kL, lN(), lZ (+8 more)
+Cohesion: 0.05
+Nodes (18): Al, b3, b9(), bie, dZ, fZ, gee(), getParents() (+10 more)
 
 ### Community 16 - "API Key Modal"
-Cohesion: 0.07
-Nodes (35): bc(), bO(), bve(), d6(), dxe(), _ee(), f6(), fe() (+27 more)
+Cohesion: 0.06
+Nodes (42): a0e(), bc(), bO(), bve(), d6(), dxe(), e6(), _ee() (+34 more)
 
 ### Community 17 - "Browser Dev Tools"
-Cohesion: 0.07
-Nodes (3): load(), Qi, uP()
+Cohesion: 0.05
+Nodes (5): ct(), nne(), Qi, tu(), uP()
 
 ### Community 18 - "Browser Panel"
 Cohesion: 0.07
-Nodes (29): accumulateToolCallChunks(), AGENT_SYSTEM_PROMPT, buildCustomPromptBlock(), buildPreviewStateBlock(), buildToolPreview(), executeToolCall(), extractStreamingField(), extractToolCalls() (+21 more)
+Nodes (30): accumulateToolCallChunks(), AGENT_SYSTEM_PROMPT, buildCustomPromptBlock(), buildPreviewStateBlock(), buildToolPreview(), executeToolCall(), extractStreamingField(), extractToolCalls() (+22 more)
 
 ### Community 19 - "Chat Activity Status"
-Cohesion: 0.06
-Nodes (35): h(), addAIMessage(), addMessage(), addUserMessage(), ane, c0(), cbe, coe() (+27 more)
+Cohesion: 0.05
+Nodes (44): ane, Bxe(), bY, cbe, cte(), cxe(), dte(), dx() (+36 more)
 
 ### Community 20 - "Chat Continue Banner"
-Cohesion: 0.06
-Nodes (41): _addVersion(), aP(), asRetriever(), bP(), computeInputValues(), constructor(), cwe(), f3 (+33 more)
+Cohesion: 0.05
+Nodes (41): a4(), _addSchema(), _addVersion(), asRetriever(), bce(), bP(), computeInputValues(), constructor() (+33 more)
 
 ### Community 21 - "Custom Prompt Component"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (4): Closure, DB, SchemaBuilder, wpdb
 
 ### Community 22 - "Chat Empty State"
-Cohesion: 0.11
-Nodes (40): announceBridgeReady(), announceNavigation(), announceNavigationStart(), applySelectMode(), attachListeners(), clearHover(), deliverHtmlResponse(), detachListeners() (+32 more)
+Cohesion: 0.10
+Nodes (41): finish(), announceBridgeReady(), announceNavigation(), announceNavigationStart(), applySelectMode(), attachListeners(), clearHover(), deliverHtmlResponse() (+33 more)
 
 ### Community 23 - "Chat Header"
 Cohesion: 0.06
 Nodes (10): AbstractMigration, CreateMigrationsTable, CreateChatsTable, CreateMessagesTable, CreateCheckpointsTable, CreateMemoryEntriesTable, CreateLogsTable, CreateApiRequestsTable (+2 more)
 
 ### Community 24 - "Chat Input"
-Cohesion: 0.07
-Nodes (29): Be(), c_e(), dO(), EA(), eJ, fA, fJ, FK (+21 more)
+Cohesion: 0.06
+Nodes (37): allEdges(), Be(), c_e(), copyWithTracingConfig(), dO(), eJ, eY(), fA (+29 more)
 
 ### Community 25 - "Chat Message Body"
-Cohesion: 0.08
-Nodes (29): Bde(), bye(), cre, d1e, Dd(), dF(), Ese, Fb() (+21 more)
+Cohesion: 0.12
+Nodes (20): _1e, _9(), Bde(), bye(), cre, eie, g1e, getFormatInstructions() (+12 more)
 
 ### Community 27 - "Chat Settings"
-Cohesion: 0.09
-Nodes (28): a_e, add(), clear(), clearCache(), cve(), EP(), eve(), fne() (+20 more)
+Cohesion: 0.07
+Nodes (43): a_e, add(), clear(), clearCache(), Cu(), cve(), dM(), EP() (+35 more)
 
 ### Community 28 - "Chat Sidebar"
-Cohesion: 0.06
-Nodes (12): Ac(), deleteQueue(), $he(), iwe(), k1, l_(), q9, qh() (+4 more)
+Cohesion: 0.18
+Nodes (4): l_(), qh(), strict(), zne()
 
 ### Community 29 - "Stream Block"
-Cohesion: 0.07
-Nodes (28): $(), A(), ae, be(), ce(), ge(), ke(), le (+20 more)
+Cohesion: 0.11
+Nodes (25): $(), A(), ae, be(), de(), f(), fe(), g() (+17 more)
 
 ### Community 30 - "Theme Banner"
-Cohesion: 0.10
-Nodes (30): Bx(), cle(), cq(), $d(), eq, f2(), _G, Gi() (+22 more)
+Cohesion: 0.09
+Nodes (43): u, a1(), AD, Bx(), c1(), Cf(), cq(), $d() (+35 more)
 
 ### Community 32 - "Resize Handle"
-Cohesion: 0.09
-Nodes (7): hs(), no, pG, q1, qee(), url(), y_
-
-### Community 34 - "Agent Composable"
 Cohesion: 0.11
-Nodes (8): bse, cke(), cse(), In(), j6(), oke(), q6, xr()
-
-### Community 35 - "Connection Monitor"
-Cohesion: 0.08
-Nodes (5): DialogAssetLoader, DialogModuleLoader, DialogPath, DialogRuntimeService, DialogWorkspaceService
+Nodes (5): hs(), pG, q1, qee(), y_
 
 ### Community 36 - "Element Picker"
-Cohesion: 0.07
-Nodes (9): activate(), deactivate(), listItems(), Nh(), Rh, RL, tH, v9() (+1 more)
+Cohesion: 0.06
+Nodes (13): activate(), deactivate(), listItems(), Nh(), q9, Qde(), Rh, RL (+5 more)
 
 ### Community 37 - "Preview Dev Tools"
-Cohesion: 0.09
-Nodes (27): ah, Ai(), bq(), cA(), cJ, cK(), d1(), e2() (+19 more)
+Cohesion: 0.07
+Nodes (33): Ai(), bpe(), _c, cA(), cK(), Hu(), ID, jb() (+25 more)
 
 ### Community 38 - "Vue Main Entry"
-Cohesion: 0.09
-Nodes (31): bJ, contentBlocks(), cP(), e8(), hJ, includes(), jie(), jq() (+23 more)
+Cohesion: 0.07
+Nodes (50): aoe(), assign(), bge(), bJ, cee(), coe(), _convertCompletionsMessageToBaseMessage(), doe() (+42 more)
 
 ### Community 39 - "Async Hooks Polyfill"
 Cohesion: 0.14
 Nodes (25): buildChatExportPayload(), downloadChatExport(), enrichSerializedMessages(), exportChatSession(), buildStoredSession(), clearChatSession(), createEmptySession(), createSessionId() (+17 more)
 
 ### Community 40 - "Tiktoken Polyfill"
-Cohesion: 0.13
-Nodes (29): a_, a2(), aq, bK(), c2(), Cu(), dJ, _e() (+21 more)
+Cohesion: 0.07
+Nodes (39): a_, a2(), aq, bK(), c0(), c2(), cY(), dJ (+31 more)
 
 ### Community 41 - "Abort Signal Util"
-Cohesion: 0.07
-Nodes (30): allEdges(), awe(), bb(), BI(), bindTools(), boe(), bpe(), cie (+22 more)
+Cohesion: 0.12
+Nodes (18): awe(), BI(), bindTools(), c5(), d5(), ewe(), i3(), jxe() (+10 more)
 
 ### Community 42 - "API Client"
-Cohesion: 0.08
-Nodes (28): asTool(), ave(), c1(), Cae(), dV(), dve(), e1(), Fv (+20 more)
+Cohesion: 0.20
+Nodes (14): asTool(), ave(), Cae(), dV(), dve(), e1(), Fv, Hv() (+6 more)
 
 ### Community 43 - "Chat Export"
-Cohesion: 0.09
-Nodes (18): ebe, fbe, g3(), hA(), hG, i6(), ibe, jbe() (+10 more)
+Cohesion: 0.22
+Nodes (13): ebe, g3(), hG, i6(), ibe, jbe(), mbe, obe (+5 more)
+
+### Community 44 - "Chat Storage"
+Cohesion: 0.08
+Nodes (5): App, ApplicationInterface, Application, getRegistry(), ServiceRegistryInterface
 
 ### Community 45 - "DOM Path Util"
-Cohesion: 0.13
-Nodes (31): buildCodeIndexBlock(), buildKnowledgeGraphBlock(), buildSelectedElementBlock(), buildSymbolToFilesMap(), buildThemeContextBlock(), canAcceptToolMessage(), compactGraph(), compactRegistry() (+23 more)
+Cohesion: 0.15
+Nodes (28): buildSelectedElementBlock(), buildSymbolToFilesMap(), canAcceptToolMessage(), compactGraph(), compactRegistry(), compactSearchResults(), compactToolPayload(), countFollowingToolMessages() (+20 more)
 
 ### Community 46 - "DTM Config"
-Cohesion: 0.12
-Nodes (28): ie(), ab, Ame(), aO(), bme(), Cb, _F(), gme() (+20 more)
+Cohesion: 0.15
+Nodes (22): ie(), Ame(), aO(), bme(), eme(), gme(), hme(), ime() (+14 more)
 
 ### Community 47 - "Element Tag Util"
 Cohesion: 0.08
-Nodes (31): a4(), addDocuments(), addExample(), _addSchema(), addVectors(), aU(), createMessage(), embedDocuments() (+23 more)
+Nodes (31): addDocuments(), addExample(), addVectors(), aU(), createMessage(), embedDocuments(), extractRequiredInputValues(), format() (+23 more)
 
 ### Community 48 - "iFrame Element Picker"
-Cohesion: 0.08
-Nodes (18): Eue(), Fn(), Fse, getSystemPrompt(), Iue(), nbe, nke(), pW (+10 more)
+Cohesion: 0.18
+Nodes (10): getSystemPrompt(), ise, nke(), qse, rke(), Vt(), wse, xse (+2 more)
 
 ### Community 49 - "LLM Providers"
-Cohesion: 0.13
-Nodes (31): acceptPush(), _checkpointerPutAfterPrevious(), _consume(), _currentCheckpointMeta(), dA(), ds(), Du(), _emitValuesWithCheckpointMeta() (+23 more)
+Cohesion: 0.23
+Nodes (16): ab, _currentCheckpointMeta(), dA(), ds(), Du(), _emitValuesWithCheckpointMeta(), finishAndHandleError(), _first() (+8 more)
 
 ### Community 50 - "Preview Bridge"
-Cohesion: 0.09
-Nodes (29): bf, Bu, emitFinalMessage(), getChannels(), getChannelsForSchema(), _getChannelsFromSchema(), getInputJsonSchema(), getJsonSchema() (+21 more)
+Cohesion: 0.11
+Nodes (26): bf, Bu, Ec(), emitFinalMessage(), getChannels(), getChannelsForSchema(), _getChannelsFromSchema(), getInputJsonSchema() (+18 more)
 
 ### Community 51 - "Preview Controller"
-Cohesion: 0.14
-Nodes (9): dke(), fxe(), g6, gf(), ove(), w6, wN, yG (+1 more)
+Cohesion: 0.12
+Nodes (11): ake(), dke(), fxe(), gf(), jke(), mke(), ove(), w6 (+3 more)
 
 ### Community 52 - "Preview Load Error"
-Cohesion: 0.08
-Nodes (28): addTransformer(), cme(), doWrite(), fail(), g4(), Hpe(), jpe(), kpe (+20 more)
+Cohesion: 0.12
+Nodes (20): addTransformer(), cme(), doWrite(), g4(), jpe(), lg(), local(), messages() (+12 more)
 
 ### Community 53 - "Markdown Renderer"
-Cohesion: 0.15
-Nodes (24): _5(), a5(), aN(), Ar(), b5(), bW, Ete(), JS (+16 more)
+Cohesion: 0.09
+Nodes (39): S(), _5(), a5(), aN(), Ar(), b5(), bW, Ete() (+31 more)
 
 ### Community 54 - "Settings API"
-Cohesion: 0.09
-Nodes (21): aF(), b8, bD(), fD(), fromRunLogPatch(), includeEvent(), jK(), lD() (+13 more)
+Cohesion: 0.15
+Nodes (12): aF(), bD(), jK(), lK(), p_(), pK(), SD(), vD() (+4 more)
 
 ### Community 55 - "Tool Display"
-Cohesion: 0.11
-Nodes (23): aJ, concat(), cY(), e9(), gm(), j8(), mD(), NF (+15 more)
+Cohesion: 0.10
+Nodes (23): aJ, concat(), fromRunLogPatch(), getInstance(), getParentRunId(), getRunnableConfig(), includeEvent(), KA() (+15 more)
 
 ### Community 56 - "PHP App Bootstrap"
-Cohesion: 0.09
-Nodes (28): b_e(), d4(), dc(), e3(), f4(), f_e(), g_e(), Ghe() (+20 more)
+Cohesion: 0.10
+Nodes (29): b_e(), d4(), dc(), e3(), f4(), f_e(), g_e(), Ghe() (+21 more)
 
 ### Community 57 - "PHP Abstract Migration"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (5): h2(), hke, html(), _W, y1()
 
 ### Community 58 - "PHP Abstract Model"
 Cohesion: 0.12
-Nodes (10): BrowserToolExecutor, browserTools, FileSystemToolExecutor, fileSystemTools, ToolExecutor, createAgentAbortError(), isAbortError(), throwIfAborted() (+2 more)
+Nodes (9): BrowserToolExecutor, FileSystemToolExecutor, fileSystemTools, ToolExecutor, createAgentAbortError(), isAbortError(), throwIfAborted(), isPreviewLoadError() (+1 more)
 
 ### Community 59 - "PHP Abstract Repository"
-Cohesion: 0.12
-Nodes (27): addHandler(), addMetadata(), addTags(), _configureSync(), copy(), eme(), Fpe(), fromHandlers() (+19 more)
+Cohesion: 0.11
+Nodes (21): addHandler(), addMetadata(), addTags(), _configureSync(), copy(), fromHandlers(), getChild(), _getRelevantDocuments() (+13 more)
 
 ### Community 60 - "PHP Abstract Service"
-Cohesion: 0.15
-Nodes (27): bne(), _callWithConfig(), Cm(), en(), _endTrace(), getRunById(), handleAgentAction(), handleAgentEnd() (+19 more)
+Cohesion: 0.14
+Nodes (23): _addChildRun(), _addRunToRunMap(), bne(), _createRunForChainStart(), _createRunForChatModelStart(), _createRunForLLMStart(), _createRunForRetrieverStart(), _createRunForToolStart() (+15 more)
 
 ### Community 61 - "PHP Abstract ServiceProvider"
-Cohesion: 0.10
-Nodes (21): Bxe(), bY, dte(), fte(), getRejectionMessage(), iP(), j5(), jN() (+13 more)
+Cohesion: 0.15
+Nodes (3): DialogAssetLoader, DialogModuleLoader, DialogRuntimeService
 
 ### Community 62 - "PHP Abstract Singleton"
-Cohesion: 0.11
-Nodes (10): cne(), dP(), getRunTreeWithTracingConfig(), hne(), _includeRun(), onRunCreate(), onRunUpdate(), qr (+2 more)
+Cohesion: 0.09
+Nodes (13): cJ, cne(), dP(), getRunTreeWithTracingConfig(), hne(), _includeRun(), _initializeAbortSignals(), mP() (+5 more)
 
 ### Community 63 - "Application Interface"
 Cohesion: 0.13
-Nodes (24): Cge(), _concatOutputChunks(), configure(), Dce(), _defaults(), _filterInvocationParamsForTracing(), _flattenLLMResult(), _generateCached() (+16 more)
+Nodes (24): Cge(), _concatOutputChunks(), configure(), Dce(), _defaults(), _filterInvocationParamsForTracing(), _flattenLLMResult(), fromAsyncGenerator() (+16 more)
 
 ### Community 64 - "Container Interface"
-Cohesion: 0.09
-Nodes (3): b1(), Qq(), stop()
+Cohesion: 0.06
+Nodes (4): aK, b1(), Qq(), stop()
 
 ### Community 65 - "Middleware Interface"
 Cohesion: 0.12
 Nodes (8): hasNextPage(), Im(), iterPages(), TA, uc, Vv(), X8(), [(xg=new WeakMap,Symbol.asyncIterator)]()
 
 ### Community 66 - "Migration Interface"
-Cohesion: 0.13
-Nodes (26): aoe(), _combineCallOptions(), completionWithRetry(), _convertCompletionsDeltaToBaseMessageChunk(), _createResponseChunk(), _currentResponse(), _formatGeneration(), generate() (+18 more)
+Cohesion: 0.15
+Nodes (23): boe(), _combineCallOptions(), completionWithRetry(), _createResponseChunk(), _currentResponse(), _formatGeneration(), generate(), getLsParams() (+15 more)
 
 ### Community 67 - "Model Interface"
-Cohesion: 0.16
-Nodes (12): fetch(), useAgent(), ApiClient, getDtmConfig(), activateApiKey(), fetchAgentSettings(), fetchOpenRouterModels(), fetchSettings() (+4 more)
+Cohesion: 0.14
+Nodes (15): EA(), fetch(), FK, lb(), useAgent(), ApiClient, getDtmConfig(), activateApiKey() (+7 more)
 
 ### Community 68 - "Repository Interface"
-Cohesion: 0.19
-Nodes (24): g1e, getBreadcrumbs(), getParents(), iG, kr(), ms, onAgentAction(), onChainEnd() (+16 more)
+Cohesion: 0.13
+Nodes (24): Ac(), getBreadcrumbs(), iG, kr(), ms, onAgentAction(), onChainEnd(), onChainError() (+16 more)
+
+### Community 69 - "Service Interface"
+Cohesion: 0.08
+Nodes (4): AbstractRepository, RepositoryQueryBuilder, ModelInterface, RepositoryInterface
 
 ### Community 70 - "ServiceProvider Interface"
-Cohesion: 0.10
-Nodes (6): approveTool(), ate(), isToolApproved(), lS, qte(), rejectTool()
+Cohesion: 0.11
+Nodes (4): approveTool(), ate(), lS, rejectTool()
 
 ### Community 71 - "ServiceRegistry Interface"
-Cohesion: 0.12
-Nodes (6): generatePrompt(), pie, rre(), sre(), text(), Ue()
+Cohesion: 0.16
+Nodes (3): generatePrompt(), rre(), sre()
 
-### Community 72 - "PHP Application Core"
-Cohesion: 0.15
-Nodes (17): cte(), d5(), Ec(), eG, f5(), getNextPage(), ixe(), jA() (+9 more)
+### Community 73 - "PHP DI Container"
+Cohesion: 0.06
+Nodes (6): CssSymbolExtractor, JsSymbolExtractor, ThemeCodeIndexer, ThemeFileScanner, Parser, CodeValidator
 
 ### Community 74 - "PHP Database Layer"
 Cohesion: 0.11
 Nodes (5): AbstractServiceProvider, AdminServiceProvider, DialogServiceProvider, FrontendServiceProvider, RuntimeServiceProvider
 
 ### Community 75 - "DB Blueprint"
-Cohesion: 0.17
-Nodes (23): _ae(), bae(), brand(), cZ, eZ, gae(), hse, jae() (+15 more)
+Cohesion: 0.13
+Nodes (32): $0(), a9(), _ae(), bae(), brand(), c9(), cZ, Eae() (+24 more)
 
 ### Community 76 - "Model Query Builder"
-Cohesion: 0.09
-Nodes (8): ED, f0e(), Fr, ph, toString(), Uv(), vs, Wt
+Cohesion: 0.12
+Nodes (5): ED, f0e(), Fr, ph, Wt
+
+### Community 77 - "Paginator"
+Cohesion: 0.16
+Nodes (9): _consume(), exe(), mW, NF, pW, rwe(), TD, uxe() (+1 more)
 
 ### Community 79 - "Repository Query Builder"
-Cohesion: 0.14
-Nodes (10): a3(), cR(), d0e(), end(), Fs, kbe, o3(), processBatchQueue() (+2 more)
+Cohesion: 0.19
+Nodes (6): end(), Fs, kbe, processBatchQueue(), start(), vR()
 
 ### Community 80 - "Schema Builder"
-Cohesion: 0.09
-Nodes (7): Ch(), cL(), dashboard(), dr(), list(), nL(), retrieve()
+Cohesion: 0.12
+Nodes (7): bR, cL(), dashboard(), dr(), jL, list(), retrieve()
 
 ### Community 81 - "Service Registry"
-Cohesion: 0.18
-Nodes (12): gde(), _getOrReturnCtx(), _getType(), gP, jP(), _K, Le(), oJ (+4 more)
+Cohesion: 0.23
+Nodes (8): gde(), _getOrReturnCtx(), _getType(), gP, jP(), _K, Le(), QS()
 
 ### Community 82 - "Theme Indexing Exception"
 Cohesion: 0.13
 Nodes (10): attachReasoning(), createLLMProvider(), ensureFetchPatched(), extractReasoningFromRawResponse(), isRetryableNetworkError(), LLMProvider, normalizeReasoningChunk(), normalizeReasoningResponse() (+2 more)
 
 ### Community 83 - "Record Buffer"
-Cohesion: 0.17
-Nodes (19): u, a1(), dq(), Dt(), hN(), i2(), it(), lq() (+11 more)
+Cohesion: 0.14
+Nodes (13): cPe, Hpe(), I_, iW, K8(), km(), kpe, q8() (+5 more)
 
 ### Community 84 - "Migrations Bootstrap"
-Cohesion: 0.16
-Nodes (8): abort(), createAndStream(), _ge(), ihe(), mP(), oW, Pc(), submitToolOutputsStream()
-
-### Community 85 - "Chats Migration"
-Cohesion: 0.09
-Nodes (3): At, bbe(), kf()
-
-### Community 86 - "Messages Migration"
-Cohesion: 0.16
-Nodes (3): l9(), Nt(), u9()
+Cohesion: 0.22
+Nodes (5): abort(), createAndStream(), ihe(), oW, submitToolOutputsStream()
 
 ### Community 87 - "Checkpoints Migration"
-Cohesion: 0.10
-Nodes (20): aX(), c5(), Gce, Hce(), i5(), kxe(), _loads(), loadsTyped() (+12 more)
+Cohesion: 0.16
+Nodes (7): Hl(), jY(), t_e(), Tc(), upload(), vY, x_e()
 
 ### Community 88 - "Memory Entries Migration"
-Cohesion: 0.11
-Nodes (14): dE(), dme, dW, DY(), fromError(), getNode(), getWriters(), jme() (+6 more)
+Cohesion: 0.16
+Nodes (17): acceptPush(), dE(), dme, fG, getNode(), getWriters(), jme(), _matchCachedWrites() (+9 more)
 
 ### Community 90 - "API Requests Migration"
 Cohesion: 0.09
 Nodes (21): dependencies, @langchain/core, @langchain/langgraph, @langchain/openai, lucide-vue-next, marked, @openai/agents, vue (+13 more)
 
 ### Community 92 - "Admin ServiceProvider"
-Cohesion: 0.13
-Nodes (10): asResponse(), Bv(), catch(), Eae(), hae(), jse, parseWithPrompt(), Pf() (+2 more)
+Cohesion: 0.07
+Nodes (21): Bv(), catch(), Dd(), deepPartial(), finally(), Gu, hb(), iY() (+13 more)
 
 ### Community 93 - "Dialog ServiceProvider"
-Cohesion: 0.15
-Nodes (18): aZ, dae(), fae(), g0e(), _getCached(), hP(), isNullable(), lookup() (+10 more)
+Cohesion: 0.12
+Nodes (15): As, asResponse(), g0e(), hP(), isNullable(), isOptional(), lookup(), mne() (+7 more)
 
 ### Community 94 - "Frontend ServiceProvider"
-Cohesion: 0.12
-Nodes (5): b0(), c4(), callWithOptions(), ehe(), finally()
+Cohesion: 0.10
+Nodes (3): b0(), callWithOptions(), kwe
 
 ### Community 95 - "Runtime ServiceProvider"
-Cohesion: 0.13
-Nodes (12): a8(), aee(), c8(), d8(), gee(), iee(), kee(), m8() (+4 more)
+Cohesion: 0.07
+Nodes (28): _8(), a8(), aA(), aee(), bee(), c8(), d8(), e_e() (+20 more)
 
 ### Community 96 - "Chat Admin Menu"
-Cohesion: 0.15
-Nodes (14): ace, Dn(), Ece(), iCe(), JC(), jH, kce(), Lc() (+6 more)
+Cohesion: 0.05
+Nodes (52): ace, aP(), ase(), b0e(), c6(), Cce(), cse(), Dn() (+44 more)
 
 ### Community 97 - "Community 97"
-Cohesion: 0.11
-Nodes (13): aK, and(), array(), Cf(), exclude(), extract(), n2(), or() (+5 more)
+Cohesion: 0.21
+Nodes (7): _6, Aae(), gn(), p6(), sN(), tke(), w9()
 
 ### Community 100 - "Community 100"
-Cohesion: 0.12
-Nodes (11): ake(), e5(), gke(), Gte, mke(), pke(), qke(), rwe() (+3 more)
+Cohesion: 0.16
+Nodes (7): cke(), eke(), gke(), lke(), oke(), pke(), y6
 
 ### Community 101 - "Community 101"
-Cohesion: 0.12
-Nodes (3): h1(), hc, z3()
+Cohesion: 0.09
+Nodes (4): h1(), hc, Pc(), z3()
 
 ### Community 102 - "Community 102"
-Cohesion: 0.12
-Nodes (8): EF(), Hl(), Oh(), s3(), u_e, upload(), vY, yb
+Cohesion: 0.09
+Nodes (9): bte, EF(), Kte(), Oh(), pte(), s3(), u_e, yb (+1 more)
 
 ### Community 103 - "Community 103"
-Cohesion: 0.15
-Nodes (3): Ir(), tve(), wte()
+Cohesion: 0.13
+Nodes (5): cP(), Gte, Ir(), tve(), wte()
 
 ### Community 105 - "Community 105"
-Cohesion: 0.16
-Nodes (6): AbstractService, ContainerInterface, PreviewBridgeService, boot(), register(), ServiceInterface
-
-### Community 106 - "Community 106"
-Cohesion: 0.16
-Nodes (6): ApplicationInterface, ContractServiceProviderInterface, ServiceRegistry, getRegistry(), ServiceProviderInterface, ServiceRegistryInterface
+Cohesion: 0.17
+Nodes (6): AbstractService, ContainerInterface, boot(), register(), ServiceInterface, ServiceProviderInterface
 
 ### Community 107 - "Community 107"
-Cohesion: 0.14
-Nodes (11): dee(), fee, iie, jee(), Mee(), mM(), pCe, t8() (+3 more)
+Cohesion: 0.12
+Nodes (14): dee(), fee, Gce, Hce(), hee(), iie, jee(), Mee() (+6 more)
 
 ### Community 108 - "Community 108"
-Cohesion: 0.17
-Nodes (10): axe(), fke, gV(), m6, rxe(), Sse, txe(), uR (+2 more)
+Cohesion: 0.16
+Nodes (11): axe(), fke, gV(), l0e(), m6, Nse, rxe(), txe() (+3 more)
 
 ### Community 109 - "Community 109"
-Cohesion: 0.13
-Nodes (7): bte, eI, EK(), hte(), pl, replayWrites(), update()
+Cohesion: 0.16
+Nodes (6): eI, kZ, lt(), rZ, vce(), vI()
 
 ### Community 110 - "Community 110"
-Cohesion: 0.14
-Nodes (12): cE(), fq(), hq(), iV(), jv, Jw, Lr, R8() (+4 more)
+Cohesion: 0.11
+Nodes (28): ah, bq(), cE(), contentBlocks(), d1(), e2(), fq(), hq() (+20 more)
 
 ### Community 112 - "Community 112"
-Cohesion: 0.11
-Nodes (4): h3(), m3(), owe(), processFinalOutput()
+Cohesion: 0.12
+Nodes (3): m3(), owe(), processFinalOutput()
 
 ### Community 114 - "Community 114"
 Cohesion: 0.24
 Nodes (16): clearEditor(), focus(), getEditorRange(), handleActionClick(), insertElementChip(), onInput(), onKeydown(), onPaste() (+8 more)
 
+### Community 115 - "Community 115"
+Cohesion: 0.20
+Nodes (11): a6(), c0e(), Er(), isRunnable(), isRunnableBinding(), isRunnableSequence(), isWriter(), pick() (+3 more)
+
 ### Community 116 - "Community 116"
-Cohesion: 0.15
-Nodes (9): fL(), ite, Kte(), $n(), ote, oxe(), rn, ste (+1 more)
+Cohesion: 0.25
+Nodes (11): addConditionalEdges(), addEdge(), addSequence(), f1e, j1e(), n1e, r1e, setEntryPoint() (+3 more)
 
 ### Community 117 - "Community 117"
-Cohesion: 0.28
-Nodes (4): ki(), LF(), Xue(), Zr()
+Cohesion: 0.29
+Nodes (10): ce(), h(), ne, re, Bm(), JO, o4(), ooe() (+2 more)
 
 ### Community 118 - "Community 118"
 Cohesion: 0.12
@@ -671,181 +661,213 @@ Nodes (15): authors, autoload, psr-4, config, autoloader-suffix, description, li
 Cohesion: 0.19
 Nodes (13): appendToolContext(), basename(), extractToolArgsFromResult(), formatDebugContext(), formatFilePathContext(), formatKeywords(), formatThemeContext(), formatTodosContext() (+5 more)
 
+### Community 121 - "Community 121"
+Cohesion: 0.29
+Nodes (10): g2(), oA(), oJ, pA(), TK(), v2, w2, wJ (+2 more)
+
 ### Community 123 - "Community 123"
-Cohesion: 0.18
-Nodes (12): de(), f(), fe(), g(), he(), me(), S(), ue() (+4 more)
+Cohesion: 0.27
+Nodes (4): pie, text(), u9(), Ue()
 
 ### Community 124 - "Community 124"
-Cohesion: 0.15
-Nodes (8): abe, dM(), isOptional(), jm(), rde(), tde(), uae, ude()
+Cohesion: 0.06
+Nodes (29): abe, aPe, b8, dde(), Dpe(), fde(), Fm(), Fpe() (+21 more)
 
 ### Community 125 - "Community 125"
-Cohesion: 0.19
-Nodes (7): Bn, cxe(), g5(), n5(), pxe(), qxe(), r5()
+Cohesion: 0.12
+Nodes (10): Bn, Mte(), n5(), Nte(), pxe(), qxe(), r5(), rte (+2 more)
 
 ### Community 126 - "Community 126"
-Cohesion: 0.15
-Nodes (5): Eh(), eV(), l3(), Ve, w_e()
+Cohesion: 0.11
+Nodes (3): cV(), eV(), Ve
 
 ### Community 127 - "Community 127"
-Cohesion: 0.15
-Nodes (14): _3(), dwe(), fwe(), getAllTools(), getEnabledHandoffs(), getMcpToolReservedNames(), getMcpTools(), hR() (+6 more)
+Cohesion: 0.50
+Nodes (4): _3(), dwe(), lbe, y3()
 
 ### Community 128 - "Community 128"
-Cohesion: 0.15
-Nodes (13): accept(), deepPartial(), formatFunction(), getAllowedComparatorsForType(), getComparatorFunction(), getOperatorFunction(), Gu, k_e() (+5 more)
-
-### Community 129 - "Community 129"
-Cohesion: 0.22
-Nodes (11): aPe(), Dpe(), h8(), Ipe(), mV(), nV, oG, put() (+3 more)
+Cohesion: 0.25
+Nodes (8): accept(), formatFunction(), getAllowedComparatorsForType(), getComparatorFunction(), getOperatorFunction(), visitComparison(), visitOperation(), visitStructuredQuery()
 
 ### Community 130 - "Community 130"
-Cohesion: 0.18
-Nodes (5): d9(), eM(), f9(), nie, oee
+Cohesion: 0.24
+Nodes (3): eM(), nie, oee
 
 ### Community 131 - "Community 131"
-Cohesion: 0.16
-Nodes (6): aY(), cO(), dI(), endsWith(), h9(), Wv
+Cohesion: 0.13
+Nodes (7): aie, aY(), cO(), d9(), f9(), h9(), Wv
 
 ### Community 132 - "Community 132"
-Cohesion: 0.16
-Nodes (14): b1e, eoe(), _getClientOptions(), h1e, JO, k1e, moderateContent(), q1e() (+6 more)
+Cohesion: 0.23
+Nodes (13): b1e, checkpoint(), d1e, Fc(), h1e, k1e, l1e, m1e (+5 more)
 
 ### Community 133 - "Community 133"
-Cohesion: 0.14
-Nodes (13): bke(), e0e(), jke(), kke(), lke(), mN(), Pn, Ske() (+5 more)
+Cohesion: 0.11
+Nodes (17): bke(), e0e(), e5(), i5(), kke(), mN(), Pn, qke() (+9 more)
 
 ### Community 134 - "Community 134"
-Cohesion: 0.22
-Nodes (8): cn, gxe(), o5(), TF, uW, Vxe(), yD, ZS()
+Cohesion: 0.14
+Nodes (8): cn, gxe(), o5(), uW, Vxe(), XC(), yD, ZS()
 
 ### Community 135 - "Community 135"
 Cohesion: 0.14
 Nodes (3): d3(), n3(), ybe()
 
+### Community 137 - "Community 137"
+Cohesion: 0.29
+Nodes (6): a3(), cR(), d0e(), o3(), rS(), v_e()
+
 ### Community 138 - "Community 138"
-Cohesion: 0.23
-Nodes (7): runAgentLoop(), createPlannerNode(), PlannerOutput, ROLE_BY_TYPE, TaskSchema, createQuickAnalyzeNode(), configureAgentsRuntime()
+Cohesion: 0.19
+Nodes (11): runAgentLoop(), buildCodeIndexBlock(), buildKnowledgeGraphBlock(), buildThemeContextBlock(), buildIndexInstructions(), createPlannerNode(), PlannerOutput, ROLE_BY_TYPE (+3 more)
 
 ### Community 139 - "Community 139"
-Cohesion: 0.19
-Nodes (4): aG, ene(), ni(), w1()
+Cohesion: 0.13
+Nodes (7): aG, endsWith(), ene(), hie, ni(), w1(), yce()
+
+### Community 140 - "Community 140"
+Cohesion: 0.25
+Nodes (8): dW, DY(), eoe(), fromError(), _getClientOptions(), moderateContent(), w1e, x1e
 
 ### Community 141 - "Community 141"
-Cohesion: 0.22
-Nodes (12): attachBranch(), attachEdge(), attachNode(), compile(), _compileResolved(), _createDefaultErrorHandlerSpec(), isRunnableSequence(), isWriter() (+4 more)
+Cohesion: 0.39
+Nodes (7): attachBranch(), attachEdge(), attachNode(), compile(), _compileResolved(), _createDefaultErrorHandlerSpec(), subscribeTo()
 
 ### Community 142 - "Community 142"
-Cohesion: 0.28
-Nodes (11): dde(), fde(), Fm(), jde(), Ju(), Lde(), mde(), Um() (+3 more)
+Cohesion: 0.38
+Nodes (4): bse, Fn(), nbe, xr()
 
 ### Community 143 - "Community 143"
-Cohesion: 0.19
-Nodes (4): ePe, goe(), _route(), voe()
+Cohesion: 0.29
+Nodes (7): fP(), fromMessages(), fromMessagesAndSchema(), fromTemplate(), hde(), pde(), Ru()
 
 ### Community 144 - "Community 144"
-Cohesion: 0.20
-Nodes (9): _8(), e_e(), eO, g8(), gX(), initializeGlobalInstance(), Mc(), tee (+1 more)
+Cohesion: 0.29
+Nodes (6): Gge(), isResuming(), jve, n0e(), Rr(), Xm
 
 ### Community 145 - "Community 145"
-Cohesion: 0.21
-Nodes (10): a0, dre(), fF(), fre(), hF(), kK, mF(), _te (+2 more)
+Cohesion: 0.16
+Nodes (15): a0, dF(), Ese, fre(), gse, hF(), k6(), kK (+7 more)
 
 ### Community 146 - "Community 146"
-Cohesion: 0.18
-Nodes (12): _convertChatOpenAIToolToCompletionsTool(), drawMermaid(), drawMermaidPng(), extend(), firstNode(), lastNode(), lW, pre() (+4 more)
+Cohesion: 0.13
+Nodes (17): _convertChatOpenAIToolToCompletionsTool(), dI(), drawMermaid(), drawMermaidPng(), extend(), firstNode(), goe(), lastNode() (+9 more)
 
 ### Community 147 - "Community 147"
 Cohesion: 0.17
 Nodes (11): dK, getCheckpoint(), gy, initialize(), iX(), _J, pu(), sge() (+3 more)
 
 ### Community 153 - "Community 153"
-Cohesion: 0.24
-Nodes (11): $0(), a9(), c9(), emoji(), i9(), Nae(), o9(), oZ (+3 more)
+Cohesion: 0.29
+Nodes (5): _patchConfigForRetry(), Pt(), r0e(), s_, xb()
+
+### Community 154 - "Community 154"
+Cohesion: 0.33
+Nodes (4): fW, hA(), Lae(), wbe()
 
 ### Community 155 - "Community 155"
-Cohesion: 0.20
-Nodes (11): _assembleMessage(), eu(), iterate(), output(), [(QM=K0,Symbol.asyncIterator)](), que(), subscribeEvents(), [Symbol.asyncIterator]() (+3 more)
+Cohesion: 0.12
+Nodes (19): _assembleMessage(), eu(), Eue(), Fse, hse, iterate(), Iue(), Ju() (+11 more)
 
 ### Community 156 - "Community 156"
-Cohesion: 0.18
-Nodes (4): B(), loe(), p2(), xe()
+Cohesion: 0.60
+Nodes (5): _checkpointerPutAfterPrevious(), _flushPendingWrites(), _putExitDeltaWrites(), putWrites(), _trackCheckpointerPromise()
 
 ### Community 157 - "Community 157"
-Cohesion: 0.20
-Nodes (11): _convertInputToPromptValue(), fromAsyncGenerator(), Mce(), _mergeConfig(), rge(), _separateRunnableConfigFromCallOptions(), _separateRunnableConfigFromCallOptionsCompat(), stream() (+3 more)
+Cohesion: 0.29
+Nodes (7): _convertInputToPromptValue(), Mce(), _separateRunnableConfigFromCallOptions(), _separateRunnableConfigFromCallOptionsCompat(), streamEvents(), streamV2(), toChatMessages()
+
+### Community 158 - "Community 158"
+Cohesion: 0.17
+Nodes (3): ia(), no, url()
 
 ### Community 159 - "Community 159"
-Cohesion: 0.24
-Nodes (6): kre(), qn, tre(), vre(), wc(), xre()
-
-### Community 163 - "Community 163"
-Cohesion: 0.22
-Nodes (9): aA(), bee(), ensureReader(), next(), return(), sM(), [Symbol.asyncDispose](), throw() (+1 more)
-
-### Community 164 - "Community 164"
-Cohesion: 0.24
-Nodes (6): AD, eb(), gD(), go(), hK, Lv()
+Cohesion: 0.40
+Nodes (3): die, mie, S9()
 
 ### Community 165 - "Community 165"
-Cohesion: 0.27
-Nodes (10): batch(), _batchWithConfig(), delete(), enqueueOperation(), get(), _getOptionsList(), listNamespaces(), runnables() (+2 more)
+Cohesion: 0.14
+Nodes (27): batch(), _batchWithConfig(), _callWithConfig(), Cm(), delete(), en(), enqueueOperation(), get() (+19 more)
+
+### Community 166 - "Community 166"
+Cohesion: 0.50
+Nodes (4): aZ, dae(), _getCached(), shape()
 
 ### Community 167 - "Community 167"
-Cohesion: 0.20
-Nodes (6): checkpoint(), Fc(), kZ, lt(), vI(), Wce()
+Cohesion: 0.33
+Nodes (6): Cb, _F(), jF(), jG(), Wce(), wre()
 
 ### Community 169 - "Community 169"
 Cohesion: 0.20
 Nodes (9): DEBUG_TOOLS, FILE_READ_TOOLS, FILE_WRITE_TOOLS, PAGE_TOOLS, PLUGIN_TOOLS, PREVIEW_TOOLS, THEME_TOOLS, TOOL_LABELS (+1 more)
 
 ### Community 171 - "Community 171"
-Cohesion: 0.33
-Nodes (9): _addChildRun(), _addRunToRunMap(), _createRunForChainStart(), _createRunForChatModelStart(), _createRunForLLMStart(), _createRunForRetrieverStart(), _createRunForToolStart(), _getExecutionOrder() (+1 more)
+Cohesion: 0.50
+Nodes (4): calculateHashes(), fromDocument(), _hashNestedDictToUUID(), _hashStringToUUID()
 
 ### Community 172 - "Community 172"
-Cohesion: 0.25
-Nodes (5): cG, _emit(), lA(), push(), uA()
+Cohesion: 0.22
+Nodes (6): cG, _emit(), lA(), push(), toString(), uA()
 
 ### Community 173 - "Community 173"
-Cohesion: 0.25
-Nodes (8): Hu(), jb(), kX(), nwe, vA(), wK(), x3(), Xle()
+Cohesion: 0.14
+Nodes (13): gK, Is(), j2, oY(), passthrough(), rb(), toJSON(), toJSONNotImplemented() (+5 more)
+
+### Community 174 - "Community 174"
+Cohesion: 0.67
+Nodes (3): Ale(), tge(), toDict()
+
+### Community 175 - "Community 175"
+Cohesion: 0.67
+Nodes (3): BA(), Tle(), zY()
+
+### Community 177 - "Community 177"
+Cohesion: 0.67
+Nodes (3): _convertCompletionsDeltaToBaseMessageChunk(), koe(), qoe()
 
 ### Community 178 - "Community 178"
 Cohesion: 0.39
-Nodes (8): bulkUpdateState(), getState(), getStateHistory(), getSubgraphs(), getSubgraphsAsync(), h0, su(), updateState()
-
-### Community 179 - "Community 179"
-Cohesion: 0.29
-Nodes (6): eke(), qve, x6(), xve(), y6, zve
+Nodes (9): bulkUpdateState(), getState(), getStateHistory(), getSubgraphs(), getSubgraphsAsync(), h0, _prepareStateSnapshot(), su() (+1 more)
 
 ### Community 180 - "Community 180"
 Cohesion: 0.36
 Nodes (8): _commit(), _executeTasksWithRetry(), getErrorHandlerNode(), isErrorHandlerNode(), _resumeErrorHandlersIfApplicable(), scheduleErrorHandler(), _shouldRouteToErrorHandler(), vge()
+
+### Community 183 - "Community 183"
+Cohesion: 0.67
+Nodes (3): gie, k9(), we()
 
 ### Community 185 - "Community 185"
 Cohesion: 0.39
 Nodes (7): ALL_MODELS, getDefaultModelForProvider(), getProviderModels(), isDynamicModelProvider(), LLM_PROVIDERS, normalizeModelForProvider(), PROVIDER_IDS
 
 ### Community 187 - "Community 187"
-Cohesion: 0.52
-Nodes (7): _9(), eie, gR(), oM(), tie, xae(), y9()
+Cohesion: 0.67
+Nodes (3): gne(), _ne(), yne()
+
+### Community 188 - "Community 188"
+Cohesion: 0.67
+Nodes (3): _imageUrlContentToString(), _messageContentToString(), _textContentToString()
 
 ### Community 190 - "Community 190"
-Cohesion: 0.40
-Nodes (6): addMessages(), _enterHistory(), _exitHistory(), _getInputMessages(), getMessages(), _getOutputMessages()
+Cohesion: 0.25
+Nodes (9): addAIMessage(), addMessage(), addMessages(), addUserMessage(), _enterHistory(), _exitHistory(), _getInputMessages(), getMessages() (+1 more)
+
+### Community 191 - "Community 191"
+Cohesion: 0.22
+Nodes (3): aW, P9, sie
+
+### Community 192 - "Community 192"
+Cohesion: 0.11
+Nodes (3): kP, q3, zbe()
 
 ### Community 193 - "Community 193"
-Cohesion: 0.40
-Nodes (3): cee(), eee, gC
-
-### Community 198 - "Community 198"
-Cohesion: 0.40
-Nodes (4): ase(), hasExplicitToolConfig(), r1(), Yw()
+Cohesion: 0.67
+Nodes (3): sxe(), uke(), zke()
 
 ### Community 199 - "Community 199"
-Cohesion: 0.40
-Nodes (5): connect(), n0(), waitForOpen(), xY, yY
+Cohesion: 0.29
+Nodes (8): connect(), n0(), nextFrame(), pO(), rW, waitForOpen(), xY, yY
 
 ### Community 201 - "Community 201"
 Cohesion: 0.40
@@ -859,10 +881,6 @@ Nodes (3): buildElementTagHtml(), escapeHtml(), renderUserMessage()
 Cohesion: 0.67
 Nodes (4): _cloneSharedState(), _createFork(), _forkWithoutToolInput(), _forkWithToolInput()
 
-### Community 205 - "Community 205"
-Cohesion: 0.50
-Nodes (4): _dumps(), dumpsTyped(), gle(), yle()
-
 ### Community 206 - "Community 206"
 Cohesion: 0.67
 Nodes (4): embedQuery(), similaritySearch(), similaritySearchVectorWithScore(), similaritySearchWithScore()
@@ -872,24 +890,24 @@ Cohesion: 0.83
 Nodes (3): escapeHtml(), html(), renderMarkdown()
 
 ## Knowledge Gaps
-- **209 isolated node(s):** `oe`, `le`, `xe`, `yK`, `CD` (+204 more)
+- **203 isolated node(s):** `oe`, `le`, `xe`, `yK`, `CD` (+198 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **57 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **45 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `_()` connect `Graphify Knowledge Graph` to `Vue App Entry`, `Agent Loop Core`, `Context Manager`, `LLM Provider`, `Scratchpad`, `Skills Registry`, `Default Custom Prompt`, `Browser Tools`, `Tool Definitions`, `Filesystem Tools`, `Tool Index`, `API Key Modal`, `Browser Dev Tools`, `Chat Activity Status`, `Chat Continue Banner`, `Chat Input`, `Chat Message Body`, `Chat Settings`, `Chat Sidebar`, `Stream Block`, `Theme Banner`, `Panel Loading`, `Resize Handle`, `Agent Composable`, `Element Picker`, `Preview Dev Tools`, `Vue Main Entry`, `Tiktoken Polyfill`, `Abort Signal Util`, `API Client`, `Chat Export`, `DTM Config`, `Element Tag Util`, `iFrame Element Picker`, `LLM Providers`, `Preview Bridge`, `Preview Controller`, `Preview Load Error`, `Markdown Renderer`, `Settings API`, `Tool Display`, `PHP App Bootstrap`, `PHP Abstract Migration`, `PHP Abstract Repository`, `PHP Abstract Service`, `PHP Abstract ServiceProvider`, `PHP Abstract Singleton`, `Application Interface`, `Container Interface`, `Middleware Interface`, `Migration Interface`, `Model Interface`, `Repository Interface`, `ServiceProvider Interface`, `ServiceRegistry Interface`, `PHP Application Core`, `DB Blueprint`, `Model Query Builder`, `Repository Query Builder`, `Schema Builder`, `Service Registry`, `Record Buffer`, `Migrations Bootstrap`, `Chats Migration`, `Messages Migration`, `Checkpoints Migration`, `Memory Entries Migration`, `Admin ServiceProvider`, `Dialog ServiceProvider`, `Frontend ServiceProvider`, `Runtime ServiceProvider`, `Chat Admin Menu`, `Community 97`, `Community 99`, `Community 100`, `Community 101`, `Community 102`, `Community 103`, `Community 107`, `Community 108`, `Community 109`, `Community 110`, `Community 111`, `Community 112`, `Community 115`, `Community 116`, `Community 117`, `Community 123`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 128`, `Community 129`, `Community 130`, `Community 131`, `Community 132`, `Community 133`, `Community 134`, `Community 135`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 144`, `Community 145`, `Community 146`, `Community 147`, `Community 153`, `Community 154`, `Community 155`, `Community 156`, `Community 157`, `Community 158`, `Community 159`, `Community 163`, `Community 164`, `Community 165`, `Community 166`, `Community 167`, `Community 168`, `Community 171`, `Community 172`, `Community 173`, `Community 174`, `Community 175`, `Community 176`, `Community 177`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 187`, `Community 188`, `Community 190`, `Community 191`, `Community 192`, `Community 193`, `Community 194`, `Community 195`, `Community 198`, `Community 199`, `Community 200`, `Community 204`, `Community 205`, `Community 206`, `Community 216`, `Community 217`, `Community 218`, `Community 219`?**
-  _High betweenness centrality (0.853) - this node is a cross-community bridge._
-- **Why does `Use` connect `Scratchpad` to `Graphify Knowledge Graph`, `Browser Tools`?**
+- **Why does `_()` connect `Graphify Knowledge Graph` to `Vue App Entry`, `Agent Loop Core`, `Context Manager`, `LLM Provider`, `Scratchpad`, `Skills Registry`, `Default Custom Prompt`, `Browser Tools`, `Tool Definitions`, `Filesystem Tools`, `Tool Index`, `API Key Modal`, `Browser Dev Tools`, `Chat Activity Status`, `Chat Continue Banner`, `Chat Empty State`, `Chat Input`, `Chat Message Body`, `Chat Settings`, `Chat Sidebar`, `Stream Block`, `Theme Banner`, `Resize Handle`, `Agent Composable`, `Element Picker`, `Preview Dev Tools`, `Vue Main Entry`, `Tiktoken Polyfill`, `Abort Signal Util`, `API Client`, `Chat Export`, `DTM Config`, `Element Tag Util`, `iFrame Element Picker`, `LLM Providers`, `Preview Bridge`, `Preview Controller`, `Preview Load Error`, `Markdown Renderer`, `Settings API`, `Tool Display`, `PHP App Bootstrap`, `PHP Abstract Migration`, `PHP Abstract Repository`, `PHP Abstract Service`, `PHP Abstract Singleton`, `Application Interface`, `Container Interface`, `Middleware Interface`, `Migration Interface`, `Model Interface`, `Repository Interface`, `ServiceProvider Interface`, `ServiceRegistry Interface`, `PHP Application Core`, `DB Blueprint`, `Model Query Builder`, `Paginator`, `Repository Query Builder`, `Schema Builder`, `Service Registry`, `Record Buffer`, `Migrations Bootstrap`, `Chats Migration`, `Messages Migration`, `Checkpoints Migration`, `Memory Entries Migration`, `Admin ServiceProvider`, `Dialog ServiceProvider`, `Frontend ServiceProvider`, `Runtime ServiceProvider`, `Chat Admin Menu`, `Community 97`, `Community 100`, `Community 101`, `Community 102`, `Community 103`, `Community 107`, `Community 108`, `Community 109`, `Community 110`, `Community 111`, `Community 112`, `Community 115`, `Community 116`, `Community 117`, `Community 121`, `Community 123`, `Community 124`, `Community 125`, `Community 126`, `Community 127`, `Community 128`, `Community 130`, `Community 131`, `Community 132`, `Community 133`, `Community 134`, `Community 135`, `Community 137`, `Community 139`, `Community 140`, `Community 141`, `Community 142`, `Community 143`, `Community 144`, `Community 145`, `Community 146`, `Community 147`, `Community 153`, `Community 154`, `Community 155`, `Community 156`, `Community 157`, `Community 158`, `Community 159`, `Community 161`, `Community 164`, `Community 165`, `Community 166`, `Community 167`, `Community 168`, `Community 171`, `Community 172`, `Community 173`, `Community 174`, `Community 175`, `Community 176`, `Community 177`, `Community 178`, `Community 179`, `Community 180`, `Community 181`, `Community 183`, `Community 187`, `Community 188`, `Community 190`, `Community 191`, `Community 192`, `Community 193`, `Community 194`, `Community 199`, `Community 204`, `Community 206`, `Community 216`, `Community 217`, `Community 218`, `Community 219`?**
+  _High betweenness centrality (0.848) - this node is a cross-community bridge._
+- **Why does `Use` connect `Scratchpad` to `Graphify Knowledge Graph`, `Community 97`?**
   _High betweenness centrality (0.254) - this node is a cross-community bridge._
-- **Why does `ThemeAstVisitor` connect `Scratchpad` to `PHP DI Container`, `Community 137`?**
+- **Why does `ThemeAstVisitor` connect `Scratchpad` to `PHP DI Container`?**
   _High betweenness centrality (0.251) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `call()` (e.g. with `aY()` and `Bs()`) actually correct?**
   _`call()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `oe`, `le`, `xe` to the rest of the system?**
-  _209 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _203 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Graphify Knowledge Graph` be split into smaller, more focused modules?**
-  _Cohesion score 0.006063499641919313 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.0059977844595663875 - nodes in this community are weakly interconnected._
 - **Should `Vue App Entry` be split into smaller, more focused modules?**
-  _Cohesion score 0.039294039294039296 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.09102564102564102 - nodes in this community are weakly interconnected._

@@ -7,16 +7,22 @@
  * into an ordered list of tasks. Each task is { title, description }. The list
  * is written to state.tasks.
  *
- * `outputType` (a zod schema) makes the SDK return validated structured JSON, so
- * we no longer parse it out of a free-text reply by hand.
+ * We deliberately do NOT use the SDK's `outputType` (strict structured output):
+ * the proxy models (e.g. deepseek) frequently return slightly malformed JSON
+ * (unescaped quotes/newlines inside long descriptions), and the SDK's parser
+ * throws "Invalid output type" on the whole run. Instead we put the JSON
+ * contract in the instructions and parse the reply ourselves, forgivingly.
  */
 
 import { Agent, run } from '@openai/agents';
-import { z } from 'zod';
 import { configureAgentsRuntime } from '../providers/agentsRuntime.js';
 import { buildCodeIndexBlock, buildKnowledgeGraphBlock } from '../contextManager.js';
 
 const PLANNER_INSTRUCTIONS = `You are the planner of a WordPress theme-building agent. You are given the conversation and an ANALYSIS of what the user wants. Break the work into an ordered list of concrete, actionable tasks.
+
+Reply with a SINGLE JSON object and nothing else:
+
+{"tasks": [{"title": "<short task title>", "description": "<what this task does and how>"}, ...]}
 
 Rules:
 - Each task must have both a "title" (short) and a "description".
@@ -28,16 +34,11 @@ Rules:
 - Prefer naming real symbols and paths over generic phrasing (e.g. "in functions.php, hook a callback onto wp_enqueue_scripts to enqueue assets/front/css/header.css" — not "add the required styles").
 - Order the tasks in the sequence they should be executed.
 - Keep the list as short as the work genuinely needs — no filler steps — but do not sacrifice technical detail to be brief.
-- Write titles and descriptions in the user's language (technical tokens — file paths, function names, CSS properties, hex values — stay verbatim in English/code).`;
+- Write titles and descriptions in the user's language (technical tokens — file paths, function names, CSS properties, hex values — stay verbatim in English/code).
 
-const TaskSchema = z.object({
-  title: z.string(),
-  description: z.string(),
-});
-
-const PlannerOutput = z.object({
-  tasks: z.array(TaskSchema),
-});
+Output rules (critical):
+- Output ONLY the JSON object — no markdown fences, no commentary before or after.
+- The JSON must be valid: escape every " and newline inside "title"/"description" (use \\" and \\n). Do not put raw line breaks inside a string value.`;
 
 /**
  * Render the preloaded theme code index (and knowledge graph, if present) as a
@@ -73,6 +74,34 @@ function toAgentItem(message) {
   return { role, content };
 }
 
+/** Extract the plain-text reply from a run() result, across SDK output shapes. */
+function extractText(result) {
+  const output = result?.finalOutput;
+  if (typeof output === 'string') return output;
+  if (output && typeof output === 'object') {
+    // Already-parsed shape (shouldn't happen without outputType, but be safe).
+    if (Array.isArray(output.tasks)) return JSON.stringify(output);
+    if (typeof output.text === 'string') return output.text;
+  }
+  return typeof result?.finalOutputText === 'string' ? result.finalOutputText : '';
+}
+
+/** Forgivingly pull the {tasks:[...]} object out of a free-text reply. */
+function parseTasks(text) {
+  if (!text) return [];
+
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return [];
+
+  try {
+    const parsed = JSON.parse(match[0]);
+    return Array.isArray(parsed.tasks) ? parsed.tasks : [];
+  } catch (error) {
+    console.warn('[planner] failed to parse tasks JSON:', error.message);
+    return [];
+  }
+}
+
 export function createPlannerNode({ llmProvider, themeContext = null, signal }) {
   const { model, apiKey } = llmProvider?.config ?? {};
   configureAgentsRuntime({ apiKey });
@@ -81,7 +110,6 @@ export function createPlannerNode({ llmProvider, themeContext = null, signal }) 
     name: 'Planner',
     instructions: PLANNER_INSTRUCTIONS + buildIndexInstructions(themeContext),
     model,
-    outputType: PlannerOutput,
   });
 
   return async function plannerNode(state) {
@@ -93,7 +121,7 @@ export function createPlannerNode({ llmProvider, themeContext = null, signal }) 
     ];
 
     const result = await run(agent, input, signal ? { signal } : undefined);
-    const tasks = Array.isArray(result.finalOutput?.tasks) ? result.finalOutput.tasks : [];
+    const tasks = parseTasks(extractText(result));
 
     console.log('[planner] tasks:', tasks);
     return { tasks };
