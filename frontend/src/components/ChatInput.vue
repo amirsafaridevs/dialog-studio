@@ -35,7 +35,7 @@ const savedRange = ref(null);
 
 const { pickVersion, lastPick } = useElementPicker();
 
-const MAX_LINES = 3;
+const MAX_LINES = 10;
 
 const canSend = computed(() => !isEmpty.value && !props.disabled && !props.isRunning);
 const showConnectionWarning = computed(
@@ -324,19 +324,7 @@ defineExpose({ setDraft, focus });
         @paste="onPaste"
         @blur="saveSelection"
       />
-      <div class="chat-input__actions">
-        <button
-          type="button"
-          class="chat-input__export"
-          title="خروجی JSON"
-          :disabled="!canExport"
-          @click="emit('export')"
-        >
-          <Download :size="15" :stroke-width="1.75" />
-        </button>
-        <button type="button" class="chat-input__attach" title="پیوست" :disabled="isRunning">
-          <Paperclip :size="15" :stroke-width="1.75" />
-        </button>
+      <div class="chat-input__toolbar">
         <button
           type="button"
           class="chat-input__send"
@@ -348,6 +336,20 @@ defineExpose({ setDraft, focus });
           <Square v-if="isRunning" :size="12" :stroke-width="2" fill="currentColor" />
           <ArrowUp v-else :size="16" :stroke-width="2" />
         </button>
+        <div class="chat-input__actions">
+          <button
+            type="button"
+            class="chat-input__export"
+            title="خروجی JSON"
+            :disabled="!canExport"
+            @click="emit('export')"
+          >
+            <Download :size="17" :stroke-width="1.75" />
+          </button>
+          <button type="button" class="chat-input__attach" title="پیوست" :disabled="isRunning">
+            <Paperclip :size="17" :stroke-width="1.75" />
+          </button>
+        </div>
       </div>
     </div>
   </footer>
@@ -390,18 +392,17 @@ defineExpose({ setDraft, focus });
 
 .chat-input__box {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   gap: var(--dtm-space-2);
-  padding: 6px 6px 6px var(--dtm-space-3);
-  background: var(--dtm-bg-elevated);
-  border: 1px solid var(--dtm-border-default);
-  border-radius: var(--dtm-radius-lg);
+  padding: 10px 14px 8px;
+  background: #101010;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
   transition: border-color var(--dtm-transition), box-shadow var(--dtm-transition);
 }
 
 .chat-input__box:focus-within {
-  border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: var(--dtm-focus-ring);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .chat-input__editor {
@@ -423,7 +424,7 @@ defineExpose({ setDraft, focus });
 
 .chat-input__editor--empty::before {
   content: attr(data-placeholder);
-  color: var(--dtm-text-muted);
+  color: rgba(255, 255, 255, 0.4);
   pointer-events: none;
 }
 
@@ -464,10 +465,17 @@ defineExpose({ setDraft, focus });
   white-space: nowrap;
 }
 
+.chat-input__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dtm-space-2);
+}
+
 .chat-input__actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -476,17 +484,17 @@ defineExpose({ setDraft, focus });
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--dtm-radius-sm);
-  color: var(--dtm-text-muted);
+  color: rgba(255, 255, 255, 0.6);
   transition: background var(--dtm-transition), color var(--dtm-transition);
 }
 
 .chat-input__export:hover:not(:disabled),
 .chat-input__attach:hover:not(:disabled) {
-  background: var(--dtm-hover-bg);
-  color: var(--dtm-text-secondary);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .chat-input__export:disabled,
@@ -499,21 +507,26 @@ defineExpose({ setDraft, focus });
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 25px;
-  height: 25px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
-  background: #ffffff;
-  color: #000000;
+  background: #2b2f38;
+  color: rgba(255, 255, 255, 0.85);
   transition: transform var(--dtm-transition), opacity var(--dtm-transition), background var(--dtm-transition);
 }
 
 .chat-input__send--stop {
-  background: #ef4444;
+  background: #282828;
   color: #ffffff;
 }
 
 .chat-input__send:hover:not(:disabled) {
-  transform: translateY(-1px);
+  background: #363b45;
+}
+
+.chat-input__send:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 @keyframes chat-input-pulse {

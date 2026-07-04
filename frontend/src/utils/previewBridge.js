@@ -10,6 +10,9 @@ export function appendPreviewParam(url) {
   try {
     const parsed = new URL(url, window.location.origin);
     parsed.searchParams.set(PREVIEW_QUERY_PARAM, '1');
+    // Cache-bust on every call so page/browser/proxy caches can't serve a stale
+    // response for a URL that looks identical to a previous preview load.
+    parsed.searchParams.set('dtm_ts', Date.now().toString());
     return parsed.toString();
   } catch {
     return url;
@@ -20,6 +23,7 @@ export function stripPreviewParam(url) {
   try {
     const parsed = new URL(url, window.location.origin);
     parsed.searchParams.delete(PREVIEW_QUERY_PARAM);
+    parsed.searchParams.delete('dtm_ts');
     const query = parsed.searchParams.toString();
     return `${parsed.origin}${parsed.pathname}${query ? `?${query}` : ''}${parsed.hash}`;
   } catch {

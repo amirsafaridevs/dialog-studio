@@ -8,13 +8,13 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'read_file',
       description:
-        'Read any file in the WordPress install. For workspace (child theme) files use relative paths like assets/front/css/main.css. For plugins use wp-content/plugins/my-plugin/main.php. For WordPress core use wp-includes/formatting.php.',
+        'Read any file in the WordPress install. Path is always relative to the WordPress root (same format every file tool uses, and the same format the Dialog Code Index / search results already give you). Example: wp-content/themes/{slug}/assets/front/css/main.css, wp-content/plugins/woocommerce/woocommerce.php, wp-includes/formatting.php.',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'WordPress-relative path or workspace-relative path (e.g. assets/front/css/main.css, wp-content/plugins/woocommerce/woocommerce.php)',
+            description: 'WordPress-root-relative path (e.g. wp-content/themes/{slug}/style.css, wp-content/plugins/woocommerce/woocommerce.php)',
           },
           start_line: {
             type: 'integer',
@@ -34,12 +34,12 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'search_files',
       description:
-        'Search files by name inside a directory. Omit directory to search the workspace (child theme). For plugins use wp-content/plugins. For WordPress root use wp-content.',
+        'Search files by name inside a directory. Omit directory to search the workspace (child theme). Results come back with WordPress-root-relative paths — reuse them as-is in read_file/write_file/etc.',
       parameters: {
         type: 'object',
         properties: {
           keywords: { type: 'array', items: { type: 'string' } },
-          directory: { type: 'string', description: 'Directory to search. Omit to search workspace. Examples: wp-content/plugins, wp-content/plugins/woocommerce' },
+          directory: { type: 'string', description: 'WordPress-root-relative directory to search. Omit to search workspace. Examples: wp-content/plugins, wp-content/plugins/woocommerce' },
           operator: { type: 'string', enum: ['AND', 'OR'], default: 'AND' },
         },
         required: ['keywords'],
@@ -51,7 +51,7 @@ const FILE_READ_TOOLS = [
     function: {
       name: 'search_content',
       description:
-        'LAST RESORT ONLY — blocked when the Dialog Code Index already maps the keyword or file. Omit path to search the workspace (child theme).',
+        'LAST RESORT ONLY — blocked when the Dialog Code Index already maps the keyword or file. Omit path to search the workspace (child theme). Results come back with WordPress-root-relative paths — reuse them as-is in read_file/write_file/etc.',
       parameters: {
         type: 'object',
         properties: {
@@ -64,7 +64,7 @@ const FILE_READ_TOOLS = [
           path: {
             type: 'string',
             description:
-              'Directory or file scope (WordPress-relative). Omit to search workspace. Set only when searching outside the workspace (e.g. wp-content/plugins/woocommerce).',
+              'Directory or file scope, WordPress-root-relative. Omit to search workspace. Set only when searching outside the workspace (e.g. wp-content/plugins/woocommerce).',
           },
           operator: {
             type: 'string',
@@ -92,7 +92,7 @@ const FILE_READ_TOOLS = [
           directory: {
             type: 'string',
             description:
-              'Directory to validate (WordPress-relative). Omit for workspace. Examples: wp-content/plugins/my-plugin',
+              'Directory to validate, WordPress-root-relative. Omit for workspace. Examples: wp-content/plugins/my-plugin',
           },
         },
       },
@@ -110,7 +110,7 @@ const FILE_READ_TOOLS = [
           directory: {
             type: 'string',
             description:
-              'Directory to analyze (WordPress-relative). Omit for workspace. Examples: wp-content/plugins/my-plugin',
+              'Directory to analyze, WordPress-root-relative. Omit for workspace. Examples: wp-content/plugins/my-plugin',
           },
         },
       },
@@ -133,15 +133,15 @@ const FILE_READ_TOOLS = [
           },
           target: {
             type: 'string',
-            description: 'For mode:"explain" — a symbol (function/class/Class::method) or a file path (e.g. functions.php, inc/shop.php).',
+            description: 'For mode:"explain" — a symbol (function/class/Class::method) or a WordPress-root-relative file path (e.g. wp-content/themes/{slug}/functions.php).',
           },
           from: {
             type: 'string',
-            description: 'For mode:"path" — the start symbol or file.',
+            description: 'For mode:"path" — the start symbol or WordPress-root-relative file path.',
           },
           to: {
             type: 'string',
-            description: 'For mode:"path" — the end symbol or file.',
+            description: 'For mode:"path" — the end symbol or WordPress-root-relative file path.',
           },
           max_hops: { type: 'integer', default: 6, description: 'For mode:"path" — max relationship hops to search.' },
         },
@@ -156,13 +156,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'replace_in_file',
       description:
-        'PREFERRED way to change an existing workspace (child theme) file. Replaces an exact snippet (old_string) with new_string. old_string must be copied VERBATIM from the file — every space, tab, and newline identical — and must be UNIQUE: include enough surrounding lines (e.g. the CSS selector line above the property you are changing) that it matches exactly one place. This anchors on the text itself, so it never drifts when line numbers shift. Use this instead of edit_file. Path is relative to workspace root (e.g. assets/front/css/main.css, style.css, inc/shop.php).',
+        'PREFERRED way to change an existing workspace (child theme) file. Replaces an exact snippet (old_string) with new_string. old_string must be copied VERBATIM from the file — every space, tab, and newline identical — and must be UNIQUE: include enough surrounding lines (e.g. the CSS selector line above the property you are changing) that it matches exactly one place. This anchors on the text itself, so it never drifts when line numbers shift. Use this instead of edit_file. Writes are restricted to the workspace (child theme), but path is still WordPress-root-relative like every other file tool (e.g. wp-content/themes/{slug}/assets/front/css/main.css).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
+            description: 'WordPress-root-relative path inside the workspace (e.g. wp-content/themes/{slug}/assets/front/css/main.css, wp-content/themes/{slug}/style.css)',
           },
           old_string: {
             type: 'string',
@@ -187,13 +187,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'edit_file',
       description:
-        'FALLBACK editor — prefer replace_in_file. Use line ranges ONLY when there is no stable text to anchor on (e.g. deleting a known block by position). Replaces lines start_line through end_line (1-indexed, inclusive) with new content; the line numbers must come from a read_file you just made, because any prior edit shifts them. Path is relative to workspace root (e.g. assets/front/css/main.css, inc/shop.php).',
+        'FALLBACK editor — prefer replace_in_file. Use line ranges ONLY when there is no stable text to anchor on (e.g. deleting a known block by position). Replaces lines start_line through end_line (1-indexed, inclusive) with new content; the line numbers must come from a read_file you just made, because any prior edit shifts them. Writes are restricted to the workspace (child theme), but path is still WordPress-root-relative like every other file tool (e.g. wp-content/themes/{slug}/assets/front/css/main.css).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
+            description: 'WordPress-root-relative path inside the workspace (e.g. wp-content/themes/{slug}/assets/front/css/main.css, wp-content/themes/{slug}/style.css)',
           },
           start_line: {
             type: 'integer',
@@ -217,13 +217,13 @@ const FILE_WRITE_TOOLS = [
     function: {
       name: 'write_file',
       description:
-        'Create or overwrite a file inside the workspace (child theme). Path is relative to workspace root (e.g. assets/front/css/main.css, inc/helpers.php, style.css).',
+        'Create or overwrite a file inside the workspace (child theme). Writes are restricted to the workspace, but path is still WordPress-root-relative like every other file tool (e.g. wp-content/themes/{slug}/assets/front/css/main.css).',
       parameters: {
         type: 'object',
         properties: {
           path: {
             type: 'string',
-            description: 'Relative path inside workspace (e.g. assets/front/css/main.css, inc/helpers.php, style.css)',
+            description: 'WordPress-root-relative path inside the workspace (e.g. wp-content/themes/{slug}/assets/front/css/main.css, wp-content/themes/{slug}/style.css)',
           },
           content: { type: 'string' },
           mode: { type: 'string', enum: ['create', 'overwrite'], default: 'create' },
@@ -520,9 +520,9 @@ export const TOOL_LABELS = {
   create_page: 'ایجاد برگه',
   update_page: 'ویرایش برگه',
   update_todos: 'برنامه‌ریزی',
-  preview_navigate: 'رفتن به صفحه پیش‌نمایش',
-  preview_reload: 'بارگذاری مجدد پیش‌نمایش',
-  preview_get_html: 'خواندن HTML پیش‌نمایش',
+  preview_navigate: 'رفتن به صفحه ',
+  preview_reload: 'بارگذاری مجدد ',
+  preview_get_html: 'خواندن HTML ',
   preview_get_loaded_assets: 'لیست فایل‌های CSS/JS لود شده',
   preview_get_element_styles: 'بررسی CSS المان',
 };

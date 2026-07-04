@@ -568,11 +568,10 @@ function normalizeIndexedPath(path = '') {
     return null;
   }
 
-  let normalized = path.replace(/\\/g, '/').trim().replace(/^\/+/, '');
-  // Strip both old wp-content/dialog/ prefix and new wp-content/themes/{slug}/ prefix
-  normalized = normalized.replace(/^wp-content\/dialog\/?/i, '');
-  normalized = normalized.replace(/^wp-content\/themes\/[^/]+\/?/i, '');
-  normalized = normalized.replace(/^dialog\/?/i, '');
+  // Paths are WordPress-root-relative everywhere now (see buildThemeContextBlock's
+  // "Path rules" block) — only strip slashes/whitespace, never a theme prefix, so
+  // this stays a straight comparison against codeIndex.files[].path.
+  const normalized = path.replace(/\\/g, '/').trim().replace(/^\/+/, '');
   return normalized || null;
 }
 
@@ -632,22 +631,15 @@ function isDialogThemeScope(path) {
     return true;
   }
 
+  // Paths are WordPress-root-relative everywhere now — theme scope means
+  // "wp-content/themes/{any-slug}/...", anything under plugins/wp-includes/wp-admin
+  // is explicitly out of scope for the code index.
   const normalized = path.replace(/\\/g, '/').toLowerCase();
-  if (normalized.includes('plugins/') || normalized.includes('wp-includes') || normalized.includes('wp-admin')) {
+  if (normalized.includes('wp-content/plugins/') || normalized.includes('wp-includes') || normalized.includes('wp-admin')) {
     return false;
   }
 
-  return (
-    normalized.startsWith('assets/')
-    || normalized.startsWith('inc/')
-    || normalized.startsWith('template-parts/')
-    || normalized === 'style.css'
-    || normalized === 'functions.php'
-    || normalized === 'index.php'
-    || normalized === 'header.php'
-    || normalized === 'footer.php'
-    || (!normalized.includes('wp-content/') && !normalized.includes('wp-includes') && !normalized.includes('wp-admin'))
-  );
+  return normalized.startsWith('wp-content/themes/') || !normalized.includes('wp-content/');
 }
 
 /**
@@ -717,8 +709,8 @@ export function buildCodeIndexBlock(codeIndex) {
   }
 
   const lines = [
-    'Dialog code index (preloaded every message — paths are workspace-relative; read_file directly using these paths):',
-    'Layout: style.css, functions.php, assets/front|admin/{css,js,img}, inc/*.php, template-parts/',
+    'Dialog code index (preloaded every message — paths are WordPress-root-relative, same format as every other file tool; read_file directly using these paths):',
+    'Layout: wp-content/themes/{slug}/style.css, wp-content/themes/{slug}/functions.php, wp-content/themes/{slug}/assets/front|admin/{css,js,img}, wp-content/themes/{slug}/inc/*.php, wp-content/themes/{slug}/template-parts/',
   ];
 
   const templates = [];
@@ -947,17 +939,19 @@ export function buildThemeContextBlock(themeContext) {
     `- Workspace ready: ${themeContext.ready ? 'yes' : 'no'}`,
     '',
     'Path rules (critical):',
-    '- NEVER use absolute filesystem paths (no C:/ or /var/...).',
-    '- read_file and search_* can access any file under the WordPress install.',
+    '- ONE format everywhere: every file tool (read_file, write_file, edit_file, replace_in_file, search_files, search_content, code_graph, validate_code, graph_query) takes and returns paths relative to the WordPress root — never a raw absolute filesystem path (no C:/ or /var/...), never a bare theme-relative path.',
+    '- read_file and search_* can access any file under the WordPress install. Writes (write_file, edit_file, replace_in_file) are restricted to the workspace (child theme) but still use the same WordPress-root-relative format.',
     '- search_content is for unknown locations only. If the index or user selection already names the file, read_file it directly (use start_line/end_line for large CSS). One search batch per topic — never repeat with similar keywords.',
     workspaceRelative
-      ? `- Examples: plugins/my-plugin/main.php, ${workspaceRelative}/assets/front/css/main.css, wp-includes/formatting.php`
-      : '- Examples: plugins/my-plugin/main.php, wp-content/themes/{slug}/style.css, wp-includes/formatting.php',
+      ? `- Examples: ${workspaceRelative}/style.css, ${workspaceRelative}/assets/front/css/main.css, wp-content/plugins/my-plugin/main.php, wp-includes/formatting.php`
+      : '- Examples: wp-content/themes/{slug}/style.css, wp-content/plugins/my-plugin/main.php, wp-includes/formatting.php',
+    '- Any path a tool gives you back (search results, the code index, the knowledge graph) is already in this exact format — reuse it verbatim in your next tool call, do not shorten or re-derive it.',
     workspaceRelative
-      ? `- write_file/replace_in_file paths are relative to the workspace root (e.g. assets/front/css/main.css, inc/my-module.php).`
-      : '- write_file/replace_in_file paths are relative to the workspace root.',
-    '- Assets: assets/admin/{css,js,img} and assets/front/{css,js,img} (auto-enqueued on site).',
-    '- PHP extensions: inc/*.php files (auto-loaded like mini-plugins).',
+      ? `- Assets: ${workspaceRelative}/assets/admin/{css,js,img} and ${workspaceRelative}/assets/front/{css,js,img} (auto-enqueued on site).`
+      : '- Assets: assets/admin/{css,js,img} and assets/front/{css,js,img} under the workspace (auto-enqueued on site).',
+    workspaceRelative
+      ? `- PHP extensions: ${workspaceRelative}/inc/*.php files (auto-loaded like mini-plugins).`
+      : '- PHP extensions: inc/*.php files under the workspace (auto-loaded like mini-plugins).',
     '- To change existing files use replace_in_file (anchor on exact text). read_file shows each line as "N│..." — the N is the real line number for your reference; never include it in old_string.',
     '- search_files with no directory defaults to the workspace root. For plugins use directory: wp-content/plugins.',
     knowledgeGraphBlock ? `\n${knowledgeGraphBlock}` : '',

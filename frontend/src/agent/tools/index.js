@@ -14,18 +14,19 @@ export class ToolExecutor {
   }
 
   async execute(toolName, args, options = {}) {
-    console.log(`[ToolExecutor] ${toolName}`, args);
-
     try {
+      let result;
+
       if (this.fileSystem.supports(toolName)) {
-        return await this.fileSystem.execute(toolName, args, options);
+        result = await this.fileSystem.execute(toolName, args, options);
+      } else if (this.browser.supports(toolName)) {
+        result = await this.browser.execute(toolName, args, options);
+      } else {
+        result = await this.executeApiTool(toolName, args, options);
       }
 
-      if (this.browser.supports(toolName)) {
-        return await this.browser.execute(toolName, args, options);
-      }
-
-      return await this.executeApiTool(toolName, args, options);
+      console.log(`[ToolExecutor] ${toolName}`, { args, result });
+      return result;
     } catch (error) {
       if (isAbortError(error)) {
         throw error;

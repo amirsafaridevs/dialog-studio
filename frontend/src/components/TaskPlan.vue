@@ -1,5 +1,5 @@
 <script setup>
-import { CheckCircle2, Circle, ListTodo, LoaderCircle, XCircle } from 'lucide-vue-next';
+import { Check, X } from 'lucide-vue-next';
 
 defineProps({
   tasks: {
@@ -7,69 +7,47 @@ defineProps({
     required: true,
   },
 });
-
-const statusIcon = {
-  pending: Circle,
-  'in-progress': LoaderCircle,
-  done: CheckCircle2,
-  failed: XCircle,
-};
 </script>
 
 <template>
-  <div class="task-plan">
-    <div class="task-plan__title">
-      <ListTodo :size="14" :stroke-width="1.75" class="task-plan__title-icon" />
-      <span>برنامه اجرا</span>
-    </div>
-    <ul class="task-plan__list">
-      <li
-        v-for="task in tasks"
-        :key="task.id"
-        class="task-plan__item"
-        :class="`task-plan__item--${task.status}`"
-      >
-        <component
-          :is="statusIcon[task.status] || Circle"
-          :size="12"
-          :stroke-width="1.75"
-          class="task-plan__item-icon"
+  <ul class="task-plan">
+    <li
+      v-for="task in tasks"
+      :key="task.id"
+      class="task-plan__item"
+      :class="`task-plan__item--${task.status}`"
+    >
+      <span class="task-plan__marker" aria-hidden="true">
+        <Check
+          v-if="task.status === 'done'"
+          :size="9"
+          :stroke-width="3"
+          class="task-plan__marker-glyph"
         />
-        <span>{{ task.label }}</span>
-      </li>
-    </ul>
-  </div>
+        <X
+          v-else-if="task.status === 'failed'"
+          :size="9"
+          :stroke-width="3"
+          class="task-plan__marker-glyph"
+        />
+      </span>
+      <span class="task-plan__label">{{ task.label }}</span>
+    </li>
+  </ul>
 </template>
 
 <style scoped>
 .task-plan {
-  width: 100%;
-  color: var(--dtm-text-secondary);
-  font-size: 13px;
-  line-height: 1.75;
-}
-
-.task-plan__title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: var(--dtm-space-2);
-  font-weight: 500;
-  color: var(--dtm-text-secondary);
-}
-
-.task-plan__title-icon {
-  flex-shrink: 0;
-  color: var(--dtm-text-muted);
-}
-
-.task-plan__list {
   list-style: none;
   margin: 0;
   padding: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--dtm-text-muted);
 }
 
 .task-plan__item {
@@ -79,30 +57,61 @@ const statusIcon = {
   text-align: right;
 }
 
-.task-plan__item-icon {
+/* Square status marker — 12px, sits on the text baseline. */
+.task-plan__marker {
   flex-shrink: 0;
-  margin-top: 5px;
+  margin-top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: var(--dtm-text-muted);
+  transition: background-color 0.2s ease;
+}
+
+.task-plan__marker-glyph {
+  display: block;
+}
+
+/* Queued: filled gray square (default above), muted label. */
+.task-plan__item--pending .task-plan__label {
   color: var(--dtm-text-muted);
 }
 
-.task-plan__item--in-progress {
+/* In progress: spinning square outline, brighter label. */
+.task-plan__item--in-progress .task-plan__label {
   color: var(--dtm-text-primary);
 }
 
-.task-plan__item--in-progress .task-plan__item-icon {
-  color: var(--dtm-accent);
-  animation: spin 1s linear infinite;
+.task-plan__item--in-progress .task-plan__marker {
+  background: transparent;
+  border: 1.5px solid var(--dtm-accent);
+  border-top-color: transparent;
+  animation: task-plan-spin 0.7s linear infinite;
 }
 
-.task-plan__item--done .task-plan__item-icon {
-  color: var(--dtm-accent);
+/* Done: filled green square with a check. */
+.task-plan__item--done .task-plan__marker {
+  background: #2ecc71;
 }
 
-.task-plan__item--failed .task-plan__item-icon {
-  color: #d4a054;
+.task-plan__item--done .task-plan__label {
+  color: var(--dtm-text-secondary);
 }
 
-@keyframes spin {
+/* Failed: amber square with an ✕. */
+.task-plan__item--failed .task-plan__marker {
+  background: #d4a054;
+}
+
+.task-plan__item--failed .task-plan__label {
+  color: var(--dtm-text-secondary);
+}
+
+@keyframes task-plan-spin {
   from {
     transform: rotate(0deg);
   }

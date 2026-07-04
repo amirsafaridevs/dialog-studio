@@ -26,8 +26,44 @@ class PreviewBridgeService extends AbstractService
 
         $booted = true;
 
+        add_action( 'send_headers', [ $this, 'preventCachingOfPreviewRequests' ] );
         add_action( 'wp_head', [ $this, 'printPreviewBridgeScript' ], 1 );
         add_action( 'admin_head', [ $this, 'printPreviewBridgeScript' ], 1 );
+    }
+
+    /**
+     * When the page is being loaded inside the agent's preview iframe, make sure
+     * page-cache plugins (WP Rocket, W3TC, WP Super Cache, LiteSpeed, etc.) and the
+     * browser itself never serve a stale response — the agent needs to see the
+     * live result of its own edits on the very next load.
+     */
+    public function preventCachingOfPreviewRequests(): void
+    {
+        if ( ! $this->shouldLoadPreviewBridge() ) {
+            return;
+        }
+
+        if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+            define( 'DONOTCACHEPAGE', true );
+        }
+
+        if ( ! defined( 'DONOTCACHEOBJECT' ) ) {
+            define( 'DONOTCACHEOBJECT', true );
+        }
+
+        if ( ! defined( 'DONOTCACHEDB' ) ) {
+            define( 'DONOTCACHEDB', true );
+        }
+
+        if ( function_exists( 'nocache_headers' ) ) {
+            nocache_headers();
+        }
+
+        // LiteSpeed Cache reads this header explicitly; the constants above cover
+        // most other cache plugins but LiteSpeed needs its own signal.
+        if ( ! headers_sent() ) {
+            header( 'X-LiteSpeed-Cache-Control: no-cache' );
+        }
     }
 
     public function printPreviewBridgeScript(): void

@@ -1029,7 +1029,7 @@ final class DialogStudio_Agent {
 	}
 
 	/**
-	 * @return array{llm: array<string, mixed>, permissions: array<string, bool>, custom_prompt: string}
+	 * @return array{llm: array<string, mixed>, permissions: array<string, bool>, design: array<string, string>, custom_prompt: string}
 	 */
 	private function get_default_settings(): array {
 		return [
@@ -1043,12 +1043,18 @@ final class DialogStudio_Agent {
 				'debugger'     => false,
 				'manage_pages' => false,
 			],
+			'design'        => [
+				'style'         => '',
+				'primary_color' => '',
+				'accent_color'  => '',
+				'notes'         => '',
+			],
 			'custom_prompt' => self::DEFAULT_CUSTOM_PROMPT,
 		];
 	}
 
 	/**
-	 * @return array{llm: array<string, mixed>, permissions: array<string, bool>, custom_prompt: string}
+	 * @return array{llm: array<string, mixed>, permissions: array<string, bool>, design: array<string, string>, custom_prompt: string}
 	 */
 	private function get_settings(): array {
 		$stored = get_option( self::SETTINGS_OPTION, [] );
@@ -1066,8 +1072,23 @@ final class DialogStudio_Agent {
 		return [
 			'llm'           => array_merge( $defaults['llm'], is_array( $stored['llm'] ?? null ) ? $stored['llm'] : [] ),
 			'permissions'   => array_merge( $defaults['permissions'], is_array( $stored['permissions'] ?? null ) ? $stored['permissions'] : [] ),
+			'design'        => array_merge( $defaults['design'], is_array( $stored['design'] ?? null ) ? $stored['design'] : [] ),
 			'custom_prompt' => $custom_prompt,
 		];
+	}
+
+	/**
+	 * Sanitize one design-preference color: empty stays empty, anything else
+	 * must be a #rgb/#rrggbb hex or it falls back to the previous value.
+	 */
+	private function sanitize_design_color( string $input, string $fallback ): string {
+		if ( '' === trim( $input ) ) {
+			return '';
+		}
+
+		$hex = sanitize_hex_color( trim( $input ) );
+
+		return is_string( $hex ) ? $hex : $fallback;
 	}
 
 	/**
@@ -1100,6 +1121,28 @@ final class DialogStudio_Agent {
 			$custom_prompt = sanitize_textarea_field( (string) $payload['custom_prompt'] );
 		}
 
+		// Design preferences — style is a skill id (kebab-case token), colors are
+		// hex, notes are free text. Absent keys keep their existing value.
+		$existing_design = is_array( $existing['design'] ?? null ) ? array_merge( $defaults['design'], $existing['design'] ) : $defaults['design'];
+		$design          = $existing_design;
+		if ( is_array( $payload['design'] ?? null ) ) {
+			$design_input = $payload['design'];
+
+			if ( array_key_exists( 'style', $design_input ) ) {
+				$style           = strtolower( sanitize_text_field( (string) $design_input['style'] ) );
+				$design['style'] = preg_replace( '/[^a-z0-9\-_]/', '', $style );
+			}
+			if ( array_key_exists( 'primary_color', $design_input ) ) {
+				$design['primary_color'] = $this->sanitize_design_color( (string) $design_input['primary_color'], $existing_design['primary_color'] );
+			}
+			if ( array_key_exists( 'accent_color', $design_input ) ) {
+				$design['accent_color'] = $this->sanitize_design_color( (string) $design_input['accent_color'], $existing_design['accent_color'] );
+			}
+			if ( array_key_exists( 'notes', $design_input ) ) {
+				$design['notes'] = sanitize_textarea_field( (string) $design_input['notes'] );
+			}
+		}
+
 		return [
 			'llm'           => [
 				'model'   => $model,
@@ -1119,6 +1162,7 @@ final class DialogStudio_Agent {
 					? ! empty( $perm_input['manage_pages'] )
 					: (bool) ( $existing['permissions']['manage_pages'] ?? $defaults['permissions']['manage_pages'] ),
 			],
+			'design'        => $design,
 			'custom_prompt' => $custom_prompt,
 		];
 	}
@@ -1653,6 +1697,33 @@ final class DialogStudio_Agent {
 		return wp_normalize_path( $dialog_path . '/' . $relative );
 	}
 
+	/**
+	 * Resolve a relative WRITE path the same way resolve_read_path() resolves a
+	 * read path: the canonical format the model sends/receives everywhere is
+	 * WP-root-relative (e.g. "wp-content/themes/dialog-child/style.css"), so a
+	 * write path carrying that same "wp-content/..." prefix must have it
+	 * stripped before joining onto $dialog_path — otherwise it doubles up into
+	 * "<dialog_path>/wp-content/themes/dialog-child/style.css", which never
+	 * exists. A genuinely bare path (e.g. "style.css", from an older convention
+	 * or a model that omits the prefix) still joins directly onto $dialog_path
+	 * unchanged.
+	 */
+	private function resolve_write_path( string $relative ): string {
+		$dialog_path = $this->get_dialog_workspace_root();
+
+		// A WP-root-relative write path (e.g. "wp-content/themes/dialog-child/style.css")
+		// resolves against the WordPress root, same as reads. If that lands outside
+		// the dialog workspace (a different theme, a plugin, wp-includes, ...),
+		// validate_file_path()'s allowed-paths check rejects it downstream - this
+		// function only resolves the path, it does not authorize it.
+		if ( $this->is_wordpress_root_relative( $relative ) ) {
+			return wp_normalize_path( $this->get_wordpress_root() . '/' . $relative );
+		}
+
+		// A genuinely bare path (e.g. "style.css") joins directly onto the workspace root.
+		return wp_normalize_path( $dialog_path . '/' . $relative );
+	}
+
 	private function resolve_requested_path( string $path, string $operation = 'read' ): string {
 		$path = trim( $path );
 		if ( $path === '' ) {
@@ -1664,6 +1735,16 @@ final class DialogStudio_Agent {
 		$dialog_path      = $this->get_dialog_workspace_root();
 		$wp_root          = $this->get_wordpress_root();
 		$absolute_root    = $is_write ? $dialog_path : $wp_root;
+
+		// A leading "/" with no drive letter (e.g. "/wp-content/themes/x/style.css")
+		// is NOT an absolute filesystem path on Windows - wp_normalize_path() only
+		// ever produces "C:/..." for real absolute paths there, so a bare leading
+		// slash is the model treating the WordPress root as a URL/site root. Strip
+		// it and fall through to the relative-path branch below instead of letting
+		// it be misread as "root of the current drive".
+		if ( DIRECTORY_SEPARATOR === '\\' && ! preg_match( '#^[A-Za-z]:/#', $normalized_input ) && strpos( $normalized_input, '/' ) === 0 ) {
+			$normalized_input = ltrim( $normalized_input, '/' );
+		}
 
 		// Convert absolute paths under the allowed root into usable paths.
 		if ( preg_match( '#^[A-Za-z]:/#', $normalized_input ) || strpos( $normalized_input, '/' ) === 0 ) {
@@ -1689,13 +1770,46 @@ final class DialogStudio_Agent {
 		$relative = $this->normalize_relative_path( $normalized_input );
 
 		if ( $is_write ) {
-			return wp_normalize_path( $dialog_path . '/' . $relative );
+			$joined = $this->resolve_write_path( $relative );
+			$resolved = realpath( $joined );
+
+			return $resolved !== false ? wp_normalize_path( $resolved ) : $joined;
 		}
 
 		$joined   = $this->resolve_read_path( $relative );
 		$resolved = realpath( $joined );
 
 		return $resolved !== false ? wp_normalize_path( $resolved ) : $joined;
+	}
+
+	/**
+	 * Canonical path format shown to the model, for every tool, in both directions:
+	 * WP-root-relative, e.g. "wp-content/themes/dialog-child/style.css".
+	 *
+	 * This is the single source of truth for how paths look outside this class.
+	 * Every handler must run its outgoing 'path'/'directory'/file-list entries
+	 * through this before returning them, so the model always sees and can always
+	 * reuse the same string shape regardless of which tool produced it.
+	 *
+	 * @param string $absolute_path Absolute filesystem path (any format wp_normalize_path accepts).
+	 * @return string WP-root-relative path, or the normalized absolute path if it falls outside ABSPATH.
+	 */
+	private function to_wp_relative_path( string $absolute_path ): string {
+		if ( $absolute_path === '' ) {
+			return '';
+		}
+
+		$normalized = wp_normalize_path( $absolute_path );
+		$wp_root    = rtrim( $this->get_wordpress_root(), '/' ) . '/';
+
+		if ( $this->is_path_under( $normalized, $wp_root ) ) {
+			return ltrim( substr( $normalized, strlen( $wp_root ) ), '/' );
+		}
+
+		// Outside the WordPress install entirely (shouldn't normally happen since
+		// allowed_paths already restrict operations to ABSPATH) - fall back to the
+		// normalized absolute path rather than silently mangling it.
+		return $normalized;
 	}
 
 	/**
@@ -1896,10 +2010,12 @@ final class DialogStudio_Agent {
 
 		$display_start = $range_requested ? $start_line : 1;
 
+		$relative_path = $this->to_wp_relative_path( $file_path );
+
 		return [
 			'success' => true,
 			'data' => [
-				'path' => $path,
+				'path' => $relative_path,
 				'content' => $content,
 				'numbered_content' => $this->number_content_lines( $content, $display_start ),
 				'line_count' => $total_lines,
@@ -1907,7 +2023,7 @@ final class DialogStudio_Agent {
 				'end_line' => $range_requested ? $end_line : null,
 				'size' => $file_size,
 				'modified' => filemtime( $file_path ),
-				'code_validation' => $this->validate_saved_file( $file_path, $path ),
+				'code_validation' => $this->validate_saved_file( $file_path, $relative_path ),
 			],
 			'error' => null,
 		];
@@ -1985,17 +2101,19 @@ final class DialogStudio_Agent {
 			];
 		}
 
+		$relative_path = $this->to_wp_relative_path( $file_path );
+
 		return [
 			'success' => true,
 			'data' => array_merge(
 				[
-					'path' => $path,
+					'path' => $relative_path,
 					'bytes_written' => $bytes_written,
 					'size' => filesize( $file_path ),
 					'modified' => filemtime( $file_path ),
 				],
 				[
-					'code_validation' => $this->validate_saved_file( $file_path, $path ),
+					'code_validation' => $this->validate_saved_file( $file_path, $relative_path ),
 				]
 			),
 			'error' => null,
@@ -2120,11 +2238,13 @@ final class DialogStudio_Agent {
 			];
 		}
 
+		$relative_path = $this->to_wp_relative_path( $file_path );
+
 		return [
 			'success' => true,
 			'data' => array_merge(
 				[
-					'path' => $path,
+					'path' => $relative_path,
 					'start_line' => $start_line,
 					'end_line' => $end_line,
 					'lines_removed' => $lines_removed,
@@ -2135,7 +2255,7 @@ final class DialogStudio_Agent {
 					'modified' => filemtime( $file_path ),
 				],
 				[
-					'code_validation' => $this->validate_saved_file( $file_path, $path ),
+					'code_validation' => $this->validate_saved_file( $file_path, $relative_path ),
 				]
 			),
 			'error' => null,
@@ -2278,11 +2398,13 @@ final class DialogStudio_Agent {
 
 		[ $updated_lines ] = $this->split_content_lines( $updated_content );
 
+		$relative_path = $this->to_wp_relative_path( $file_path );
+
 		return [
 			'success' => true,
 			'data' => array_merge(
 				[
-					'path' => $path,
+					'path' => $relative_path,
 					'replacements' => $replace_all ? $occurrences : 1,
 					'total_lines' => count( $updated_lines ),
 					'bytes_written' => $bytes_written,
@@ -2290,7 +2412,7 @@ final class DialogStudio_Agent {
 					'modified' => filemtime( $file_path ),
 				],
 				[
-					'code_validation' => $this->validate_saved_file( $file_path, $path ),
+					'code_validation' => $this->validate_saved_file( $file_path, $relative_path ),
 				]
 			),
 			'error' => null,
@@ -2370,7 +2492,7 @@ final class DialogStudio_Agent {
 		return [
 			'success' => true,
 			'data' => [
-				'path' => $path,
+				'path' => $this->to_wp_relative_path( $file_path ),
 				'bytes_appended' => $bytes_written,
 				'size' => filesize( $file_path ),
 				'modified' => filemtime( $file_path ),
@@ -2446,7 +2568,7 @@ final class DialogStudio_Agent {
 		return [
 			'success' => true,
 			'data' => [
-				'path' => $path,
+				'path' => $this->to_wp_relative_path( $file_path ),
 				'deleted' => true,
 			],
 			'error' => null,
@@ -2501,7 +2623,7 @@ final class DialogStudio_Agent {
 		return [
 			'success' => true,
 			'data' => [
-				'path' => $path,
+				'path' => $this->to_wp_relative_path( $dir_path ),
 				'files' => $files,
 				'count' => count( $files ),
 			],
@@ -2537,7 +2659,7 @@ final class DialogStudio_Agent {
 			if ( is_file( $item_path ) ) {
 				$files[] = [
 					'name' => $item,
-					'path' => wp_normalize_path( $item_path ),
+					'path' => $this->to_wp_relative_path( $item_path ),
 					'type' => 'file',
 					'size' => filesize( $item_path ),
 					'modified' => filemtime( $item_path ),
@@ -2546,7 +2668,7 @@ final class DialogStudio_Agent {
 			} elseif ( is_dir( $item_path ) && $recursive ) {
 				$files[] = [
 					'name' => $item,
-					'path' => wp_normalize_path( $item_path ),
+					'path' => $this->to_wp_relative_path( $item_path ),
 					'type' => 'directory',
 					'size' => null,
 					'modified' => filemtime( $item_path ),
@@ -2623,7 +2745,7 @@ final class DialogStudio_Agent {
 		return [
 			'success' => true,
 			'data' => [
-				'path' => $path,
+				'path' => $this->to_wp_relative_path( $dir_path ),
 				'created' => true,
 				'recursive' => $recursive,
 			],
@@ -2704,7 +2826,7 @@ final class DialogStudio_Agent {
 		return [
 			'success' => true,
 			'data' => [
-				'path' => $path,
+				'path' => $this->to_wp_relative_path( $dir_path ),
 				'deleted' => true,
 				'recursive' => $recursive,
 			],
@@ -2829,7 +2951,7 @@ final class DialogStudio_Agent {
 			'success' => true,
 			'data' => [
 				'keywords' => $keywords,
-				'directory' => $directory,
+				'directory' => $this->to_wp_relative_path( $search_path ),
 				'operator' => $operator,
 				'results' => $results,
 				'count' => count( $results ),
@@ -2913,7 +3035,7 @@ final class DialogStudio_Agent {
 			'success' => true,
 			'data' => [
 				'keywords' => $keywords,
-				'path' => $path,
+				'path' => $this->to_wp_relative_path( $search_path ),
 				'operator' => $operator,
 				'results' => $results,
 				'count' => count( $results ),
@@ -2988,9 +3110,9 @@ final class DialogStudio_Agent {
 
 			if ( $file_matches ) {
 				$results[] = [
-					'path' => wp_normalize_path( $file_path ),
+					'path' => $this->to_wp_relative_path( $file_path ),
 					'name' => $file_name,
-					'directory' => wp_normalize_path( dirname( $file_path ) ),
+					'directory' => $this->to_wp_relative_path( dirname( $file_path ) ),
 					'extension' => $extension,
 					'size' => $file->getSize(),
 					'modified' => $file->getMTime(),
@@ -3079,9 +3201,9 @@ final class DialogStudio_Agent {
 
 			if ( ! empty( $matches ) ) {
 				$results[] = [
-					'path' => wp_normalize_path( $file_path ),
+					'path' => $this->to_wp_relative_path( $file_path ),
 					'name' => $file_name,
-					'directory' => wp_normalize_path( dirname( $file_path ) ),
+					'directory' => $this->to_wp_relative_path( dirname( $file_path ) ),
 					'extension' => $extension,
 					'size' => $file->getSize(),
 					'modified' => $file->getMTime(),
@@ -3823,8 +3945,10 @@ final class DialogStudio_Agent {
 			];
 		}
 
+		$relative_directory = $this->to_wp_relative_path( $search_path );
+
 		$empty_payload = [
-			'directory'   => $directory,
+			'directory'   => $relative_directory,
 			'file_count'  => 0,
 			'symbol_count'=> 0,
 			'registry'    => [],
@@ -3860,11 +3984,11 @@ final class DialogStudio_Agent {
 				'success' => true,
 				'data'    => [
 					'available'    => ! empty( $full_index['registry'] ),
-					'directory'    => $directory,
+					'directory'    => $relative_directory,
 					'file_count'   => count( $full_index['files'] ),
 					'symbol_count' => count( $full_index['registry'] ),
-					'registry'     => $full_index['registry'],
-					'graph'        => $full_index['graph'],
+					'registry'     => $this->rewrite_indexer_paths_to_wp_relative( $full_index['registry'], $search_path ),
+					'graph'        => $this->rewrite_graph_paths_to_wp_relative( $full_index['graph'], $search_path ),
 				],
 				'error'   => null,
 			];
@@ -3943,7 +4067,7 @@ final class DialogStudio_Agent {
 				];
 			}
 
-			$result = $validator->validateDirectory( $search_path, $directory );
+			$result = $validator->validateDirectory( $search_path, $this->to_wp_relative_path( $search_path ) );
 
 			return [
 				'success' => true,
@@ -4004,15 +4128,14 @@ final class DialogStudio_Agent {
 				];
 			}
 
-			$index = $indexer->buildCompactIndexForDirectory(
-				$this->get_dialog_workspace_root(),
-				'dialog'
-			);
+			$workspace_root = $this->get_dialog_workspace_root();
+			$index          = $indexer->buildCompactIndexForDirectory( $workspace_root, 'dialog' );
+			$index['files'] = $this->rewrite_compact_index_paths_to_wp_relative( $index['files'], $workspace_root );
 
 			// Knowledge graph (parent + child). Best-effort — never blocks chat.
 			$knowledge_graph = null;
 			try {
-				$knowledge_graph = $indexer->buildKnowledgeGraph();
+				$knowledge_graph = $this->rewrite_knowledge_graph_paths_to_wp_relative( $indexer->buildKnowledgeGraph() );
 			} catch ( \Throwable $kg_error ) {
 				error_log(
 					sprintf(
@@ -4068,9 +4191,9 @@ final class DialogStudio_Agent {
 
 		$args = [
 			'mode'     => $mode,
-			'target'   => sanitize_text_field( (string) ( $body['target'] ?? '' ) ),
-			'from'     => sanitize_text_field( (string) ( $body['from'] ?? '' ) ),
-			'to'       => sanitize_text_field( (string) ( $body['to'] ?? '' ) ),
+			'target'   => $this->strip_known_theme_prefix( sanitize_text_field( (string) ( $body['target'] ?? '' ) ) ),
+			'from'     => $this->strip_known_theme_prefix( sanitize_text_field( (string) ( $body['from'] ?? '' ) ) ),
+			'to'       => $this->strip_known_theme_prefix( sanitize_text_field( (string) ( $body['to'] ?? '' ) ) ),
 			'max_hops' => isset( $body['max_hops'] ) ? absint( $body['max_hops'] ) : 6,
 		];
 
@@ -4098,7 +4221,7 @@ final class DialogStudio_Agent {
 				'data'    => [
 					'available' => true,
 					'mode'      => $query['mode'],
-					'result'    => $query['result'],
+					'result'    => $this->rewrite_graph_query_result_to_wp_relative( $query['result'] ),
 				],
 				'error'   => null,
 			];
@@ -4120,6 +4243,325 @@ final class DialogStudio_Agent {
 				@set_time_limit( (int) $previous_time_limit );
 			}
 		}
+	}
+
+	/**
+	 * ThemeCodeIndexer/CodeGraph/SymbolRegistry work internally with paths
+	 * relative to whatever single theme directory was scanned (e.g. "style.css").
+	 * The model only ever sees the canonical WP-root-relative format (see
+	 * to_wp_relative_path()), so every 'path'/'file'/file-node 'id' produced by the
+	 * indexer must be rewritten to that format before leaving this class.
+	 *
+	 * @return string wp-content-relative prefix, e.g. "wp-content/themes/dialog-child" (no trailing slash)
+	 */
+	private function wp_relative_prefix_for_directory( string $absolute_directory ): string {
+		$relative = $this->to_wp_relative_path( $absolute_directory );
+		return rtrim( $relative, '/' );
+	}
+
+	/**
+	 * Rewrite a theme-relative path (e.g. "style.css") to the canonical
+	 * WP-root-relative path (e.g. "wp-content/themes/dialog-child/style.css").
+	 */
+	private function prefix_theme_relative_path( string $theme_relative_path, string $wp_relative_prefix ): string {
+		// An empty path means "no file" (e.g. a symbol node with no known source
+		// file) - never turn that into the theme root directory.
+		if ( $theme_relative_path === '' ) {
+			return '';
+		}
+		if ( $wp_relative_prefix === '' ) {
+			return $theme_relative_path;
+		}
+		return $wp_relative_prefix . '/' . ltrim( $theme_relative_path, '/' );
+	}
+
+	/**
+	 * Rewrite every 'file' entry in a SymbolRegistry::toArray() result from
+	 * theme-relative to WP-root-relative, for a single-scope (one directory) index.
+	 *
+	 * @param array<string, array<string, mixed>> $registry
+	 * @return array<string, array<string, mixed>>
+	 */
+	private function rewrite_indexer_paths_to_wp_relative( array $registry, string $absolute_directory ): array {
+		$prefix = $this->wp_relative_prefix_for_directory( $absolute_directory );
+
+		foreach ( $registry as $symbol => $entry ) {
+			if ( isset( $entry['file'] ) && is_string( $entry['file'] ) ) {
+				$registry[ $symbol ]['file'] = $this->prefix_theme_relative_path( $entry['file'], $prefix );
+			}
+		}
+
+		return $registry;
+	}
+
+	/**
+	 * Rewrite every 'path' entry in a buildCompactIndexForDirectory()/buildIndexForDirectory()
+	 * files list from theme-relative to WP-root-relative, for a single-scope index.
+	 *
+	 * @param list<array<string, mixed>> $files
+	 * @return list<array<string, mixed>>
+	 */
+	private function rewrite_compact_index_paths_to_wp_relative( array $files, string $absolute_directory ): array {
+		$prefix = $this->wp_relative_prefix_for_directory( $absolute_directory );
+
+		foreach ( $files as &$file ) {
+			if ( isset( $file['path'] ) && is_string( $file['path'] ) ) {
+				$file['path'] = $this->prefix_theme_relative_path( $file['path'], $prefix );
+			}
+		}
+		unset( $file );
+
+		return $files;
+	}
+
+	/**
+	 * Rewrite every node 'id'/'file' and edge 'from'/'to' in a CodeGraph::toArray()
+	 * result from theme-relative to WP-root-relative, for a single-scope index.
+	 *
+	 * @param array{nodes: list<array<string, mixed>>, edges: list<array<string, mixed>>} $graph
+	 * @return array{nodes: list<array<string, mixed>>, edges: list<array<string, mixed>>}
+	 */
+	private function rewrite_graph_paths_to_wp_relative( array $graph, string $absolute_directory ): array {
+		$prefix  = $this->wp_relative_prefix_for_directory( $absolute_directory );
+		$id_map  = [];
+
+		foreach ( $graph['nodes'] as &$node ) {
+			if ( ( $node['type'] ?? '' ) === 'file' ) {
+				$old_id = (string) ( $node['id'] ?? '' );
+				$new_id = 'file:' . $this->prefix_theme_relative_path( substr( $old_id, strlen( 'file:' ) ), $prefix );
+				$id_map[ $old_id ] = $new_id;
+				$node['id']        = $new_id;
+			}
+			if ( isset( $node['file'] ) && is_string( $node['file'] ) ) {
+				$node['file'] = $this->prefix_theme_relative_path( $node['file'], $prefix );
+			}
+		}
+		unset( $node );
+
+		foreach ( $graph['edges'] as &$edge ) {
+			$edge['from'] = $id_map[ $edge['from'] ] ?? $edge['from'];
+			$edge['to']   = $id_map[ $edge['to'] ] ?? $edge['to'];
+		}
+		unset( $edge );
+
+		return $graph;
+	}
+
+	/**
+	 * Absolute directory for a theme slug (child, parent, or any other theme),
+	 * used to build the scope => wp-relative-prefix map for the dual-scope
+	 * (child + parent) knowledge graph.
+	 */
+	private function get_theme_root_for_slug( string $slug ): string {
+		if ( $slug === '' ) {
+			return '';
+		}
+		return wp_normalize_path( $this->get_themes_root() . '/' . $slug );
+	}
+
+	/**
+	 * Strip whichever known theme prefix (child or parent) a WP-relative path
+	 * starts with, returning the bare theme-relative remainder. Used to translate
+	 * a model-supplied WP-relative graph-query target back into the form
+	 * ThemeCodeIndexer::resolveGraphId() understands ("style.css", not
+	 * "wp-content/themes/dialog-child/style.css"). Falls back to the input
+	 * unchanged if it doesn't match any known theme prefix (e.g. a bare symbol
+	 * name like "MyClass::method" - passed straight through).
+	 */
+	private function strip_known_theme_prefix( string $wp_relative_or_symbol ): string {
+		foreach ( $this->get_knowledge_graph_scope_prefixes() as $prefix ) {
+			if ( $prefix !== '' && strpos( $wp_relative_or_symbol, $prefix . '/' ) === 0 ) {
+				return substr( $wp_relative_or_symbol, strlen( $prefix ) + 1 );
+			}
+			if ( $prefix !== '' && $wp_relative_or_symbol === $prefix ) {
+				return '';
+			}
+		}
+
+		return $wp_relative_or_symbol;
+	}
+
+	/**
+	 * Build the scope => wp-relative-prefix map ("child"/"parent" => "wp-content/themes/{slug}")
+	 * matching ThemeCodeIndexer::buildKnowledgeGraph()'s child/parent scoping.
+	 *
+	 * @return array<string, string>
+	 */
+	private function get_knowledge_graph_scope_prefixes(): array {
+		$prefixes    = [];
+		$child_slug  = $this->get_active_theme_slug();
+		$parent_slug = $this->get_active_parent_theme_slug();
+
+		if ( $child_slug !== '' ) {
+			$prefixes['child'] = $this->wp_relative_prefix_for_directory( $this->get_theme_root_for_slug( $child_slug ) );
+		}
+
+		if ( $parent_slug !== '' && $parent_slug !== $child_slug ) {
+			$prefixes['parent'] = $this->wp_relative_prefix_for_directory( $this->get_theme_root_for_slug( $parent_slug ) );
+		}
+
+		return $prefixes;
+	}
+
+	/**
+	 * Rewrite a scope-tagged knowledge graph (ThemeCodeIndexer::buildKnowledgeGraph())
+	 * from theme-relative to WP-root-relative paths, using each node/file's own
+	 * 'scope' ("child"/"parent") to pick the right theme root prefix.
+	 *
+	 * @param array<string, mixed> $knowledge_graph
+	 * @return array<string, mixed>
+	 */
+	private function rewrite_knowledge_graph_paths_to_wp_relative( array $knowledge_graph ): array {
+		$scope_prefixes = $this->get_knowledge_graph_scope_prefixes();
+		$id_map          = [];
+
+		if ( isset( $knowledge_graph['graph']['nodes'] ) && is_array( $knowledge_graph['graph']['nodes'] ) ) {
+			foreach ( $knowledge_graph['graph']['nodes'] as &$node ) {
+				$scope  = (string) ( $node['scope'] ?? '' );
+				$prefix = $scope_prefixes[ $scope ] ?? '';
+
+				if ( ( $node['type'] ?? '' ) === 'file' ) {
+					$old_id = (string) ( $node['id'] ?? '' );
+					$new_id = 'file:' . $this->prefix_theme_relative_path( substr( $old_id, strlen( 'file:' ) ), $prefix );
+					$id_map[ $old_id ] = $new_id;
+					$node['id']        = $new_id;
+				}
+
+				if ( isset( $node['file'] ) && is_string( $node['file'] ) ) {
+					$node['file'] = $this->prefix_theme_relative_path( $node['file'], $prefix );
+				}
+			}
+			unset( $node );
+		}
+
+		if ( isset( $knowledge_graph['graph']['edges'] ) && is_array( $knowledge_graph['graph']['edges'] ) ) {
+			foreach ( $knowledge_graph['graph']['edges'] as &$edge ) {
+				$edge['from'] = $id_map[ $edge['from'] ] ?? $edge['from'];
+				$edge['to']   = $id_map[ $edge['to'] ] ?? $edge['to'];
+			}
+			unset( $edge );
+		}
+
+		if ( isset( $knowledge_graph['god_nodes'] ) && is_array( $knowledge_graph['god_nodes'] ) ) {
+			foreach ( $knowledge_graph['god_nodes'] as &$god_node ) {
+				$scope  = (string) ( $god_node['scope'] ?? '' );
+				$prefix = $scope_prefixes[ $scope ] ?? '';
+				if ( isset( $god_node['file'] ) && is_string( $god_node['file'] ) ) {
+					$god_node['file'] = $this->prefix_theme_relative_path( $god_node['file'], $prefix );
+				}
+			}
+			unset( $god_node );
+		}
+
+		if ( isset( $knowledge_graph['overrides'] ) && is_array( $knowledge_graph['overrides'] ) ) {
+			// Overrides are child-relative paths that also exist in the parent (a
+			// single path string, scope-agnostic by definition) - use the child prefix.
+			$child_prefix = $scope_prefixes['child'] ?? '';
+			foreach ( $knowledge_graph['overrides'] as &$override ) {
+				if ( isset( $override['path'] ) && is_string( $override['path'] ) ) {
+					$override['path'] = $this->prefix_theme_relative_path( $override['path'], $child_prefix );
+				}
+			}
+			unset( $override );
+		}
+
+		if ( isset( $knowledge_graph['communities'] ) && is_array( $knowledge_graph['communities'] ) ) {
+			foreach ( $knowledge_graph['communities'] as &$community ) {
+				$scope  = (string) ( $community['scope'] ?? '' );
+				$prefix = $scope_prefixes[ $scope ] ?? '';
+				if ( isset( $community['files'] ) && is_array( $community['files'] ) ) {
+					$community['files'] = array_map(
+						fn ( string $path ): string => $this->prefix_theme_relative_path( $path, $prefix ),
+						$community['files']
+					);
+				}
+			}
+			unset( $community );
+		}
+
+		return $knowledge_graph;
+	}
+
+	/**
+	 * Rewrite a single graph node id/file from theme-relative to WP-root-relative
+	 * using its own 'scope', for graph-query results (explain/neighbors/path modes).
+	 *
+	 * @param array<string, mixed>|null $node
+	 * @return array<string, mixed>|null
+	 */
+	private function rewrite_graph_query_node( ?array $node, array $scope_prefixes ): ?array {
+		if ( null === $node ) {
+			return null;
+		}
+
+		$prefix = $scope_prefixes[ (string) ( $node['scope'] ?? '' ) ] ?? '';
+
+		if ( ( $node['type'] ?? '' ) === 'file' && isset( $node['id'] ) && is_string( $node['id'] ) && strpos( $node['id'], 'file:' ) === 0 ) {
+			$node['id'] = 'file:' . $this->prefix_theme_relative_path( substr( $node['id'], strlen( 'file:' ) ), $prefix );
+		}
+
+		if ( isset( $node['file'] ) && is_string( $node['file'] ) ) {
+			$node['file'] = $this->prefix_theme_relative_path( $node['file'], $prefix );
+		}
+
+		return $node;
+	}
+
+	/**
+	 * Rewrite an edge id/file to WP-root-relative using $node_map (id => scope-tagged
+	 * node, theme-relative form) to resolve which theme root each endpoint belongs to.
+	 *
+	 * @param array<string, mixed> $edge
+	 * @return array<string, mixed>
+	 */
+	private function rewrite_graph_query_edge( array $edge, array $scope_by_id, array $scope_prefixes ): array {
+		foreach ( [ 'from', 'to' ] as $key ) {
+			$id = (string) ( $edge[ $key ] ?? '' );
+			if ( strpos( $id, 'file:' ) !== 0 ) {
+				continue;
+			}
+			$prefix        = $scope_prefixes[ $scope_by_id[ $id ] ?? '' ] ?? '';
+			$edge[ $key ]  = 'file:' . $this->prefix_theme_relative_path( substr( $id, strlen( 'file:' ) ), $prefix );
+		}
+
+		return $edge;
+	}
+
+	/**
+	 * Rewrite a ThemeCodeIndexer::queryKnowledgeGraph() result (explain/neighbors/path
+	 * modes) from theme-relative to WP-root-relative paths.
+	 *
+	 * @param array<string, mixed> $result
+	 * @return array<string, mixed>
+	 */
+	private function rewrite_graph_query_result_to_wp_relative( array $result ): array {
+		$scope_prefixes = $this->get_knowledge_graph_scope_prefixes();
+
+		// Edges only carry node ids, not scope - build an id => scope lookup from
+		// whatever nodes this result exposes (the target node, if present).
+		$scope_by_id = [];
+		if ( isset( $result['node']['id'], $result['node']['scope'] ) ) {
+			$scope_by_id[ (string) $result['node']['id'] ] = (string) $result['node']['scope'];
+		}
+
+		if ( isset( $result['node'] ) && is_array( $result['node'] ) ) {
+			$result['node'] = $this->rewrite_graph_query_node( $result['node'], $scope_prefixes );
+		}
+
+		foreach ( [ 'outgoing', 'incoming', 'chain' ] as $edge_list_key ) {
+			if ( isset( $result[ $edge_list_key ] ) && is_array( $result[ $edge_list_key ] ) ) {
+				$result[ $edge_list_key ] = array_map(
+					fn ( array $edge ): array => $this->rewrite_graph_query_edge( $edge, $scope_by_id, $scope_prefixes ),
+					$result[ $edge_list_key ]
+				);
+			}
+		}
+
+		// 'target'/'from'/'to' are the resolved graph id strings (e.g. "file:style.css"
+		// or a bare symbol name) - only file: ids carry a path to rewrite, and since we
+		// don't reliably know their scope here, leave them as the theme-relative id the
+		// indexer resolved (still useful for chaining another graph_query call).
+		return $result;
 	}
 
 	/**

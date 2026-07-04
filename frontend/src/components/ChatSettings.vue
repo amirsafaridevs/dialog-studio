@@ -1,7 +1,8 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref } from 'vue';
 import { AlertCircle, Check, ExternalLink, KeyRound, Loader2, Pencil, RefreshCw, X } from 'lucide-vue-next';
 import { ALL_MODELS } from '../utils/llmProviders.js';
+import { getSkillManifest } from '../agent/skills/registry.js';
 import { activateApiKey, fetchAgentSettings, fetchSettings, fetchWpagentifyKeyInfo, fetchWpagentifyModels, saveSettings } from '../utils/settingsApi.js';
 
 const emit = defineEmits(['saved']);
@@ -80,17 +81,34 @@ const form = reactive({
   writeFiles: true,
   debugger: false,
   managePages: false,
+  designStyle: '',
+  designPrimaryColor: '',
+  designAccentColor: '',
+  designNotes: '',
 });
+
+// The design-style choices ARE the uiux skills in the registry — a new style
+// skill dropped into skills/ shows up here automatically, no code change.
+const designStyles = computed(() =>
+  getSkillManifest()
+    .filter((skill) => skill.category === 'uiux')
+    .map((skill) => ({ id: skill.id, label: skill.title })),
+);
 
 function applyServerSettings(data) {
   const llm = data?.llm ?? {};
   const permissions = data?.permissions ?? {};
+  const design = data?.design ?? {};
 
   if (llm.model) form.model = llm.model;
   form.readFiles = permissions.read_files !== false;
   form.writeFiles = permissions.write_files !== false;
   form.debugger = Boolean(permissions.debugger);
   form.managePages = Boolean(permissions.manage_pages);
+  form.designStyle = design.style ?? '';
+  form.designPrimaryColor = design.primary_color ?? '';
+  form.designAccentColor = design.accent_color ?? '';
+  form.designNotes = design.notes ?? '';
 
   hasStoredApiKey.value = Boolean(llm.has_api_key);
   apiKeyMasked.value = llm.api_key_masked ?? '';
@@ -175,6 +193,12 @@ async function handleSave() {
       write_files: form.writeFiles,
       debugger: form.debugger,
       manage_pages: form.managePages,
+    },
+    design: {
+      style: form.designStyle,
+      primary_color: form.designPrimaryColor.trim(),
+      accent_color: form.designAccentColor.trim(),
+      notes: form.designNotes.trim(),
     },
   };
 
@@ -449,6 +473,98 @@ async function handleSave() {
             </button>
           </div>
         </section>
+
+        <!-- ── Design preferences ── -->
+        <section class="chat-settings__section">
+          <div class="chat-settings__section-header">
+            <div>
+              <h2 class="chat-settings__section-title">ترجیحات طراحی</h2>
+              <p class="chat-settings__section-desc">سبک و رنگ‌های برند شما؛ Agent همه طراحی‌ها را بر این اساس انجام می‌دهد.</p>
+            </div>
+          </div>
+
+          <div class="chat-settings__field">
+            <span class="chat-settings__label">سبک طراحی</span>
+            <select v-model="form.designStyle" class="chat-settings__select">
+              <option value="">تشخیص خودکار بر اساس درخواست</option>
+              <option v-for="style in designStyles" :key="style.id" :value="style.id">
+                {{ style.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="chat-settings__color-row">
+            <div class="chat-settings__toggle-copy">
+              <span class="chat-settings__label">رنگ اصلی برند</span>
+            </div>
+            <div class="chat-settings__color-controls">
+              <input
+                type="color"
+                class="chat-settings__color-swatch"
+                :value="form.designPrimaryColor || '#4f46e5'"
+                @input="form.designPrimaryColor = $event.target.value"
+              />
+              <input
+                v-model="form.designPrimaryColor"
+                type="text"
+                dir="ltr"
+                class="chat-settings__color-hex"
+                placeholder="—"
+                spellcheck="false"
+              />
+              <button
+                v-if="form.designPrimaryColor"
+                type="button"
+                class="chat-settings__color-clear"
+                title="حذف رنگ"
+                @click="form.designPrimaryColor = ''"
+              >
+                <X :size="12" :stroke-width="2" />
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-settings__color-row">
+            <div class="chat-settings__toggle-copy">
+              <span class="chat-settings__label">رنگ تاکیدی (اختیاری)</span>
+            </div>
+            <div class="chat-settings__color-controls">
+              <input
+                type="color"
+                class="chat-settings__color-swatch"
+                :value="form.designAccentColor || '#f59e0b'"
+                @input="form.designAccentColor = $event.target.value"
+              />
+              <input
+                v-model="form.designAccentColor"
+                type="text"
+                dir="ltr"
+                class="chat-settings__color-hex"
+                placeholder="—"
+                spellcheck="false"
+              />
+              <button
+                v-if="form.designAccentColor"
+                type="button"
+                class="chat-settings__color-clear"
+                title="حذف رنگ"
+                @click="form.designAccentColor = ''"
+              >
+                <X :size="12" :stroke-width="2" />
+              </button>
+            </div>
+          </div>
+
+          <div class="chat-settings__field">
+            <span class="chat-settings__label">یادداشت برند (اختیاری)</span>
+            <textarea
+              v-model="form.designNotes"
+              class="chat-settings__notes"
+              rows="3"
+              placeholder="مثلاً: فونت وزیرمتن، لحن دوستانه، الهام از سایت فلان…"
+            />
+          </div>
+        </section>
       </div>
 
       <footer class="chat-settings__footer">
@@ -480,6 +596,71 @@ async function handleSave() {
 </template>
 
 <style scoped>
+.chat-settings__color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+}
+
+.chat-settings__color-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-settings__color-swatch {
+  inline-size: 30px;
+  block-size: 30px;
+  padding: 2px;
+  border: 1px solid var(--dtm-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chat-settings__color-hex {
+  inline-size: 90px;
+  padding: 6px 8px;
+  border: 1px solid var(--dtm-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dtm-text-primary);
+  font-size: 12px;
+  font-family: monospace;
+  text-align: center;
+}
+
+.chat-settings__color-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dtm-text-muted);
+  cursor: pointer;
+}
+
+.chat-settings__color-clear:hover {
+  color: var(--dtm-text-primary);
+}
+
+.chat-settings__notes {
+  inline-size: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--dtm-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dtm-text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+}
+
 .chat-settings {
   display: flex;
   flex-direction: column;

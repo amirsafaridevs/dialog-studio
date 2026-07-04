@@ -70,6 +70,7 @@ export function useAgent() {
   const isInterrupted = ref(false);
   const streamingContent = ref('');
   const toolStreamState = ref(null);
+  const timelineSteps = ref([]);
   const activityStatus = ref('');
   const messages = ref([]);
   const todos = ref([]);
@@ -289,6 +290,7 @@ export function useAgent() {
     isInterrupted.value = false;
     streamingContent.value = '';
     toolStreamState.value = null;
+    timelineSteps.value = [];
 
     saveChatHistoryStore(nextStore);
 
@@ -357,6 +359,10 @@ export function useAgent() {
         ...previousSettings?.permissions,
         ...nextSettings.permissions,
       },
+      design: {
+        ...previousSettings?.design,
+        ...nextSettings.design,
+      },
       custom_prompt:
         nextSettings.custom_prompt ??
         previousSettings?.custom_prompt ??
@@ -420,6 +426,7 @@ export function useAgent() {
     isRunning.value = true;
     error.value = null;
     clearStreamingBuffers();
+    timelineSteps.value = [];
 
     try {
       while (true) {
@@ -435,6 +442,7 @@ export function useAgent() {
             llmProvider,
             toolExecutor,
             permissions: settings.value.permissions || {},
+            designPrefs: settings.value.design || null,
             todosRef: todos,
             themeContext: getAgentThemeContext(),
             customPrompt: settings.value.custom_prompt || '',
@@ -466,6 +474,10 @@ export function useAgent() {
             },
             onActivity: (status) => {
               activityStatus.value = status;
+            },
+            onTimelineUpdate: (steps) => {
+              timelineSteps.value = steps;
+              scheduleStreamPersist();
             },
           });
 
@@ -558,6 +570,7 @@ export function useAgent() {
     isInterrupted.value = false;
     streamingContent.value = '';
     toolStreamState.value = null;
+    timelineSteps.value = [];
     persistSession();
   }
 
@@ -694,6 +707,7 @@ export function useAgent() {
     isInterrupted,
     streamingContent,
     toolStreamState,
+    timelineSteps,
     activityStatus,
     messages,
     todos,

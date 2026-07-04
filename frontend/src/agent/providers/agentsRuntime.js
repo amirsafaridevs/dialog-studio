@@ -16,6 +16,7 @@
 
 import { OpenAI } from 'openai';
 import {
+  run,
   setDefaultOpenAIClient,
   setOpenAIAPI,
   setTracingDisabled,
@@ -53,6 +54,36 @@ export function configureAgentsRuntime({ apiKey }) {
 
   configuredKey = apiKey;
   console.log('[agentsRuntime] Configured @openai/agents via wpagentify proxy');
+}
+
+/**
+ * Run an SDK agent with `stream: true` and drain the event stream ourselves,
+ * calling `onProgress()` after each event instead of only once the whole run
+ * resolves. The agent's own tools (planner/executor/validator) already record
+ * tool_call/tool_result into the shared Timeline synchronously, inside their
+ * `execute()` closures — those writes land before the corresponding
+ * `tool_called`/`tool_output` stream event surfaces here, so calling
+ * `onProgress()` per event is enough to make each tool call visible to the UI
+ * as it happens, instead of only after the node's run() call finishes.
+ *
+ * Returns the same RunResult the caller gets from a plain `run(agent, input)`
+ * call (has `.finalOutput`/`.finalOutputText`), so call sites don't need any
+ * other changes.
+ *
+ * @param {import('@openai/agents').Agent} agent
+ * @param {any} input
+ * @param {object} options passed through to run() (maxTurns, signal, toolNotFoundBehavior, ...)
+ * @param {() => void} [onProgress] called after each streamed event
+ */
+export async function runStreamed(agent, input, options, onProgress) {
+  const streamed = await run(agent, input, { ...options, stream: true });
+
+  for await (const _event of streamed) {
+    onProgress?.();
+  }
+  await streamed.completed;
+
+  return streamed;
 }
 
 export { WPAGENTIFY_BASE_URL };

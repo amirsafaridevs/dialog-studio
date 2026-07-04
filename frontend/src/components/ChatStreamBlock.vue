@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { Brain, ChevronDown, LoaderCircle } from 'lucide-vue-next';
+import { Brain, ChevronDown, Sparkles } from 'lucide-vue-next';
 import { getLastLines } from '../utils/toolDisplay.js';
 
 const props = defineProps({
@@ -33,7 +33,7 @@ const props = defineProps({
 const collapsed = ref(props.defaultCollapsed);
 const resolvedIcon = computed(() => {
   if (props.streaming) {
-    return LoaderCircle;
+    return Sparkles;
   }
 
   return props.icon || Brain;
@@ -138,7 +138,8 @@ watch(
 
 .chat-stream-block__icon--spin {
   color: var(--dtm-accent);
-  animation: chat-stream-spin 1s linear infinite;
+  animation: chat-stream-sparkle 1.4s ease-in-out infinite;
+  transform-origin: center;
 }
 
 .chat-stream-block__title {
@@ -179,6 +180,7 @@ watch(
   padding: var(--dtm-space-2) var(--dtm-space-3);
   border-radius: var(--dtm-radius-md);
   background: rgba(255, 255, 255, 0.03);
+  animation: chat-stream-preview-in 0.2s ease both;
 }
 
 .chat-stream-block__preview-text {
@@ -203,13 +205,28 @@ watch(
   }
 }
 
-@keyframes chat-stream-spin {
+@keyframes chat-stream-preview-in {
   from {
-    transform: rotate(0deg);
+    opacity: 0;
+    transform: translateY(-3px);
   }
 
   to {
-    transform: rotate(360deg);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-stream-sparkle {
+  0%,
+  100% {
+    transform: scale(0.85) rotate(0deg);
+    opacity: 0.75;
+  }
+
+  50% {
+    transform: scale(1.15) rotate(18deg);
+    opacity: 1;
   }
 }
 </style>

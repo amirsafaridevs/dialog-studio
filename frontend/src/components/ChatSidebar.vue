@@ -70,6 +70,8 @@ const {
 
   toolStreamState,
 
+  timelineSteps,
+
   messages: agentMessages,
 
   todos: agentTodos,
@@ -125,6 +127,16 @@ const canExportChat = computed(() => (
 const translatedAgentError = computed(() => {
   if (!agentError.value) return '';
   return translateErrorMessage(agentError.value) || agentError.value;
+});
+
+const currentToolTitle = computed(() => {
+  const steps = timelineSteps.value;
+  for (let i = steps.length - 1; i >= 0; i -= 1) {
+    if (steps[i]?.type === 'tool') {
+      return steps[i].title || '';
+    }
+  }
+  return '';
 });
 
 function getActiveSessionTitle() {
@@ -540,7 +552,7 @@ function buildStreamingMessages(state) {
 
         const planMessage = createPlanMessage(
 
-          `streaming-plan-${tool.id || tool.name}`,
+          'run-plan',
 
           tool.args.todos,
 
@@ -618,7 +630,7 @@ function buildStreamingMessages(state) {
 
     if (state.toolName === 'update_todos' && Array.isArray(state.args?.todos)) {
 
-      const planMessage = createPlanMessage('streaming-plan-running', state.args.todos, { streaming: true });
+      const planMessage = createPlanMessage('run-plan', state.args.todos, { streaming: true });
 
       if (planMessage) {
 
@@ -688,6 +700,12 @@ function mapAgentMessages() {
 
   const toolCallArgsById = new Map();
 
+  // The message the current run ended on (a clarifying question OR the final
+  // answer) is rendered AFTER the timeline steps appended below, so it appears
+  // beneath the nodes/plan that produced it rather than above them. Held here
+  // and pushed once the timeline is added.
+  let pendingFinal = null;
+
 
 
   agentMessages.value.forEach((message, index) => {
@@ -730,9 +748,20 @@ function mapAgentMessages() {
 
       if (summary.todos) {
 
-        const planMessage = createPlanMessage(message?.id || `plan-${index}`, summary.todos);
+        const planMessage = createPlanMessage('run-plan', summary.todos);
 
         if (planMessage) {
+
+          // Keep a single, stable-keyed plan block: drop the previous
+          // update_todos snapshot so later status updates patch in place
+          // instead of stacking duplicate 'run-plan' keys.
+          const existingPlanIndex = display.findIndex((item) => item.id === 'run-plan');
+
+          if (existingPlanIndex !== -1) {
+
+            display.splice(existingPlanIndex, 1);
+
+          }
 
           display.push(planMessage);
 
@@ -763,6 +792,36 @@ function mapAgentMessages() {
         time: 'اکنون',
 
       });
+
+      return;
+
+    }
+
+
+
+    const question = message?.additional_kwargs?.question || null;
+
+    if (question) {
+
+      const answered = Boolean(message?.additional_kwargs?.question_answered);
+
+      const questionStep = {
+        id: message?.id || `question-${index}`,
+        role: 'assistant',
+        type: 'question',
+        question,
+        answered,
+        time: 'اکنون',
+      };
+
+      // The trailing, still-unanswered question is the current run's outcome:
+      // defer it so it renders below the timeline steps appended at the end.
+      // Answered questions from earlier turns stay inline in message order.
+      if (!answered && index === agentMessages.value.length - 1) {
+        pendingFinal = questionStep;
+      } else {
+        display.push(questionStep);
+      }
 
       return;
 
@@ -809,19 +868,22 @@ function mapAgentMessages() {
 
     if (text) {
 
-      display.push({
-
+      const textStep = {
         id: message?.id || `assistant-${index}`,
-
         role: 'assistant',
-
         type: 'text',
-
         content: text,
-
         time: 'اکنون',
+      };
 
-      });
+      // The trailing assistant text is the current run's final answer: defer it
+      // so it renders below the timeline steps (plan/todolist + node summaries)
+      // that produced it. Earlier assistant texts stay inline in message order.
+      if (index === agentMessages.value.length - 1) {
+        pendingFinal = textStep;
+      } else {
+        display.push(textStep);
+      }
 
     } else if (hasToolCalls) {
       // Completed tools are rendered from tool result messages below.
@@ -872,7 +934,22 @@ function mapAgentMessages() {
 
     });
 
+  } else if (timelineSteps.value.length) {
+
+    display.push(...timelineSteps.value.filter((step) => step.type !== 'tool'));
+
   }
+
+  // Append the deferred trailing message (final answer or question) so it
+  // renders beneath the timeline steps (the nodes/plan that produced it)
+  // rather than above them.
+  if (pendingFinal) {
+
+    display.push(pendingFinal);
+
+  }
+
+  console.log('[mapAgentMessages] timelineSteps:', timelineSteps.value.length, 'display types:', display.map((d) => d.type));
 
 
 
@@ -1081,7 +1158,7 @@ watch(
 
 watch(
 
-  [streamingContent, toolStreamState, isRunning],
+  [streamingContent, toolStreamState, timelineSteps, isRunning],
 
   () => {
 
@@ -1197,6 +1274,53 @@ async function handleSend(text) {
   } catch (error) {
 
     const notice = error.message || 'ارسال پیام ناموفق بود.';
+
+    messages.value = [...messages.value, createAssistantNotice(notice)];
+
+  }
+
+}
+
+
+
+async function handleAnswerQuestion({ message, answer }) {
+
+  if (!isInitialized.value || isRunning.value) {
+
+    return;
+
+  }
+
+  const chosen = Array.isArray(answer) ? answer.filter(Boolean) : [answer].filter(Boolean);
+
+  if (!chosen.length) {
+
+    return;
+
+  }
+
+  const sourceMessage = agentMessages.value.find((candidate) => candidate?.id === message.id);
+
+  if (sourceMessage) {
+
+    sourceMessage.additional_kwargs = {
+      ...(sourceMessage.additional_kwargs || {}),
+      question_answered: true,
+    };
+
+  }
+
+  try {
+
+    await sendMessage(chosen.join('، '));
+
+    refreshChatHistory();
+
+    mapAgentMessages();
+
+  } catch (error) {
+
+    const notice = error.message || 'ارسال پاسخ ناموفق بود.';
 
     messages.value = [...messages.value, createAssistantNotice(notice)];
 
@@ -1547,7 +1671,13 @@ async function handleCustomPromptSaved(payload) {
 
         :messages="messages"
 
+        :tool-activity-title="currentToolTitle"
+
+        :tool-activity-visible="isRunning"
+
         @select-prompt="handleSelectPrompt"
+
+        @answer-question="handleAnswerQuestion"
 
       />
 

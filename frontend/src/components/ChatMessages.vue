@@ -3,7 +3,10 @@ import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import TaskPlan from './TaskPlan.vue';
 import ChatEmptyState from './ChatEmptyState.vue';
 import ChatStreamBlock from './ChatStreamBlock.vue';
+import ChatNodeStep from './ChatNodeStep.vue';
 import ChatMessageBody from './ChatMessageBody.vue';
+import ChatQuestion from './ChatQuestion.vue';
+import ChatToolActivity from './ChatToolActivity.vue';
 import { getToolIcon, getToolTitle } from '../utils/toolDisplay.js';
 
 const props = defineProps({
@@ -11,9 +14,17 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  toolActivityTitle: {
+    type: String,
+    default: '',
+  },
+  toolActivityVisible: {
+    type: Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['select-prompt']);
+const emit = defineEmits(['select-prompt', 'answer-question']);
 
 const containerRef = ref(null);
 const stickToBottom = ref(true);
@@ -56,6 +67,13 @@ watch(
   { deep: true },
 );
 
+watch(
+  () => props.toolActivityTitle,
+  () => {
+    maybeScrollToBottom();
+  },
+);
+
 onMounted(() => {
   containerRef.value?.addEventListener('scroll', handleScroll, { passive: true });
   maybeScrollToBottom();
@@ -64,6 +82,17 @@ onMounted(() => {
 onUnmounted(() => {
   containerRef.value?.removeEventListener('scroll', handleScroll);
 });
+
+const TIMELINE_STEP_TYPES = new Set(['plan', 'thinking', 'tool', 'node', 'summary']);
+
+function isTimelineStep(message) {
+  return TIMELINE_STEP_TYPES.has(message?.type);
+}
+
+function hasTimelineNeighbor(list, index, direction) {
+  const neighbor = list[index + direction];
+  return Boolean(neighbor && isTimelineStep(neighbor));
+}
 
 function resolveToolTitle(message) {
   if (message.title) {
@@ -82,31 +111,74 @@ function resolveToolTitle(message) {
 <template>
   <div ref="containerRef" class="chat-messages">
     <ChatEmptyState
-      v-if="messages.length === 0"
+      v-if="messages.length === 0 && !toolActivityVisible"
       @select-prompt="emit('select-prompt', $event)"
     />
 
     <template v-else>
       <article
-        v-for="message in messages"
+        v-for="(message, index) in messages"
         :key="message.id"
         class="chat-message"
         :class="[
           `chat-message--${message.role}`,
           message.type === 'plan' ? 'chat-message--plan' : '',
+          isTimelineStep(message) ? 'chat-message--timeline' : '',
         ]"
       >
+        <div v-if="isTimelineStep(message)" class="chat-timeline-rail" aria-hidden="true">
+          <span
+            class="chat-timeline-rail__line"
+            :class="{ 'chat-timeline-rail__line--hidden': !hasTimelineNeighbor(messages, index, -1) }"
+          />
+          <span
+            class="chat-timeline-rail__dot"
+            :class="{
+              'chat-timeline-rail__dot--summary': message.type === 'summary' || message.type === 'plan',
+              'chat-timeline-rail__dot--active': message.type !== 'summary' && message.type !== 'plan' && message.nodeStatus === 'active',
+              'chat-timeline-rail__dot--done': message.type !== 'summary' && message.type !== 'plan' && message.nodeStatus === 'done',
+            }"
+          />
+          <span
+            class="chat-timeline-rail__line chat-timeline-rail__line--after"
+            :class="{ 'chat-timeline-rail__line--hidden': !hasTimelineNeighbor(messages, index, 1) }"
+          />
+        </div>
+
         <TaskPlan
           v-if="message.type === 'plan'"
           :tasks="message.tasks"
           class="chat-message__plan"
+          :class="{ 'chat-message__step': isTimelineStep(message) }"
+        />
+
+        <ChatQuestion
+          v-else-if="message.type === 'question'"
+          :question="message.question"
+          :answered="Boolean(message.answered)"
+          class="chat-message__question"
+          @answer="(answer) => emit('answer-question', { message, answer })"
+        />
+
+        <ChatNodeStep
+          v-else-if="message.type === 'node'"
+          :title="message.title || 'در حال پردازش'"
+          class="chat-message__step"
+        />
+
+        <ChatNodeStep
+          v-else-if="message.type === 'summary'"
+          :title="message.title"
+          variant="summary"
+          class="chat-message__step"
         />
 
         <ChatStreamBlock
           v-else-if="message.type === 'thinking'"
-          title="thinking"
+          :title="message.title || message.content || 'در حال پردازش'"
           :detail="message.detail || message.content"
           :streaming="message.streaming"
+          class="chat-message__step"
         />
 
         <ChatStreamBlock
@@ -115,6 +187,7 @@ function resolveToolTitle(message) {
           :detail="message.detail"
           :icon="getToolIcon(message.toolName)"
           :streaming="message.streaming"
+          class="chat-message__step"
         />
 
         <div
@@ -134,6 +207,12 @@ function resolveToolTitle(message) {
           <span v-if="message.streaming" class="chat-message__cursor" />
         </div>
       </article>
+
+      <ChatToolActivity
+        :visible="toolActivityVisible"
+        :title="toolActivityTitle"
+        class="chat-messages__tool-activity"
+      />
     </template>
   </div>
 </template>
@@ -163,6 +242,115 @@ function resolveToolTitle(message) {
 
 .chat-message--assistant {
   align-items: stretch;
+}
+
+.chat-message--timeline {
+  position: relative;
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--dtm-space-3);
+  margin-block: calc(var(--dtm-space-4) * -1 + 2px) 0;
+  padding-block-start: calc(var(--dtm-space-4) - 2px);
+  animation: chat-timeline-step-in 0.28s ease both;
+}
+
+.chat-message--timeline:first-child {
+  margin-block-start: 0;
+  padding-block-start: 0;
+}
+
+.chat-timeline-rail {
+  position: relative;
+  flex-shrink: 0;
+  width: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-timeline-rail__line {
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* Segment above the dot: from the very top edge of the row down to the dot. */
+.chat-timeline-rail__line:not(.chat-timeline-rail__line--after) {
+  top: calc(var(--dtm-space-4) * -1);
+  bottom: 50%;
+}
+
+/* Segment below the dot: from the dot down to the very bottom edge of the row. */
+.chat-timeline-rail__line--after {
+  top: 50%;
+  bottom: calc(var(--dtm-space-4) * -1);
+}
+
+.chat-timeline-rail__line--hidden {
+  background: transparent;
+}
+
+.chat-timeline-rail__dot {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dtm-text-muted);
+  box-shadow: 0 0 0 3px var(--dtm-bg-primary);
+  transition: background-color 0.25s ease;
+}
+
+/* Summary sub-item: a smaller dot that always stays gray, regardless of
+   whether its node is still running or finished. */
+.chat-timeline-rail__dot--summary {
+  width: 6px;
+  height: 6px;
+  background: var(--dtm-text-muted);
+  animation: none;
+}
+
+.chat-timeline-rail__dot--active {
+  background: var(--dtm-text-muted);
+  animation: chat-timeline-dot-pulse 1.4s ease-in-out infinite;
+}
+
+.chat-timeline-rail__dot--done {
+  background: var(--dtm-accent);
+  animation: none;
+}
+
+.chat-message__step {
+  flex: 1;
+  min-width: 0;
+  padding-block: 1px;
+}
+
+@keyframes chat-timeline-step-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-timeline-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px var(--dtm-bg-primary), 0 0 0 3px color-mix(in srgb, var(--dtm-text-muted) 45%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 3px var(--dtm-bg-primary), 0 0 0 7px color-mix(in srgb, var(--dtm-text-muted) 0%, transparent);
+  }
 }
 
 .chat-message__bubble {
@@ -320,5 +508,12 @@ function resolveToolTitle(message) {
 
 .chat-message__plan {
   padding: 0 var(--dtm-space-1);
+}
+
+.chat-message__question {
+  width: 100%;
+}
+
+.chat-messages__tool-activity {
 }
 </style>
